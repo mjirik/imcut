@@ -1,0 +1,39 @@
+Installation Instructions
+-------------------------
+
+Installing requires you to have installed:
+
+  * numpy (http://www.numpy.org)
+  * scipy (http://scipy.org)
+  * scikit-learn (http://scikit-learn.org)
+  * Cython - C-extension for Python (http://cython.org)
+  * pyqt - Python bindings for Qt application framework
+    (http://www.riverbankcomputing.com/software/pyqt)
+  * git - distributed version control system (http://git-scm.com)
+  * pygco - Graphcuts for Python (https://github.com/amueller/gco_python)
+  * pydicom - package for working with DICOM files
+    (http://code.google.com/p/pydicom)
+
+On Linux, ask the package manager of your distribution.
+
+On Windows, packages numpy, scipy, scikit-learn and Cython are part of
+EPD - Enthought Python (http://www.enthought.com/products/epd.php) or
+Python(x,y) distribution (http://www.pythonxy.com/).
+
+Pygco has to be installed manually:
+
+  git clone https://github.com/amueller/gco_python.git
+  cd gco_python
+  make
+  python setup.py install
+
+
+Install XXX:
+
+  git clone https://github.com/mjirik/XXX.git
+
+
+Sample DICOM data can be found at:
+
+  * http://www.mathworks.com/matlabcentral/fileexchange/2762-dicom-example-files?download=true
+  * http://www.osirix-viewer.com/datasets/
