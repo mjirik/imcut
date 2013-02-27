@@ -1,15 +1,15 @@
-XXX
+PYSEG_BASE
 
 About
 -----
 
-Segmentation tools based on graph cut algorithm.
+Segmentation tools based on the graph cut algorithm.
 
 
 Links
 -----
 
-  https://github.com/mjirik/XXX
+  https://github.com/mjirik/pyseg_base
 
 Authors
 -------

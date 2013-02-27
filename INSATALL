@@ -28,9 +28,9 @@ Pygco has to be installed manually:
   python setup.py install
 
 
-Install XXX:
+Install PYSEG_BASE:
 
-  git clone https://github.com/mjirik/XXX.git
+  git clone https://github.com/mjirik/pyseg_base.git
 
 
 Sample DICOM data can be found at:
