@@ -252,10 +252,6 @@ class SliceBox(QLabel):
         if seeds is not None:
             self.seeds = seeds
 
-        else:
-            self.seeds = np.zeros((h, w), dtype=np.uint8)
-            self.modified = True
-
         if contours is not None:
             self.contours = contours
 
@@ -456,6 +452,9 @@ class QTSeedEditor(QDialog):
         else:
             self.seeds = seeds
 
+        if mode == 'draw':
+            self.seeds_orig = self.seeds.copy()
+
         self.initUI(img.shape, actualSlice, np.max(img), mode)
         self.selectSlice(self.actual_slice + 1)
         
@@ -479,6 +478,7 @@ class QTSeedEditor(QDialog):
         self.slice_box.updateSlice()
 
     def reset(self, event):
+        self.seeds[...,self.actual_slice] = self.seeds_orig[...,self.actual_slice]
         self.slice_box.setSlice(seeds=self.seeds[...,self.actual_slice])
         self.slice_box.updateSlice()
 
@@ -534,6 +534,7 @@ class QTSeedEditor(QDialog):
         self.slice_box.setSlice(self.img[...,val],
                                 self.seeds[...,val],
                                 contours)
+
         self.actual_slice = val
         self.updateVolume()
 
