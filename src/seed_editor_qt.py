@@ -67,7 +67,7 @@ class SliceBox(QLabel):
     """
     
     def __init__(self, imageSize, sliceSize, grid,
-                 maxVal=1024):
+                 maxVal=1024, mode='seeds'):
         """
         Initialize SliceBox.
 
@@ -98,9 +98,17 @@ class SliceBox(QLabel):
         self.contours = None
         self.max_val = maxVal
         self.mask_points = None
-        self.box_buttons = None
-        self.seeds_colortable = GRAY_COLORTABLE
-        
+
+        if mode == 'draw':
+            self.seeds_colortable = CONTOURS_COLORTABLE
+            self.box_buttons = box_buttons_draw
+            self.mode_draw = True
+
+        else:
+            self.seeds_colortable = SEEDS_COLORTABLE
+            self.box_buttons = box_buttons_seed
+            self.mode_draw = False
+
         self.image = QImage(imageSize, QImage.Format_RGB32)
         self.setPixmap(QPixmap.fromImage(self.image))
         self.setFixedSize(imageSize)
@@ -214,8 +222,13 @@ class SliceBox(QLabel):
         n = h * w
         img_as1d = img.reshape((n,4))
         if self.seeds is not None:
-            self.overRgba(img_as1d, self.seeds.reshape((n,)),
-                          self.seeds_colortable)
+            if self.mode_draw:
+                self.composeRgba(img_as1d, self.seeds.reshape((n,)),
+                                 self.seeds_colortable)
+
+            else:
+                self.overRgba(img_as1d, self.seeds.reshape((n,)),
+                              self.seeds_colortable)
             
         if self.contours is not None:
             self.composeRgba(img_as1d, self.contours.reshape((n,)),
@@ -282,13 +295,6 @@ class SliceBox(QLabel):
     def enterEvent(self, event):
         self.drawing = False
 
-    def setBoxButtons(self, bb):
-        self.box_buttons = bb
-
-    def setSeedsColorTable(self, ctab):
-        self.seeds_colortable = ctab
-        
-#class QTSeedEditor(QWidget):
 class QTSeedEditor(QDialog):
     """
     DICOM viewer and seed editor.
@@ -327,7 +333,8 @@ class QTSeedEditor(QDialog):
         slice_grid = np.array([mingrid, mingrid])
         self.slice_box = SliceBox(QSize(shape[1] * slice_grid[0],
                                         shape[0] * slice_grid[1]),
-                                  (shape[1], shape[0]), slice_grid, maxVal)
+                                  (shape[1], shape[0]), slice_grid,
+                                  maxVal, mode)
 
         # slider
         self.n_slices = shape[2]
@@ -394,14 +401,10 @@ class QTSeedEditor(QDialog):
         if mode == 'seed' or mode == 'crop':
             btn_del = QPushButton("Delete", self)
             btn_del.clicked.connect(self.delete)
-            self.slice_box.setBoxButtons(box_buttons_seed)
-            self.slice_box.setSeedsColorTable(SEEDS_COLORTABLE)
 
         if mode == 'draw':
             btn_del = QPushButton("Reset", self)
             btn_del.clicked.connect(self.reset)
-            self.slice_box.setBoxButtons(box_buttons_draw)
-            self.slice_box.setSeedsColorTable(CONTOURS_COLORTABLE)
         
         grid.addWidget(btn_del, 8, 0)
         grid.addWidget(btn_quit, 8, 4)
