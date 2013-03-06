@@ -61,6 +61,52 @@ box_buttons_draw = {
     Qt.RightButton: 0,
     }
 
+nei_tab = [[-1, -1], [0, -1], [1, -1],
+           [-1, 0], [1, 0],
+           [-1, 1], [0, 1], [1, 1]]
+
+    #nei_tab = [[-1, 0], [1, 0]]
+
+def erase_reg(arr, p):
+    buff = [p]
+
+    while len(buff) > 0:
+        p = buff.pop()
+        row = arr[:,p[1],p[2]]
+        ii = p[0]
+        while ii >= 0:
+            if row[ii] <= 0:
+                break
+
+            ii -= 1
+
+        ii += 1
+
+        jj = ii
+        while jj < arr.shape[0]:
+            if row[jj] <= 0:
+                break
+
+            row[jj] = 0
+            jj +=1
+
+        for inb in nei_tab:
+            irow = p[1] + inb[0]
+            islice = p[2] + inb[1]
+        
+            if irow >= 0 and irow < arr.shape[1]\
+              and islice >= 0 and islice < arr.shape[2]:
+                flag = True
+                row = arr[:,irow,islice]
+                for kk in np.arange(ii, jj):
+                    if flag and row[kk] > 0:
+                        buff.append((kk, irow, islice))
+                        flag = False
+                        continue
+
+                    if flag == False and row[kk] == 0:
+                        flag = True
+
 class SliceBox(QLabel):
     """
     Widget for marking reagions of interest in DICOM slices.
@@ -98,6 +144,8 @@ class SliceBox(QLabel):
         self.contours = None
         self.max_val = maxVal
         self.mask_points = None
+        self.erase_region_button = None
+        self.erase_fun = None
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
@@ -265,6 +313,14 @@ class SliceBox(QLabel):
         else:
             return None
 
+    def eraseRegion(self, pos):
+        if self.erase_fun is not None:
+            self.erase_fun(pos)
+            self.updateSlice()
+
+    def setEraseFun(self, fun):
+        self.erase_fun = fun
+
     def gridPosition(self, pos):
         return (int(pos.x() / self.grid[0]),
                 int(pos.y() / self.grid[1]))
@@ -276,6 +332,10 @@ class SliceBox(QLabel):
             self.seed_mark = self.box_buttons[event.button()]
             self.last_position = self.gridPosition(event.pos())
 
+        elif event.button() == Qt.MiddleButton:
+            self.drawing = False
+            self.erase_region_button = True
+
     def mouseMoveEvent(self, event):
         if self.drawing:
             self.drawSeeds(self.gridPosition(event.pos()))
@@ -285,6 +345,11 @@ class SliceBox(QLabel):
             self.drawSeeds(self.gridPosition(event.pos()))
             self.drawing = False
 
+        if event.button() == Qt.MiddleButton\
+          and self.erase_region_button == True:
+            self.eraseRegion(self.gridPosition(event.pos()))
+            self.erase_region_button == False
+            
     def leaveEvent(self, event):
         self.drawing = False
 
@@ -297,9 +362,9 @@ class QTSeedEditor(QDialog):
     """
 
     label_text = {
-        'seed': 'inner region - left mouse button, outer mouse region - right button',
+        'seed': 'inner region - left button, outer region - right button',
         'crop': 'bounds - left button',
-        'draw': 'draw - left mouse button, erase - right mouse button',
+        'draw': 'draw - left button, erase - right button, vol. erase - middle button',
         }
 
     def initUI(self, shape, actualSlice=0,
@@ -452,10 +517,11 @@ class QTSeedEditor(QDialog):
         else:
             self.seeds = seeds
 
+        self.initUI(img.shape, actualSlice, np.max(img), mode)
         if mode == 'draw':
             self.seeds_orig = self.seeds.copy()
-
-        self.initUI(img.shape, actualSlice, np.max(img), mode)
+            self.slice_box.setEraseFun(self.eraseRegion)
+                    
         self.selectSlice(self.actual_slice + 1)
         
     def recalculate(self, event):
@@ -556,6 +622,16 @@ class QTSeedEditor(QDialog):
     def setContours(self, contours):
         self.contours = contours
         self.selectSlice(self.actual_slice + 1)
+
+    def eraseRegion(self, pos):
+        self.status_bar.showMessage("Processing...")
+        QApplication.processEvents()
+        x, y = pos
+        p = (y, x, self.actual_slice)
+        if self.seeds[p] > 0:
+            erase_reg(self.seeds, p)
+
+        self.status_bar.showMessage("Done")
 
     def updateVolume(self):
         text = 'volume [mm3]:\n unknown'
