@@ -130,7 +130,7 @@ class ImageGraphCut:
         pyed = QTSeedEditor(self.img,
                             modeFun=self.interactivity_loop,
                             voxelVolume=self.voxel_volume)
-        sys.exit(app.exec_())
+        app.exec_()
 
     def make_gc(self):
         res_segm = self.set_data(self.img, self.voxels1, self.voxels2, seeds=self.seeds)
