@@ -131,6 +131,21 @@ class ImageGraphCut:
                             modeFun=self.interactivity_loop,
                             voxelVolume=self.voxel_volume)
         app.exec_()
+    def set_seeds(self,seeds):
+        """
+        Function for manual seed setting. Sets variable seeds and prepares 
+        voxels for density model.
+        """
+        if self.img.shape != seeds.shape:
+            raise Exception("Seeds must be same size as input image")
+
+        self.seeds = seeds.astype('int8')
+        self.voxels1 = self.img[self.seeds == 1]
+        self.voxels2 = self.img[self.seeds == 2]
+
+
+
+
 
     def make_gc(self):
         res_segm = self.set_data(self.img, self.voxels1, self.voxels2, seeds=self.seeds)
