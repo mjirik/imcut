@@ -74,14 +74,28 @@ class DicomReader():
         return self.valid
         
     def get_metaData(self, ifile=0):
+        """
+        Get metadata.
+        Voxel size is obtained from PixelSpacing and difference of 
+        SliceLocation of two neighboorhoding slices (first have index ifile).
+        """
 
         data = dicom.read_file(self.dcmlist[ifile])
+        try:
+            data2 = dicom.read_file(self.dcmlist[ifile+1])
+            voxeldepth = float(np.abs(data.SliceLocation - data2.SliceLocation ))
+        except:
+            logger.warning('Problem with voxel depth. Using SliceThickness')
+            voxeldepth = float(data.SliceThickness)
+
+        
         pixelsizemm = data.PixelSpacing
         voxelsizemm = [float(pixelsizemm[0]),
                        float(pixelsizemm[1]),
-                       float(data.SliceThickness)]
+                       voxeldepth]
         metadata = {'voxelsizemm': voxelsizemm, 'Modality': data.Modality}
 
+        #import pdb; pdb.set_trace()
         return metadata
 
     def get_3Ddata(self):
