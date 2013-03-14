@@ -61,6 +61,52 @@ box_buttons_draw = {
     Qt.RightButton: 0,
     }
 
+nei_tab = [[-1, -1], [0, -1], [1, -1],
+           [-1, 0], [1, 0],
+           [-1, 1], [0, 1], [1, 1]]
+
+    #nei_tab = [[-1, 0], [1, 0]]
+
+def erase_reg(arr, p, val=0):
+    buff = [p]
+
+    while len(buff) > 0:
+        p = buff.pop()
+        row = arr[:,p[1],p[2]]
+        ii = p[0]
+        while ii >= 0:
+            if row[ii] <= 0:
+                break
+
+            ii -= 1
+
+        ii += 1
+
+        jj = ii
+        while jj < arr.shape[0]:
+            if row[jj] <= 0:
+                break
+
+            row[jj] = val
+            jj +=1
+
+        for inb in nei_tab:
+            irow = p[1] + inb[0]
+            islice = p[2] + inb[1]
+        
+            if irow >= 0 and irow < arr.shape[1]\
+              and islice >= 0 and islice < arr.shape[2]:
+                flag = True
+                row = arr[:,irow,islice]
+                for kk in np.arange(ii, jj):
+                    if flag and row[kk] > 0:
+                        buff.append((kk, irow, islice))
+                        flag = False
+                        continue
+
+                    if flag == False and row[kk] <= 0:
+                        flag = True
+
 class SliceBox(QLabel):
     """
     Widget for marking reagions of interest in DICOM slices.
@@ -98,6 +144,9 @@ class SliceBox(QLabel):
         self.contours = None
         self.max_val = maxVal
         self.mask_points = None
+        self.erase_region_button = None
+        self.erase_fun = None
+        self.erase_mode = None
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
@@ -265,6 +314,14 @@ class SliceBox(QLabel):
         else:
             return None
 
+    def eraseRegion(self, pos, mode):
+        if self.erase_fun is not None:
+            self.erase_fun(pos, mode)
+            self.updateSlice()
+
+    def setEraseFun(self, fun):
+        self.erase_fun = fun
+
     def gridPosition(self, pos):
         return (int(pos.x() / self.grid[0]),
                 int(pos.y() / self.grid[1]))
@@ -276,6 +333,10 @@ class SliceBox(QLabel):
             self.seed_mark = self.box_buttons[event.button()]
             self.last_position = self.gridPosition(event.pos())
 
+        elif event.button() == Qt.MiddleButton:
+            self.drawing = False
+            self.erase_region_button = True
+
     def mouseMoveEvent(self, event):
         if self.drawing:
             self.drawSeeds(self.gridPosition(event.pos()))
@@ -285,6 +346,13 @@ class SliceBox(QLabel):
             self.drawSeeds(self.gridPosition(event.pos()))
             self.drawing = False
 
+        if event.button() == Qt.MiddleButton\
+          and self.erase_region_button == True:
+            self.eraseRegion(self.gridPosition(event.pos()),
+                             self.erase_mode)
+
+            self.erase_region_button == False
+            
     def leaveEvent(self, event):
         self.drawing = False
 
@@ -297,9 +365,9 @@ class QTSeedEditor(QDialog):
     """
 
     label_text = {
-        'seed': 'inner region - left mouse button, outer mouse region - right button',
+        'seed': 'inner region - left button, outer region - right button',
         'crop': 'bounds - left button',
-        'draw': 'draw - left mouse button, erase - right mouse button',
+        'draw': 'draw - left button, erase - right button, vol. erase - middle button',
         }
 
     def initUI(self, shape, actualSlice=0,
@@ -361,8 +429,8 @@ class QTSeedEditor(QDialog):
         grid = QGridLayout()
         grid.setSpacing(10)
         grid.addWidget(text, 0, 0, 1, 5)
-        grid.addWidget(self.slice_box, 1, 0, 5, 5)
-        grid.addWidget(self.slider, 1, 5, 5, 1)
+        grid.addWidget(self.slice_box, 1, 0, 6, 5)
+        grid.addWidget(self.slider, 1, 5, 6, 1)
         grid.addWidget(btn_prev, 2, 7)
         grid.addWidget(btn_next, 1, 7)
         grid.addWidget(self.slider.label, 3, 7)
@@ -387,7 +455,7 @@ class QTSeedEditor(QDialog):
             combo.addItem(icon, mask[1])
 
         self.slice_box.setMaskPoints(self.mask_points_tab[combo.currentIndex()])
-        grid.addWidget(combo, 5, 7)
+        grid.addWidget(combo, 6, 7)
 
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
@@ -401,7 +469,12 @@ class QTSeedEditor(QDialog):
         if mode == 'draw':
             btn_del = QPushButton("Reset", self)
             btn_del.clicked.connect(self.reset)
-        
+
+            combo2 = QComboBox(self)
+            combo2.activated[str].connect(self.changeEraseMode)
+            combo2.addItems(['erase_in', 'erase_out'])
+            grid.addWidget(combo2, 5, 7)
+
         grid.addWidget(btn_del, 8, 0)
         grid.addWidget(btn_quit, 8, 4)
         grid.addWidget(self.status_bar, 9, 0, 1, 9)
@@ -452,10 +525,11 @@ class QTSeedEditor(QDialog):
         else:
             self.seeds = seeds
 
+        self.initUI(img.shape, actualSlice, np.max(img), mode)
         if mode == 'draw':
             self.seeds_orig = self.seeds.copy()
-
-        self.initUI(img.shape, actualSlice, np.max(img), mode)
+            self.slice_box.setEraseFun(self.eraseRegion)
+                    
         self.selectSlice(self.actual_slice + 1)
         
     def recalculate(self, event):
@@ -484,6 +558,9 @@ class QTSeedEditor(QDialog):
 
     def changeMask(self, val):
         self.slice_box.setMaskPoints(self.mask_points_tab[val])
+
+    def changeEraseMode(self, val):
+        self.slice_box.erase_mode = str(val)
 
     def getBounds(self):
         aux = self.seeds.nonzero()
@@ -556,6 +633,23 @@ class QTSeedEditor(QDialog):
     def setContours(self, contours):
         self.contours = contours
         self.selectSlice(self.actual_slice + 1)
+
+    def eraseRegion(self, pos, mode):
+        self.status_bar.showMessage("Processing...")
+        QApplication.processEvents()
+        x, y = pos
+        p = (y, x, self.actual_slice)
+        if self.seeds[p] > 0:
+            if mode == 'erase_in':
+                erase_reg(self.seeds, p, val=0)
+
+            elif mode == 'erase_out':
+                erase_reg(self.seeds, p, val=-1)
+                idxs = np.where(self.seeds < 0)
+                self.seeds.fill(0)
+                self.seeds[idxs] = 1
+                
+        self.status_bar.showMessage("Done")
 
     def updateVolume(self):
         text = 'volume [mm3]:\n unknown'
