@@ -67,7 +67,7 @@ nei_tab = [[-1, -1], [0, -1], [1, -1],
 
     #nei_tab = [[-1, 0], [1, 0]]
 
-def erase_reg(arr, p):
+def erase_reg(arr, p, val=0):
     buff = [p]
 
     while len(buff) > 0:
@@ -87,7 +87,7 @@ def erase_reg(arr, p):
             if row[jj] <= 0:
                 break
 
-            row[jj] = 0
+            row[jj] = val
             jj +=1
 
         for inb in nei_tab:
@@ -104,7 +104,7 @@ def erase_reg(arr, p):
                         flag = False
                         continue
 
-                    if flag == False and row[kk] == 0:
+                    if flag == False and row[kk] <= 0:
                         flag = True
 
 class SliceBox(QLabel):
@@ -146,6 +146,7 @@ class SliceBox(QLabel):
         self.mask_points = None
         self.erase_region_button = None
         self.erase_fun = None
+        self.erase_mode = None
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
@@ -313,9 +314,9 @@ class SliceBox(QLabel):
         else:
             return None
 
-    def eraseRegion(self, pos):
+    def eraseRegion(self, pos, mode):
         if self.erase_fun is not None:
-            self.erase_fun(pos)
+            self.erase_fun(pos, mode)
             self.updateSlice()
 
     def setEraseFun(self, fun):
@@ -347,7 +348,9 @@ class SliceBox(QLabel):
 
         if event.button() == Qt.MiddleButton\
           and self.erase_region_button == True:
-            self.eraseRegion(self.gridPosition(event.pos()))
+            self.eraseRegion(self.gridPosition(event.pos()),
+                             self.erase_mode)
+
             self.erase_region_button == False
             
     def leaveEvent(self, event):
@@ -426,8 +429,8 @@ class QTSeedEditor(QDialog):
         grid = QGridLayout()
         grid.setSpacing(10)
         grid.addWidget(text, 0, 0, 1, 5)
-        grid.addWidget(self.slice_box, 1, 0, 5, 5)
-        grid.addWidget(self.slider, 1, 5, 5, 1)
+        grid.addWidget(self.slice_box, 1, 0, 6, 5)
+        grid.addWidget(self.slider, 1, 5, 6, 1)
         grid.addWidget(btn_prev, 2, 7)
         grid.addWidget(btn_next, 1, 7)
         grid.addWidget(self.slider.label, 3, 7)
@@ -452,7 +455,7 @@ class QTSeedEditor(QDialog):
             combo.addItem(icon, mask[1])
 
         self.slice_box.setMaskPoints(self.mask_points_tab[combo.currentIndex()])
-        grid.addWidget(combo, 5, 7)
+        grid.addWidget(combo, 6, 7)
 
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
@@ -466,7 +469,12 @@ class QTSeedEditor(QDialog):
         if mode == 'draw':
             btn_del = QPushButton("Reset", self)
             btn_del.clicked.connect(self.reset)
-        
+
+            combo2 = QComboBox(self)
+            combo2.activated[str].connect(self.changeEraseMode)
+            combo2.addItems(['erase_in', 'erase_out'])
+            grid.addWidget(combo2, 5, 7)
+
         grid.addWidget(btn_del, 8, 0)
         grid.addWidget(btn_quit, 8, 4)
         grid.addWidget(self.status_bar, 9, 0, 1, 9)
@@ -551,6 +559,9 @@ class QTSeedEditor(QDialog):
     def changeMask(self, val):
         self.slice_box.setMaskPoints(self.mask_points_tab[val])
 
+    def changeEraseMode(self, val):
+        self.slice_box.erase_mode = str(val)
+
     def getBounds(self):
         aux = self.seeds.nonzero()
 
@@ -623,14 +634,21 @@ class QTSeedEditor(QDialog):
         self.contours = contours
         self.selectSlice(self.actual_slice + 1)
 
-    def eraseRegion(self, pos):
+    def eraseRegion(self, pos, mode):
         self.status_bar.showMessage("Processing...")
         QApplication.processEvents()
         x, y = pos
         p = (y, x, self.actual_slice)
         if self.seeds[p] > 0:
-            erase_reg(self.seeds, p)
+            if mode == 'erase_in':
+                erase_reg(self.seeds, p, val=0)
 
+            elif mode == 'erase_out':
+                erase_reg(self.seeds, p, val=-1)
+                idxs = np.where(self.seeds < 0)
+                self.seeds.fill(0)
+                self.seeds[idxs] = 1
+                
         self.status_bar.showMessage("Done")
 
     def updateVolume(self):
