@@ -146,7 +146,7 @@ class SliceBox(QLabel):
         self.mask_points = None
         self.erase_region_button = None
         self.erase_fun = None
-        self.erase_mode = None
+        self.erase_mode = 'erase_in'
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
