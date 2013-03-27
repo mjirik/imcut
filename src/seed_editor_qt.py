@@ -31,13 +31,17 @@ SEEDS_COLORTABLE = np.array([[255, 255, 255, 0],
 CONTOURS_COLORTABLE = np.array([[255, 255, 255, 0],
                                 [255, 0, 0, 64]], dtype=np.uint8)
 
+CONTOURLINES_COLORTABLE = np.array([[255, 255, 255, 0],
+                                    [255, 0, 0, 24],
+                                    [255, 0, 0, 255]], dtype=np.uint8)
+
 draw_mask = [
-    (np.array([[1]], dtype=np.int8), 'small'),
+    (np.array([[1]], dtype=np.int8), 'small pen'),
     (np.array([[0, 1, 1, 1, 0],
                [1, 1, 1, 1, 1],
                [1, 1, 1, 1, 1],
                [1, 1, 1, 1, 1],
-               [0, 1, 1, 1, 0]], dtype=np.int8), 'middle'),
+               [0, 1, 1, 1, 0]], dtype=np.int8), 'middle pen'),
     (np.array([[0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
                [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -48,7 +52,7 @@ draw_mask = [
                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
                [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-               [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0]], dtype=np.int8), 'large'),
+               [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0]], dtype=np.int8), 'large pen'),
     ]
 
 box_buttons_seed = {
@@ -147,6 +151,7 @@ class SliceBox(QLabel):
         self.erase_region_button = None
         self.erase_fun = None
         self.erase_mode = 'erase_in'
+        self.contour_mode = 'fill'
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
@@ -264,7 +269,36 @@ class SliceBox(QLabel):
         idxs = fg.nonzero()
         bg[idxs] = cmap[fg[idxs]]
 
+    def get_contours(self, sl):
+        cnt = sl.copy()
+        chunk = np.zeros((cnt.shape[1] + 2,), dtype=np.int8)
+        for irow, row in enumerate(sl):
+            chunk[1:-1] = row
+            chdiff = np.diff(chunk)
+            idx1 = np.where(chdiff > 0)[0]
+            if idx1.shape[0] > 0:
+                idx2 = np.where(chdiff < 0)[0]
+                if idx2.shape[0] > 0:
+                    cnt[irow,idx1] = 2
+                    cnt[irow,idx2 - 1] = 2
+
+        chunk = np.zeros((cnt.shape[0] + 2,), dtype=np.int8)
+        for icol, col in enumerate(sl.T):
+            chunk[1:-1] = col
+            chdiff = np.diff(chunk)
+            idx1 = np.where(chdiff > 0)[0]
+            if idx1.shape[0] > 0:
+                idx2 = np.where(chdiff < 0)[0]
+                if idx2.shape[0] > 0:
+                    cnt[idx1,icol] = 2
+                    cnt[idx2 - 1,icol] = 2
+
+        return cnt
+
     def updateSlice(self):
+
+        if self.ctslice_rgba is None:
+            return
 
         img = self.ctslice_rgba.copy()
         w, h = self.slice_size
@@ -272,17 +306,28 @@ class SliceBox(QLabel):
         img_as1d = img.reshape((n,4))
         if self.seeds is not None:
             if self.mode_draw:
-                self.composeRgba(img_as1d, self.seeds.reshape((n,)),
-                                 self.seeds_colortable)
+                if self.contour_mode == 'fill':
+                    self.composeRgba(img_as1d, self.seeds.reshape((n,)),
+                                     self.seeds_colortable)
+                elif self.contour_mode == 'contours':
+                    cnt = self.get_contours(self.seeds)
+                    self.composeRgba(img_as1d, cnt.reshape((n,)),
+                                     CONTOURLINES_COLORTABLE)
 
             else:
                 self.overRgba(img_as1d, self.seeds.reshape((n,)),
                               self.seeds_colortable)
-            
+
         if self.contours is not None:
-            self.composeRgba(img_as1d, self.contours.reshape((n,)),
-                             CONTOURS_COLORTABLE)
-        
+            if self.contour_mode == 'fill':
+                self.composeRgba(img_as1d, self.contours.reshape((n,)),
+                                 CONTOURS_COLORTABLE)
+
+            elif self.contour_mode == 'contours':
+                cnt = self.get_contours(self.contours)
+                self.composeRgba(img_as1d, cnt.reshape((n,)),
+                                 CONTOURLINES_COLORTABLE)
+
         image = self.arrayToImage(img).scaled(self.imagesize)
         painter = QPainter(self.image)
         painter.drawImage(0, 0, image)
@@ -429,8 +474,8 @@ class QTSeedEditor(QDialog):
         grid = QGridLayout()
         grid.setSpacing(10)
         grid.addWidget(text, 0, 0, 1, 5)
-        grid.addWidget(self.slice_box, 1, 0, 6, 5)
-        grid.addWidget(self.slider, 1, 5, 6, 1)
+        grid.addWidget(self.slice_box, 1, 0, 10, 5)
+        grid.addWidget(self.slider, 1, 5, 10, 1)
         grid.addWidget(btn_prev, 2, 7)
         grid.addWidget(btn_next, 1, 7)
         grid.addWidget(self.slider.label, 3, 7)
@@ -455,12 +500,19 @@ class QTSeedEditor(QDialog):
             combo.addItem(icon, mask[1])
 
         self.slice_box.setMaskPoints(self.mask_points_tab[combo.currentIndex()])
-        grid.addWidget(combo, 6, 7)
+        grid.addWidget(combo, 10, 7)
+
+        combo3_options = ['fill', 'contours']
+        combo3 = QComboBox(self)
+        combo3.activated[str].connect(self.changeContourMode)
+        combo3.addItems(combo3_options)
+        grid.addWidget(combo3, 9, 7)
+        self.changeContourMode(combo3_options[combo3.currentIndex()])
 
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
             btn_recalc.clicked.connect(self.recalculate)
-            grid.addWidget(btn_recalc, 8, 2)
+            grid.addWidget(btn_recalc, 12, 2)
 
         if mode == 'seed' or mode == 'crop':
             btn_del = QPushButton("Delete", self)
@@ -470,14 +522,16 @@ class QTSeedEditor(QDialog):
             btn_del = QPushButton("Reset", self)
             btn_del.clicked.connect(self.reset)
 
+            combo2_options = ['erase_in', 'erase_out']
             combo2 = QComboBox(self)
             combo2.activated[str].connect(self.changeEraseMode)
-            combo2.addItems(['erase_in', 'erase_out'])
-            grid.addWidget(combo2, 5, 7)
+            combo2.addItems(combo2_options)
+            grid.addWidget(combo2, 8, 7)
+            self.changeEraseMode(combo2_options[combo2.currentIndex()])
 
-        grid.addWidget(btn_del, 8, 0)
-        grid.addWidget(btn_quit, 8, 4)
-        grid.addWidget(self.status_bar, 9, 0, 1, 9)
+        grid.addWidget(btn_del, 12, 0)
+        grid.addWidget(btn_quit, 12, 4)
+        grid.addWidget(self.status_bar, 13, 0, 1, 9)
         self.setLayout(grid)
 
         self.setWindowTitle('Segmentation Editor')
@@ -558,6 +612,10 @@ class QTSeedEditor(QDialog):
 
     def changeMask(self, val):
         self.slice_box.setMaskPoints(self.mask_points_tab[val])
+
+    def changeContourMode(self, val):
+        self.slice_box.contour_mode = str(val)
+        self.slice_box.updateSlice()
 
     def changeEraseMode(self, val):
         self.slice_box.erase_mode = str(val)

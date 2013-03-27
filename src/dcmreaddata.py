@@ -53,7 +53,7 @@ def obj_to_file(obj, filename='annotation.yaml', filetype='yaml'):
     f.close
 
 class DicomReader():
-    def __init__(self, dirpath=None, initdir='.'):    
+    def __init__(self, dirpath=None, initdir='.', qt_app=None):
         self.valid = False
         self.dirpath = dirpath
         self.dcmdir = self.get_dir()
@@ -63,8 +63,17 @@ class DicomReader():
             counts, bins = self.status_dir()
 
             if len (bins) > 1:
-                snstring = raw_input ('Select Serie: ')
+                if qt_app is not None:
+                    from PyQt4.QtGui import QInputDialog
+                    sbins = ', '.join([str(ii) for ii in bins])
+                    snstring, ok = QInputDialog.getText(qt_app, 'Select serie:',
+                                                        'Select serie [%s]:' % sbins,
+                                                        text='%d' % bins[0])
+                else:
+                    snstring = raw_input ('Select Serie: ')
+
                 sn = int(snstring)
+
             else:
                 sn = bins[0]
 
