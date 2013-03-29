@@ -129,7 +129,8 @@ class ImageGraphCut:
         app = QApplication(sys.argv)
         pyed = QTSeedEditor(self.img,
                             modeFun=self.interactivity_loop,
-                            voxelVolume=self.voxel_volume)
+                            voxelVolume=self.voxel_volume,
+                            seeds=self.seeds)
         app.exec_()
     def set_seeds(self,seeds):
         """
