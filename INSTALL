@@ -16,16 +16,26 @@ Installing requires you to have installed:
 
 On Linux, ask the package manager of your distribution.
 
-On Windows, packages numpy, scipy, scikit-learn and Cython are part of
-EPD - Enthought Python (http://www.enthought.com/products/epd.php) or
-Python(x,y) distribution (http://www.pythonxy.com/).
+On Windows, packages numpy, scipy, scikit-learn, Cython, pydicom are part of
+Python(x,y) distribution (http://code.google.com/p/pythonxy).
 
-Pygco has to be installed manually:
+Pygco has to be installed manually, in gitbash write:
+
+Linux:
 
   git clone https://github.com/amueller/gco_python.git
   cd gco_python
   make
   python setup.py install
+
+Windows:
+
+   git clone https://github.com/amueller/gco_python.git
+   mkdir gco_src && cd gco_src
+   wget http://vision.csd.uwo.ca/code/gco-v3.0.zip
+   uznip gco-v3.0.zip
+   cd ..
+   python setup.py build_ext -i --compiler=mingw32
 
 
 Install PYSEG_BASE:
