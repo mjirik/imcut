@@ -22,16 +22,17 @@ def obj_from_file(filename='annotation.yaml', filetype='yaml'):
     """
     Read object from file
     """
-    f = open(filename, 'r')
     if filetype == 'yaml':
         import yaml
+        f = open(filename, 'r')
         obj = yaml.load(f)
     elif filetype == 'pickle':
         import pickle
+        f = open(filename, 'rb')
         obj = pickle.load(f)
     else:
         logger.error('Unknown filetype')
-        
+
     f.close()
 
     return obj
@@ -40,12 +41,13 @@ def obj_to_file(obj, filename='annotation.yaml', filetype='yaml'):
     """
     Writes annotation in file
     """
-    f = open(filename, 'w')
     if filetype == 'yaml':
         import yaml
+        f = open(filename, 'w')
         yaml.dump(obj, f)
     elif filetype == 'pickle':
         import pickle
+        f = open(filename, 'wb')
         pickle.dump(obj, f, -1)
     else:
         logger.error('Unknown filetype')
