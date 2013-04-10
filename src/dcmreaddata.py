@@ -64,6 +64,7 @@ class DicomReader():
             self.valid = True
             counts, bins = self.status_dir()
 
+            
             if len (bins) > 1:
                 if qt_app is not None:
                     from PyQt4.QtGui import QInputDialog
@@ -72,6 +73,8 @@ class DicomReader():
                                                         'Select serie [%s]:' % sbins,
                                                         text='%d' % bins[0])
                 else:
+                    series_info = self.dcmdirstats()
+                    self.print_series_info(series_info)
                     snstring = raw_input ('Select Serie: ')
 
                 sn = int(snstring)
@@ -134,6 +137,58 @@ class DicomReader():
 
         return data3d
 
+    def dcmdirstats(self):
+        """ Dicom series staticstics, input is dcmdir, not dirpath """
+        import numpy as np
+        dcmdir = self.dcmdir
+        # get series number
+# vytvoření slovníku, kde je klíčem číslo série a hodnotou jsou všechny 
+# informace z dicomdir
+        series_info = {line['SeriesNumber']:line for line in dcmdir}
+
+# počítání velikosti série
+        try:
+            dcmdirseries = [line['SeriesNumber'] for line in dcmdir ]
+        except:
+            logger.debug('Dicom tag SeriesNumber not found')
+            series_info = {0:{'Count':0}}
+            return series_info
+            #return [0],[0]
+
+        bins = np.unique(dcmdirseries)
+        binslist = bins.tolist()
+#  kvůli správným intervalům mezi biny je nutno jeden přidat na konce
+        mxb = np.max(bins)+1
+        binslist.append(mxb)
+        #binslist.insert(0,-1)
+        counts, binsvyhodit = np.histogram(dcmdirseries, bins = binslist)
+
+        #pdb.set_trace();
+
+        # sestavení informace o velikosti série a slovníku 
+
+        for i in range(0,len(bins)):
+            series_info[bins[i]]['Count']=counts[i]
+
+        return series_info
+
+    def print_series_info(self, series_info):
+        """
+        Print series_info from dcmdirstats
+        """
+        if len (series_info) > 1:
+            for serie_number in series_info.keys():
+                strl = str(serie_number) + " (" + str(series_info[serie_number]['Count']) 
+                try:
+                    strl = strl + ", " + str( series_info[serie_number]['Modality'])
+                    strl = strl + ", " + str( series_info[serie_number]['ImageComment'])
+                except:
+                    logger.debug('Tag Modlity or ImageComment not found in dcminfo')
+                    pass
+
+                strl = strl + ')'
+                print strl
+
     def files_in_dir(self, dirpath, wildcard="*", startpath=None):
         """
         Function generates list of files from specific dir
@@ -182,18 +237,30 @@ class DicomReader():
         dcmdir: list with filenames, SeriesNumber, InstanceNumber and 
         AcquisitionNumber
         """
+        createdcmdir = True
 
         dicomdirfile = os.path.join(self.dirpath, 'dicomdir.pkl')
         ftype='pickle'
-
+        # if exist dicomdir file and is in correct version, use it
         if os.path.exists(dicomdirfile):
-            dcmdir = obj_from_file(dicomdirfile, ftype)
+            dcmdirplus = obj_from_file(dicomdirfile, ftype)
+            try:
+                if dcmdirplus ['version'] == [1,0]:
+                    createdcmdir = False
+                dcmdir = dcmdirplus['filesinfo']
+            except:
+                logger.debug('Found dicomdir.yaml with wrong version')
+                pass
 
-        else:
-            dcmdir = self.create_dir()
+
+        if createdcmdir:
+            dcmdirplus = self.create_dir()
+            dcmdir = dcmdirplus['filesinfo']
             if (writedicomdirfile) and len(dcmdir) > 0:
                 obj_to_file(dcmdir, dicomdirfile, ftype)
+                #obj_to_file(dcmdir, dcmdiryamlpath )
 
+        dcmdir = dcmdirplus['filesinfo']
         return dcmdir
 
     def create_dir(self):
@@ -208,11 +275,19 @@ class DicomReader():
             head, teil = os.path.split(filepath)
             try:
                 dcmdata=dicom.read_file(filepath)
-                files.append({'filename' : teil, 
+                metadataline = {'filename' : teil, 
                               'InstanceNumber' : dcmdata.InstanceNumber,
                               'SeriesNumber' : dcmdata.SeriesNumber,
                               'AcquisitionNumber' : dcmdata.AcquisitionNumber
-                              })
+                              }
+
+                try:
+                    metadataline ['ImageComment'] = dcmdata.ImageComments
+                    metadataline ['Modality'] = dcmdata.Modality
+                except:
+                    print 'Problem with ImageComments and Modality tags'
+
+                files.append(metadataline)
 
             except Exception as e:
                 print 'Dicom read problem with file ' + filepath
@@ -221,7 +296,8 @@ class DicomReader():
         files.sort(key=lambda x: x['SeriesNumber'])
         files.sort(key=lambda x: x['AcquisitionNumber'])
 
-        return files
+        dcmdirplus = {'version':[1,0], 'filesinfo':files}
+        return dcmdirplus
 
     def status_dir(self):
         """input is dcmdir, not dirpath """
