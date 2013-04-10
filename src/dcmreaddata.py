@@ -55,10 +55,11 @@ def obj_to_file(obj, filename='annotation.yaml', filetype='yaml'):
     f.close
 
 class DicomReader():
-    def __init__(self, dirpath=None, initdir='.', qt_app=None):
+    def __init__(self, dirpath=None, initdir='.', qt_app=None, series_number = None):
         self.valid = False
         self.dirpath = dirpath
         self.dcmdir = self.get_dir()
+        self.series_number = series_number
 
         if len(self.dcmdir) > 0:
             self.valid = True
@@ -66,18 +67,21 @@ class DicomReader():
 
             
             if len (bins) > 1:
-                if qt_app is not None:
-                    from PyQt4.QtGui import QInputDialog
-                    sbins = ', '.join([str(ii) for ii in bins])
-                    snstring, ok = QInputDialog.getText(qt_app, 'Select serie:',
-                                                        'Select serie [%s]:' % sbins,
-                                                        text='%d' % bins[0])
-                else:
-                    series_info = self.dcmdirstats()
-                    self.print_series_info(series_info)
-                    snstring = raw_input ('Select Serie: ')
+                if self.series_number == None:
+                    if qt_app is not None:
+                        from PyQt4.QtGui import QInputDialog
+                        sbins = ', '.join([str(ii) for ii in bins])
+                        snstring, ok = QInputDialog.getText(qt_app, 'Select serie:',
+                                                            'Select serie [%s]:' % sbins,
+                                                            text='%d' % bins[0])
+                    else:
+                        series_info = self.dcmdirstats()
+                        self.print_series_info(series_info)
+                        snstring = raw_input ('Select Serie: ')
 
-                sn = int(snstring)
+                    sn = int(snstring)
+                else:
+                    sn = self.series_number
 
             else:
                 sn = bins[0]
