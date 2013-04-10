@@ -86,6 +86,8 @@ class DicomReader():
             else:
                 sn = bins[0]
 
+            self.series_number = sn
+
             self.dcmlist = self.get_sortedlist(SeriesNumber=sn)
 
     def validData(self):
@@ -111,7 +113,7 @@ class DicomReader():
         voxelsizemm = [float(pixelsizemm[0]),
                        float(pixelsizemm[1]),
                        voxeldepth]
-        metadata = {'voxelsizemm': voxelsizemm, 'Modality': data.Modality}
+        metadata = {'voxelsizemm': voxelsizemm, 'Modality': data.Modality, 'SeriesNumber':self.series_number}
 
         #import pdb; pdb.set_trace()
         return metadata
