@@ -18,6 +18,9 @@ from scipy.io import savemat
 import logging
 logger = logging.getLogger(__name__)
 
+
+__version__ = [1,2]
+
 def obj_from_file(filename='annotation.yaml', filetype='yaml'):
     """
     Read object from file
@@ -55,6 +58,16 @@ def obj_to_file(obj, filename='annotation.yaml', filetype='yaml'):
     f.close
 
 class DicomReader():
+    """
+    Example:
+
+    dcr = DicomReader(os.path.abspath(dcmdir))
+    data3d = dcr.get_3Ddata()
+    metadata = dcr.get_metaData()
+
+    """
+    
+    dicomdir_filename = 'dicomdir.pkl'
     def __init__(self, dirpath=None, initdir='.', qt_app=None, series_number = None):
         self.valid = False
         self.dirpath = dirpath
@@ -93,30 +106,9 @@ class DicomReader():
     def validData(self):
         return self.valid
         
-    def get_metaData(self, ifile=0):
-        """
-        Get metadata.
-        Voxel size is obtained from PixelSpacing and difference of 
-        SliceLocation of two neighboorhoding slices (first have index ifile).
-        """
+    def get_overlay(self):
+        pass
 
-        data = dicom.read_file(self.dcmlist[ifile])
-        try:
-            data2 = dicom.read_file(self.dcmlist[ifile+1])
-            voxeldepth = float(np.abs(data.SliceLocation - data2.SliceLocation ))
-        except:
-            logger.warning('Problem with voxel depth. Using SliceThickness')
-            voxeldepth = float(data.SliceThickness)
-
-        
-        pixelsizemm = data.PixelSpacing
-        voxelsizemm = [float(pixelsizemm[0]),
-                       float(pixelsizemm[1]),
-                       voxeldepth]
-        metadata = {'voxelsizemm': voxelsizemm, 'Modality': data.Modality, 'SeriesNumber':self.series_number}
-
-        #import pdb; pdb.set_trace()
-        return metadata
 
     def get_3Ddata(self):
         """
@@ -143,8 +135,58 @@ class DicomReader():
 
         return data3d
 
+    def get_metaData(self, dcmlist =None, ifile=0):
+        """
+        Get metadata.
+        Voxel size is obtained from PixelSpacing and difference of 
+        SliceLocation of two neighboorhoding slices (first have index ifile).
+        Files in are used.
+        """
+        if dcmlist == None:
+            dcmlist = self.dcmlist
+
+        data = dicom.read_file(dcmlist[ifile])
+        try:
+            data2 = dicom.read_file(dcmlist[ifile+1])
+            voxeldepth = float(np.abs(data.SliceLocation - data2.SliceLocation ))
+        except:
+            logger.warning('Problem with voxel depth. Using SliceThickness, SeriesNumber: ' + str(data.SeriesNumber))
+            voxeldepth = float(data.SliceThickness)
+
+        
+        pixelsizemm = data.PixelSpacing
+        voxelsizemm = [float(pixelsizemm[0]),
+                       float(pixelsizemm[1]),
+                       voxeldepth]
+        metadata = {'voxelsizemm': voxelsizemm,
+                'Modality': data.Modality,
+                'SeriesNumber':self.series_number
+                }
+
+        try:
+            metadata['SeriesDescription'] = data.SeriesDescription
+
+        except:
+            logger.warning('Problem with tag SeriesDescription, \
+                    SeriesNumber: ' + str(data.SeriesNumber))
+        try:
+            metadata['ImageComments'] = data.ImageComments
+        except:
+            logger.warning('Problem with tag ImageComments, \
+                    SeriesNumber: ' + str(data.SeriesNumber))
+        try:
+            metadata['Modality'] = data.Modality
+        except:
+            logger.warning('Problem with tag Modality, \
+                    SeriesNumber: ' + str(data.SeriesNumber))
+
+        #import pdb; pdb.set_trace()
+        return metadata
+
     def dcmdirstats(self):
-        """ Dicom series staticstics, input is dcmdir, not dirpath """
+        """ Dicom series staticstics, input is dcmdir, not dirpath
+        Information is generated from dicomdir.pkl and first files of series
+        """
         import numpy as np
         dcmdir = self.dcmdir
         # get series number
@@ -176,6 +218,16 @@ class DicomReader():
         for i in range(0,len(bins)):
             series_info[bins[i]]['Count']=counts[i]
 
+            # adding information from files
+            lst = self.get_sortedlist(SeriesNumber = bins[i])
+            metadata = self.get_metaData(dcmlist = lst)
+# adding dictionary metadata to series_info dictionary
+            series_info[bins[i]] = dict(
+                    series_info[bins[i]].items() + 
+                    metadata.items()
+                    )
+
+
         return series_info
 
     def print_series_info(self, series_info):
@@ -187,7 +239,8 @@ class DicomReader():
                 strl = str(serie_number) + " (" + str(series_info[serie_number]['Count']) 
                 try:
                     strl = strl + ", " + str( series_info[serie_number]['Modality'])
-                    strl = strl + ", " + str( series_info[serie_number]['ImageComment'])
+                    strl = strl + ", " + str( series_info[serie_number]['SeriesDescription'])
+                    strl = strl + ", " + str( series_info[serie_number]['ImageComments'])
                 except:
                     logger.debug('Tag Modlity or ImageComment not found in dcminfo')
                     pass
@@ -245,17 +298,17 @@ class DicomReader():
         """
         createdcmdir = True
 
-        dicomdirfile = os.path.join(self.dirpath, 'dicomdir.pkl')
+        dicomdirfile = os.path.join(self.dirpath,self.dicomdir_filename)
         ftype='pickle'
         # if exist dicomdir file and is in correct version, use it
         if os.path.exists(dicomdirfile):
             dcmdirplus = obj_from_file(dicomdirfile, ftype)
             try:
-                if dcmdirplus ['version'] == [1,0]:
+                if dcmdirplus ['version'] == __version__:
                     createdcmdir = False
                 dcmdir = dcmdirplus['filesinfo']
             except:
-                logger.debug('Found dicomdir.yaml with wrong version')
+                logger.debug('Found dicomdir.pkl with wrong version')
                 pass
 
 
@@ -263,7 +316,7 @@ class DicomReader():
             dcmdirplus = self.create_dir()
             dcmdir = dcmdirplus['filesinfo']
             if (writedicomdirfile) and len(dcmdir) > 0:
-                obj_to_file(dcmdir, dicomdirfile, ftype)
+                obj_to_file(dcmdirplus, dicomdirfile, ftype)
                 #obj_to_file(dcmdir, dcmdiryamlpath )
 
         dcmdir = dcmdirplus['filesinfo']
@@ -287,22 +340,24 @@ class DicomReader():
                               'AcquisitionNumber' : dcmdata.AcquisitionNumber
                               }
 
-                try:
-                    metadataline ['ImageComment'] = dcmdata.ImageComments
-                    metadataline ['Modality'] = dcmdata.Modality
-                except:
-                    print 'Problem with ImageComments and Modality tags'
+                #try:
+                #    metadataline ['ImageComment'] = dcmdata.ImageComments
+                #    metadataline ['Modality'] = dcmdata.Modality
+                #except:
+                #    print 'Problem with ImageComments and Modality tags'
 
                 files.append(metadataline)
 
             except Exception as e:
-                print 'Dicom read problem with file ' + filepath
+                if head !=  self.dicomdir_filename:
+                    print 'Dicom read problem with file ' + filepath
+                    print head
 
         files.sort(key=lambda x: x['InstanceNumber'])
         files.sort(key=lambda x: x['SeriesNumber'])
         files.sort(key=lambda x: x['AcquisitionNumber'])
 
-        dcmdirplus = {'version':[1,0], 'filesinfo':files}
+        dcmdirplus = {'version':__version__, 'filesinfo':files}
         return dcmdirplus
 
     def status_dir(self):
