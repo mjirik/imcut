@@ -73,6 +73,7 @@ class DicomReader():
         self.dirpath = dirpath
         self.dcmdir = self.get_dir()
         self.series_number = series_number
+        self.overlay = {}
 
         if len(self.dcmdir) > 0:
             self.valid = True
@@ -107,7 +108,68 @@ class DicomReader():
         return self.valid
         
     def get_overlay(self):
-        pass
+        """
+        Function make 3D data from dicom file slices
+        """
+        overlay = {}
+        dcmlist = self.dcmlist
+
+        for i  in range(len(dcmlist)):
+            onefile = dcmlist[i]
+            logger.info(onefile)
+            data = dicom.read_file(onefile)
+
+            if len(overlay) == 0:
+# first there is created dictionary with avalible overlay indexes
+                for i_overlay in range (0,50):
+                    try:
+                        # overlay index 
+                        data2d = self.decode_overlay_slice(data,i_overlay)
+                        shp2 = data2d.shape
+                        overlay[i]= np.zeros([shp2[0], shp2[1], len(dcmlist)],
+                                  dtype=np.int8)
+                        overlay[i_overlay][:,:,i] = data2d
+                    except:
+                        print "nefunguje", i_overlay
+                        pass
+            else:
+                for i_overlay in overlay.keys():
+                        data2d = self.decode_overlay_slice(data,i_overlay)
+                        overlay[i_overlay][:,:,i] = data2d
+
+                
+
+
+        return overlay
+    def decode_overlay_slice(self, data, i_overlay):
+            # overlay index 
+            n_bits = 8
+
+
+            # On (60xx,3000) are stored ovelays. 
+            # First is (6000,3000), second (6002,3000), third (6004,3000),  
+            # and so on.
+            dicom_tag1 = 0x6000 + 2*i_overlay
+
+            overlay_raw = data[dicom_tag1 ,0x3000].value
+
+            # On (60xx,0010) and (60xx,0011) is stored overlay size
+            rows = data[dicom_tag1,0x0010].value # rows = 512
+            cols = data[dicom_tag1,0x0011].value # cols = 512
+
+            decoded_linear = np.zeros(len(overlay_raw)*n_bits)
+
+            # Decoding data. Each bit is stored as array element
+# TODO neni tady ta jednička blbě? 
+            for i in range(1,len(overlay_raw)):
+                for k in range (0,n_bits):
+                    byte_as_int = ord(overlay_raw[i]) 
+                    decoded_linear[i*n_bits + k] = (byte_as_int >> k) & 0b1
+
+            #overlay = np.array(pol)
+
+            overlay_slice = np.reshape(decoded_linear,[rows,cols])
+            return overlay_slice
 
 
     def get_3Ddata(self):
@@ -351,7 +413,6 @@ class DicomReader():
             except Exception as e:
                 if head !=  self.dicomdir_filename:
                     print 'Dicom read problem with file ' + filepath
-                    print head
 
         files.sort(key=lambda x: x['InstanceNumber'])
         files.sort(key=lambda x: x['SeriesNumber'])
