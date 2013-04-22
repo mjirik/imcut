@@ -125,12 +125,13 @@ class DicomReader():
                     try:
                         # overlay index 
                         data2d = self.decode_overlay_slice(data,i_overlay)
+                        #import pdb; pdb.set_trace()
                         shp2 = data2d.shape
-                        overlay[i]= np.zeros([shp2[0], shp2[1], len(dcmlist)],
+                        overlay[i_overlay]= np.zeros([shp2[0], shp2[1], len(dcmlist)],
                                   dtype=np.int8)
                         overlay[i_overlay][:,:,i] = data2d
                     except:
-                        print "nefunguje", i_overlay
+                        #print "nefunguje", i_overlay
                         pass
             else:
                 for i_overlay in overlay.keys():
