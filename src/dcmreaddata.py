@@ -15,6 +15,8 @@ import numpy as np
 from optparse import OptionParser
 from scipy.io import savemat
 
+import traceback
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -214,7 +216,11 @@ class DicomReader():
             voxeldepth = float(np.abs(data.SliceLocation - data2.SliceLocation ))
         except:
             logger.warning('Problem with voxel depth. Using SliceThickness, SeriesNumber: ' + str(data.SeriesNumber))
-            voxeldepth = float(data.SliceThickness)
+            try:
+                voxeldepth = float(data.SliceThickness)
+            except:
+                logger.warning('Probem with SliceThicknes, setting zero. ' + traceback.format_exc())
+                voxeldepth = 0
 
         
         pixelsizemm = data.PixelSpacing
