@@ -117,7 +117,7 @@ class SliceBox(QLabel):
     """
     
     def __init__(self, imageSize, sliceSize, grid,
-                 maxVal=1024, mode='seeds'):
+                 maxVal=1024, minVal=0, mode='seeds'):
         """
         Initialize SliceBox.
 
@@ -132,6 +132,8 @@ class SliceBox(QLabel):
             imageSize = (grid_x * sliceSize_x, grid_y * sliceSize_y) 
         maxVal : int
             Maximal value in data (3D) matrix.
+        minVal : int
+            Minimal value in data (3D) matrix.
         """
 
         QLabel.__init__(self)
@@ -147,11 +149,15 @@ class SliceBox(QLabel):
         self.seeds = None
         self.contours = None
         self.max_val = maxVal
+        self.min_val = minVal
         self.mask_points = None
         self.erase_region_button = None
         self.erase_fun = None
         self.erase_mode = 'erase_in'
         self.contour_mode = 'fill'
+
+        print 'max ', self.max_val
+        print 'min ', self.min_val
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
@@ -337,10 +343,17 @@ class SliceBox(QLabel):
 
     def setSlice(self, ctslice=None, seeds=None, contours=None):
 
+        
         if ctslice is not None:
             h, w = ctslice.shape
             n = h * w
-            aux = (ctslice / (float(self.max_val + 1) / 255)).astype(np.uint8)
+            #aux = (ctslice.astype(np.float) / (float(self.max_val + 1) / 255)).astype(np.float)
+            aux = ((ctslice.astype(np.float) - float(self.min_val)) * 255 /
+                    (float(self.max_val + 1) - float(self.min_val)))
+            #print aux.dtype
+            aux[aux < 00] = 0
+            aux[aux > 255] = 255
+            aux=aux.astype(np.uint8)
             self.ctslice_rgba = GRAY_COLORTABLE[aux.reshape((n,))]
             
         if seeds is not None:
@@ -416,7 +429,7 @@ class QTSeedEditor(QDialog):
         }
 
     def initUI(self, shape, actualSlice=0,
-               maxVal=1024, mode='seed'):
+               maxVal=1024, minVal=0, mode='seed'):
         """
         Initialize UI.
 
@@ -443,7 +456,7 @@ class QTSeedEditor(QDialog):
         self.slice_box = SliceBox(QSize(shape[1] * slice_grid[0],
                                         shape[0] * slice_grid[1]),
                                   (shape[1], shape[0]), slice_grid,
-                                  maxVal, mode)
+                                  maxVal, minVal,  mode)
 
         # slider
         self.n_slices = shape[2]
@@ -509,6 +522,9 @@ class QTSeedEditor(QDialog):
         grid.addWidget(combo3, 9, 7)
         self.changeContourMode(combo3_options[combo3.currentIndex()])
 
+        #if mode not in ['seed','draw','crop']:
+        #    raise Exception('Wrong mode' + str(mode))
+
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
             btn_recalc.clicked.connect(self.recalculate)
@@ -540,7 +556,8 @@ class QTSeedEditor(QDialog):
     def __init__(self, img, actualSlice=0,
                  seeds=None, contours=None,
                  mode='seed', modeFun=None,
-                 voxelVolume=None):
+                 voxelVolume=None, 
+                 minVal=None, maxVal=None):
         """
         Initiate Editor
 
@@ -579,7 +596,12 @@ class QTSeedEditor(QDialog):
         else:
             self.seeds = seeds
 
-        self.initUI(img.shape, actualSlice, np.max(img), mode)
+        if minVal is None:
+            minVal = 0
+        if maxVal is None:
+            maxVal = np.max(img)
+
+        self.initUI(img.shape, actualSlice, maxVal, minVal, mode)
         if mode == 'draw':
             self.seeds_orig = self.seeds.copy()
             self.slice_box.setEraseFun(self.eraseRegion)
