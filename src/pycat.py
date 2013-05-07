@@ -119,18 +119,23 @@ class ImageGraphCut:
         self.make_gc()
         pyed.setContours(1 - self.segmentation.astype(np.int8))
 
-    def interactivity(self):
+    def interactivity(self, min_val=None, max_val=None):
         """
         Interactive seed setting with 3d seed editor
         """
         from seed_editor_qt import QTSeedEditor
         from PyQt4.QtGui import QApplication
+        if min_val is None:
+            min_val = np.min(self.img)
+
+        if max_val is None:
+            max_val = np.max(self.img)
 
         app = QApplication(sys.argv)
         pyed = QTSeedEditor(self.img,
                             modeFun=self.interactivity_loop,
                             voxelVolume=self.voxel_volume,
-                            seeds=self.seeds, minVal=1000, maxVal=1400)
+                            seeds=self.seeds, minVal=min_val, maxVal=max_val)
         app.exec_()
     def set_seeds(self,seeds):
         """

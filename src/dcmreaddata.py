@@ -481,9 +481,13 @@ def get_dcmdir_qt(app=False):
         
     else:
         app = QApplication(sys.argv)
+        print 'pred dialogem'
         dcmdir = QFileDialog.getExistingDirectory(caption='Select DICOM Folder',
                                                   options=QFileDialog.ShowDirsOnly)
-        app.exit()
+        print 'po dialogu'
+        #app.exec_()
+        app.exit(0)
+        print 'exec_() finished'
 
     if len(dcmdir) > 0:
         dcmdir = str(dcmdir)
