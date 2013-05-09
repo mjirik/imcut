@@ -156,8 +156,6 @@ class SliceBox(QLabel):
         self.erase_mode = 'erase_in'
         self.contour_mode = 'fill'
 
-        print 'max ', self.max_val
-        print 'min ', self.min_val
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE

@@ -96,14 +96,19 @@ class ImageGraphCut:
     igc.show_segmentation()
     """
     def __init__(self, img, modelparams = defaultmodelparams,
-                 gcparams = {'pairwiseAlpha':10}, voxelsize=None):
+            gcparams = {},
+            voxelsize=None):
+
+# default values                              use_boundary_penalties
+        self.gcparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
+        self.gcparams.update(gcparams)
 
         self.img = img
         self.tdata = {}
         self.segmentation = []
         self.imgshape = img.shape
         self.modelparams = modelparams
-        self.gcparams = gcparams
+        #self.gcparams = gcparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
 
         if voxelsize is not None:
@@ -137,6 +142,28 @@ class ImageGraphCut:
                             voxelVolume=self.voxel_volume,
                             seeds=self.seeds, minVal=min_val, maxVal=max_val)
         app.exec_()
+
+    def boundary_penalties(self, axis):
+        #dim = len(self.img.shape)
+        
+        #shp = self.img.shape
+        #shp.append(dim)
+
+        #diffs = np.zeros(shp,dtype=np.int16)
+
+        #diffs=[]
+        import scipy.ndimage.filters
+
+        #for axis in range(0,dim):
+        filtered = scipy.ndimage.filters.prewitt(self.img, axis=axis)
+        #if dim >= 1:
+# odecitame od sebe tentyz obrazek
+#            df0 = self.img[:-1,:] - self.img[]
+#            diffs.insert(0,
+
+
+
+
     def set_seeds(self,seeds):
         """
         Function for manual seed setting. Sets variable seeds and prepares 
@@ -202,9 +229,14 @@ class ImageGraphCut:
 # use the gerneral graph algorithm
 # first, we construct the grid graph
         inds = np.arange(data.size).reshape(data.shape)
-        edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
-        edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
-        edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
+        if self.gcparams['use_boundary_penalties']:
+            pass
+        else:
+
+            edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
+            edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
+            edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
+
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
 
 # edges - seznam indexu hran, kteres spolu sousedi
