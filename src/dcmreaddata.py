@@ -93,7 +93,7 @@ class DicomReader():
                                                             text='%d' % bins[0])
                     else:
                         series_info = self.dcmdirstats()
-                        self.print_series_info(series_info)
+                        print self.print_series_info(series_info)
                         snstring = raw_input ('Select Serie: ')
 
                     sn = int(snstring)
@@ -304,6 +304,7 @@ class DicomReader():
         """
         Print series_info from dcmdirstats
         """
+        strinfo = ''
         if len (series_info) > 1:
             for serie_number in series_info.keys():
                 strl = str(serie_number) + " (" + str(series_info[serie_number]['Count']) 
@@ -316,7 +317,10 @@ class DicomReader():
                     pass
 
                 strl = strl + ')'
-                print strl
+                strinfo = strinfo + strl + '\n'
+                #print strl
+
+        return strinfo
 
     def files_in_dir(self, dirpath, wildcard="*", startpath=None):
         """
