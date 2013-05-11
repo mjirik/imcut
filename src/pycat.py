@@ -118,6 +118,10 @@ class ImageGraphCut:
             self.voxel_volume = None
 
     def interactivity_loop(self, pyed):
+# @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď jedničku, 
+# pravé dvojku. Pravým však zpravidla označujeme pozadí a tak nám vyjde 
+# popředí jako nula a pozadí jako jednička.
+# Tím také dopadne jinak interaktivní a neinteraktivní varianta.
         self.seeds = pyed.getSeeds()
         self.voxels1 = pyed.getSeedsVal(1)
         self.voxels2 = pyed.getSeedsVal(2)
@@ -144,25 +148,6 @@ class ImageGraphCut:
                             voxelVolume=self.voxel_volume,
                             seeds=self.seeds, minVal=min_val, maxVal=max_val)
         qt_app.exec_()
-
-    def boundary_penalties(self, axis):
-        #dim = len(self.img.shape)
-        
-        #shp = self.img.shape
-        #shp.append(dim)
-
-        #diffs = np.zeros(shp,dtype=np.int16)
-
-        #diffs=[]
-        import scipy.ndimage.filters
-
-        #for axis in range(0,dim):
-        filtered = scipy.ndimage.filters.prewitt(self.img, axis=axis)
-        #if dim >= 1:
-# odecitame od sebe tentyz obrazek
-#            df0 = self.img[:-1,:] - self.img[]
-#            diffs.insert(0,
-
 
 
 
@@ -195,6 +180,32 @@ class ImageGraphCut:
 
         return tdata1, tdata2
 
+    def boundary_penalties(self, axis):
+        #dim = len(self.img.shape)
+        
+        #shp = self.img.shape
+        #shp.append(dim)
+
+        #diffs = np.zeros(shp,dtype=np.int16)
+
+        #diffs=[]
+        import scipy.ndimage.filters
+
+        #for axis in range(0,dim):
+        filtered = scipy.ndimage.filters.prewitt(self.img, axis=axis)
+# Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto, 
+# aby to slušně vycházelo, takže jsem si jí upravil
+        filtered2 = (-np.power(filtered,2)/(16*np.var(self.img))) 
+# Přičítám tu 1024 což je empiricky zjištěná hodnota - aby to dobře vyšlo
+# nedávám to do exponenciely, protože je to numericky nestabilní
+        filtered2 = filtered2 + 256 # - np.min(filtered2) + 1e-30
+        #if dim >= 1:
+# odecitame od sebe tentyz obrazek
+#            df0 = self.img[:-1,:] - self.img[]
+#            diffs.insert(0,
+
+
+
     def set_data(self, data, voxels1, voxels2, seeds = False, hard_constraints = True):
         """
         Setting of data.
@@ -211,7 +222,7 @@ class ImageGraphCut:
 # There is a need to have small vaues for good fit
 # R(obj) = -ln( Pr (Ip | O) )
 # R(bck) = -ln( Pr (Ip | B) )
-# Boykov2001a 
+# Boykov2001b 
 # ln is computed in likelihood 
         tdata1 = (-(mdl.likelihood(data, 1))) * 10
         tdata2 = (-(mdl.likelihood(data, 2))) * 10
@@ -232,6 +243,7 @@ class ImageGraphCut:
 # first, we construct the grid graph
         inds = np.arange(data.size).reshape(data.shape)
         if self.gcparams['use_boundary_penalties']:
+            edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
             pass
         else:
 

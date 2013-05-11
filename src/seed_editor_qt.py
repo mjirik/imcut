@@ -549,6 +549,8 @@ class QTSeedEditor(QDialog):
         self.setLayout(grid)
 
         self.setWindowTitle('Segmentation Editor')
+        self.status_bar.showMessage("Ready. Min = %.3g, Max %.3g" % 
+                (minVal,maxVal)) 
         self.show()
 
     def __init__(self, img, actualSlice=0,
@@ -595,7 +597,7 @@ class QTSeedEditor(QDialog):
             self.seeds = seeds
 
         if minVal is None:
-            minVal = 0
+            minVal = np.min(img)
         if maxVal is None:
             maxVal = np.max(img)
 
