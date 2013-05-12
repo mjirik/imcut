@@ -180,38 +180,51 @@ class ImageGraphCut:
 
         return tdata1, tdata2
 
-    def boundary_penalties(self, axis):
-        #dim = len(self.img.shape)
-        
-        #shp = self.img.shape
-        #shp.append(dim)
+    def boundary_penalties_array(self, axis, sigma = None):
 
-        #diffs = np.zeros(shp,dtype=np.int16)
-
-        #diffs=[]
         import scipy.ndimage.filters
 
         #for axis in range(0,dim):
         filtered = scipy.ndimage.filters.prewitt(self.img, axis=axis)
-# Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto, 
-# aby to slušně vycházelo, takže jsem si jí upravil
-        filtered2 = (-np.power(filtered,2)/(16*np.var(self.img))) 
-# Přičítám tu 1024 což je empiricky zjištěná hodnota - aby to dobře vyšlo
-# nedávám to do exponenciely, protože je to numericky nestabilní
-        filtered2 = filtered2 + 256 # - np.min(filtered2) + 1e-30
-        #if dim >= 1:
-# odecitame od sebe tentyz obrazek
-#            df0 = self.img[:-1,:] - self.img[]
-#            diffs.insert(0,
+        if sigma is None:
+            sigma=np.var(self.img)
+
+        filtered = np.exp(-np.power(filtered,2)/(256*sigma))
+#        print 'ax %.1g max %.3g min %.3g  avg %.3g' % (
+#                axis,
+#                np.max(filtered), np.min(filtered), np.mean(filtered))
+#
+## @TODO Check why forumla with exp is not stable
+## Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto, 
+## aby to slušně vycházelo, takže jsem si jí upravil
+## Originální vzorec je
+## Bpq = exp( - (Ip - Iq)^2 / (2 * \sigma^2) ) * 1 / dist(p,q)
+#        filtered = (-np.power(filtered,2)/(16*sigma)) 
+## Přičítám tu 256 což je empiricky zjištěná hodnota - aby to dobře vyšlo
+## nedávám to do exponenciely, protože je to numericky nestabilní
+#        filtered = filtered + 255 # - np.min(filtered2) + 1e-30
+## Ještě by tady měl a následovat exponenciela, ale s ní je to numericky 
+## nestabilní. Netuším proč.
+#        #if dim >= 1:
+## odecitame od sebe tentyz obrazek
+##            df0 = self.img[:-1,:] - self.img[]
+##            diffs.insert(0,
+        return filtered
 
 
 
-    def set_data(self, data, voxels1, voxels2, seeds = False, hard_constraints = True):
+    def set_data(self, data, voxels1, voxels2, 
+            seeds=False, 
+            hard_constraints=True,
+            area_weight=1):
         """
         Setting of data.
         You need set seeds if you want use hard_constraints.
         
         """
+
+        # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se 
+        # počítaly z :-1
         mdl = Model ( modelparams = self.modelparams )
         mdl.train(voxels1, 1)
         mdl.train(voxels2, 2)
@@ -234,7 +247,7 @@ class ImageGraphCut:
             tdata1, tdata2 = self.set_hard_hard_constraints(tdata1, tdata2, seeds)
             
 
-        unariesalt = (1 * np.dstack([tdata1.reshape(-1,1), tdata2.reshape(-1,1)]).copy("C")).astype(np.int32)
+        unariesalt = (0+(area_weight * np.dstack([tdata1.reshape(-1,1), tdata2.reshape(-1,1)]).copy("C"))).astype(np.int32)
 
 # create potts pairwise
         #pairwiseAlpha = -10
@@ -243,15 +256,39 @@ class ImageGraphCut:
 # first, we construct the grid graph
         inds = np.arange(data.size).reshape(data.shape)
         if self.gcparams['use_boundary_penalties']:
-            edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
-            pass
+            cc=8
+            bpa = self.boundary_penalties_array(axis=2)
+            id1=inds[:, :, :-1].ravel()
+            edgx = np.c_[
+                    inds[:, :, :-1].ravel(),
+                    inds[:, :, 1:].ravel(),
+                    #cc * np.ones(id1.shape)]
+                    cc* bpa[:,:,1:].ravel()]
+
+            bpa = self.boundary_penalties_array(axis=1)
+            id1 =inds[:, 1:, :].ravel()
+            edgy = np.c_[
+                    inds[:, :-1, :].ravel(),
+                    inds[:, 1:, :].ravel(),
+                    #cc * np.ones(id1.shape)]
+                    cc* bpa[:, 1:,:].ravel()]
+
+            bpa = self.boundary_penalties_array(axis=0)
+            id1 = inds[1:, :, :].ravel()
+            edgz = np.c_[
+                    inds[:-1, :, :].ravel(),
+                    inds[1:, :, :].ravel(),
+                    #cc * np.ones(id1.shape)]
+                    cc * bpa[1:,:,:].ravel()]
         else:
 
             edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
             edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
             edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
 
+        #import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
+
 
 # edges - seznam indexu hran, kteres spolu sousedi
 
@@ -259,7 +296,7 @@ class ImageGraphCut:
         #result_graph = cut_from_graph(edges, unaries.reshape(-1, 2), pairwise)
         result_graph = cut_from_graph(edges, unariesalt.reshape(-1,2), pairwise)
 
-        
+        #print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
