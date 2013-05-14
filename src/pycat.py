@@ -100,7 +100,8 @@ class ImageGraphCut:
             voxelsize=None):
 
 # default values                              use_boundary_penalties
-        self.gcparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
+        #self.gcparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
+        self.gcparams = {'pairwiseAlpha':20, 'use_boundary_penalties':False,'boundary_penalties_sigma':200}
         self.gcparams.update(gcparams)
 
         self.img = img
@@ -190,9 +191,13 @@ class ImageGraphCut:
             sigma=np.var(self.img)
 
         filtered = np.exp(-np.power(filtered,2)/(256*sigma))
-#        print 'ax %.1g max %.3g min %.3g  avg %.3g' % (
-#                axis,
-#                np.max(filtered), np.min(filtered), np.mean(filtered))
+
+        #srovnán hodnot tak, aby to vycházelo mezi 0 a 100
+        cc = 10
+        filtered = ((filtered - 1)*cc) + 10
+        print 'ax %.1g max %.3g min %.3g  avg %.3g' % (
+                axis,
+                np.max(filtered), np.min(filtered), np.mean(filtered))
 #
 ## @TODO Check why forumla with exp is not stable
 ## Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto, 
@@ -256,8 +261,12 @@ class ImageGraphCut:
 # first, we construct the grid graph
         inds = np.arange(data.size).reshape(data.shape)
         if self.gcparams['use_boundary_penalties']:
-            cc=8
-            bpa = self.boundary_penalties_array(axis=2)
+#  některém testu  organ semgmentation dosahují unaries -15. což je podiné
+# stačí yhodit print před if a je to idět
+            print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
+            cc=1
+            sigma = self.gcparams['boundary_penalties_sigma']
+            bpa = self.boundary_penalties_array(axis=2, sigma=sigma)
             id1=inds[:, :, :-1].ravel()
             edgx = np.c_[
                     inds[:, :, :-1].ravel(),
@@ -265,7 +274,7 @@ class ImageGraphCut:
                     #cc * np.ones(id1.shape)]
                     cc* bpa[:,:,1:].ravel()]
 
-            bpa = self.boundary_penalties_array(axis=1)
+            bpa = self.boundary_penalties_array(axis=1, sigma=sigma)
             id1 =inds[:, 1:, :].ravel()
             edgy = np.c_[
                     inds[:, :-1, :].ravel(),
@@ -273,7 +282,7 @@ class ImageGraphCut:
                     #cc * np.ones(id1.shape)]
                     cc* bpa[:, 1:,:].ravel()]
 
-            bpa = self.boundary_penalties_array(axis=0)
+            bpa = self.boundary_penalties_array(axis=0, sigma=sigma)
             id1 = inds[1:, :, :].ravel()
             edgz = np.c_[
                     inds[:-1, :, :].ravel(),
