@@ -96,20 +96,20 @@ class ImageGraphCut:
     igc.show_segmentation()
     """
     def __init__(self, img, modelparams = defaultmodelparams,
-            gcparams = {},
+            segparams = {},
             voxelsize=None):
 
 # default values                              use_boundary_penalties
-        #self.gcparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
-        self.gcparams = {'pairwiseAlpha':20, 'use_boundary_penalties':False,'boundary_penalties_sigma':200}
-        self.gcparams.update(gcparams)
+        #self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
+        self.segparams = {'type':'graphcut','pairwise_alpha':20, 'use_boundary_penalties':False,'boundary_penalties_sigma':200}
+        self.segparams.update(segparams)
 
         self.img = img
         self.tdata = {}
         self.segmentation = []
         self.imgshape = img.shape
         self.modelparams = modelparams
-        #self.gcparams = gcparams
+        #self.segparams = segparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
 
         if voxelsize is not None:
@@ -188,13 +188,16 @@ class ImageGraphCut:
         #for axis in range(0,dim):
         filtered = scipy.ndimage.filters.prewitt(self.img, axis=axis)
         if sigma is None:
-            sigma=np.var(self.img)
+            sigma2 = np.var(self.img)
+        else:
+            sigma2 = sigma**2
 
-        filtered = np.exp(-np.power(filtered,2)/(256*sigma))
+
+        filtered = np.exp(-np.power(filtered,2)/(256*sigma2))
 
         #srovnán hodnot tak, aby to vycházelo mezi 0 a 100
-        cc = 10
-        filtered = ((filtered - 1)*cc) + 10
+        #cc = 10
+        #filtered = ((filtered - 1)*cc) + 10
         print 'ax %.1g max %.3g min %.3g  avg %.3g' % (
                 axis,
                 np.max(filtered), np.min(filtered), np.mean(filtered))
@@ -256,39 +259,39 @@ class ImageGraphCut:
 
 # create potts pairwise
         #pairwiseAlpha = -10
-        pairwise = -self.gcparams['pairwiseAlpha'] * np.eye(2, dtype=np.int32)
+        pairwise = -self.segparams['pairwise_alpha'] * np.eye(2, dtype=np.int32)
 # use the gerneral graph algorithm
 # first, we construct the grid graph
         inds = np.arange(data.size).reshape(data.shape)
-        if self.gcparams['use_boundary_penalties']:
+        if self.segparams['use_boundary_penalties']:
 #  některém testu  organ semgmentation dosahují unaries -15. což je podiné
 # stačí yhodit print před if a je to idět
             print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
-            cc=1
-            sigma = self.gcparams['boundary_penalties_sigma']
+            bpw = self.segparams['boundary_penalties_weight']
+            sigma = self.segparams['boundary_penalties_sigma']
             bpa = self.boundary_penalties_array(axis=2, sigma=sigma)
-            id1=inds[:, :, :-1].ravel()
+            #id1=inds[:, :, :-1].ravel()
             edgx = np.c_[
                     inds[:, :, :-1].ravel(),
                     inds[:, :, 1:].ravel(),
                     #cc * np.ones(id1.shape)]
-                    cc* bpa[:,:,1:].ravel()]
+                    bpw* bpa[:,:,1:].ravel()]
 
             bpa = self.boundary_penalties_array(axis=1, sigma=sigma)
-            id1 =inds[:, 1:, :].ravel()
+            #id1 =inds[:, 1:, :].ravel()
             edgy = np.c_[
                     inds[:, :-1, :].ravel(),
                     inds[:, 1:, :].ravel(),
                     #cc * np.ones(id1.shape)]
-                    cc* bpa[:, 1:,:].ravel()]
+                    bpw* bpa[:, 1:,:].ravel()]
 
             bpa = self.boundary_penalties_array(axis=0, sigma=sigma)
-            id1 = inds[1:, :, :].ravel()
+            #id1 = inds[1:, :, :].ravel()
             edgz = np.c_[
                     inds[:-1, :, :].ravel(),
                     inds[1:, :, :].ravel(),
                     #cc * np.ones(id1.shape)]
-                    cc * bpa[1:,:,:].ravel()]
+                    bpw * bpa[1:,:,:].ravel()]
         else:
 
             edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
