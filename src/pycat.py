@@ -101,7 +101,11 @@ class ImageGraphCut:
 
 # default values                              use_boundary_penalties
         #self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
-        self.segparams = {'type':'graphcut','pairwise_alpha':20, 'use_boundary_penalties':False,'boundary_penalties_sigma':200}
+        self.segparams = {'type':'graphcut',
+                'pairwise_alpha':20,
+                'use_boundary_penalties':False,
+                'boundary_penalties_sigma':200,
+                'boundary_penalties_weight':30}
         self.segparams.update(segparams)
 
         self.img = img
