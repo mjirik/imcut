@@ -263,7 +263,15 @@ class ImageGraphCut:
 
 # create potts pairwise
         #pairwiseAlpha = -10
-        pairwise = -self.segparams['pairwise_alpha'] * np.eye(2, dtype=np.int32)
+        pairwise = -(np.eye(2)-1)
+        pairwise = (self.segparams['pairwise_alpha'] * pairwise).astype(np.int32)
+        #pairwise = np.array([[0,30],[30,0]]).astype(np.int32)
+        print pairwise
+
+
+
+        self.iparams = {}
+
 # use the gerneral graph algorithm
 # first, we construct the grid graph
         inds = np.arange(data.size).reshape(data.shape)
