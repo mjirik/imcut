@@ -133,6 +133,21 @@ class ImageGraphCut:
         self.make_gc()
         pyed.setContours(1 - self.segmentation.astype(np.int8))
 
+        #from PyQt4.QtGui import QApplication
+        #QApplication.beep()
+
+        #import audiosupport
+        #audiosupport.beep()
+        
+        #print 'hoja hoj'
+        
+        try:
+            import audiosupport
+            audiosupport.beep()
+        except:
+            print("cannot open audiosupport")
+
+
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
         Interactive seed setting with 3d seed editor
