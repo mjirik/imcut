@@ -112,7 +112,8 @@ class DicomReader():
         
     def get_overlay(self):
         """
-        Function make 3D data from dicom file slices
+        Function make 3D data from dicom file slices. There are usualy 
+        more overlays in the data.
         """
         overlay = {}
         dcmlist = self.dcmlist
@@ -130,16 +131,16 @@ class DicomReader():
                         data2d = self.decode_overlay_slice(data,i_overlay)
                         #import pdb; pdb.set_trace()
                         shp2 = data2d.shape
-                        overlay[i_overlay]= np.zeros([shp2[0], shp2[1], len(dcmlist)],
+                        overlay[i_overlay]= np.zeros([len(dcmlist), shp2[0], shp2[1] ],
                                   dtype=np.int8)
-                        overlay[i_overlay][:,:,i] = data2d
+                        overlay[i_overlay][i,:,:] = data2d
                     except:
                         #print "nefunguje", i_overlay
                         pass
             else:
                 for i_overlay in overlay.keys():
                         data2d = self.decode_overlay_slice(data,i_overlay)
-                        overlay[i_overlay][:,:,i] = data2d
+                        overlay[i_overlay][i,:,:] = data2d
 
                 
 
@@ -188,16 +189,21 @@ class DicomReader():
             logger.info(onefile)
             data = dicom.read_file(onefile)
             data2d = data.pixel_array
+            #import pdb; pdb.set_trace()
 
             if len(data3d) == 0:
                 shp2 = data2d.shape
-                data3d = np.zeros([shp2[0], shp2[1], len(dcmlist)],
+                data3d = np.zeros([len(dcmlist), shp2[0], shp2[1]],
                                   dtype=np.int16)
-            else:
-                data3d [:,:,i] = data2d
+            #else:
+            try:
+                data2d = (data.RescaleSlope * data2d) + data.RescaleIntercept
+            except:
+                logger.warning('problem with RescaleSlope and RescaleIntercept')
+            data3d [i,:,:] = data2d
 
-                logger.debug("Data size: " + str(data3d.nbytes)\
-                                 + ', shape: ' + str(shp2) +'x'+ str(len(dcmlist)) )
+            logger.debug("Data size: " + str(data3d.nbytes)\
+                    + ', shape: ' + str(shp2) +'x'+ str(len(dcmlist)) )
 
         return data3d
 
@@ -225,10 +231,12 @@ class DicomReader():
 
         
         pixelsizemm = data.PixelSpacing
-        voxelsizemm = [float(pixelsizemm[0]),
-                       float(pixelsizemm[1]),
-                       voxeldepth]
-        metadata = {'voxelsizemm': voxelsizemm,
+        voxelsize_mm = [
+                voxeldepth,
+                float(pixelsizemm[0]),
+                float(pixelsizemm[1]),
+                ]
+        metadata = {'voxelsize_mm': voxelsize_mm,
                 'Modality': data.Modality,
                 'SeriesNumber':self.series_number
                 }
