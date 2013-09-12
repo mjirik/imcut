@@ -133,7 +133,7 @@ class DicomReader():
                         shp2 = data2d.shape
                         overlay[i_overlay]= np.zeros([len(dcmlist), shp2[0], shp2[1] ],
                                   dtype=np.int8)
-                        overlay[i_overlay][i,:,:] = data2d
+                        overlay[i_overlay][-i-1,:,:] = data2d
                     except:
                         #print "nefunguje", i_overlay
                         pass
@@ -200,7 +200,8 @@ class DicomReader():
                 data2d = (data.RescaleSlope * data2d) + data.RescaleIntercept
             except:
                 logger.warning('problem with RescaleSlope and RescaleIntercept')
-            data3d [i,:,:] = data2d
+            # first readed slide is at the end
+            data3d [-i-1,:,:] = data2d
 
             logger.debug("Data size: " + str(data3d.nbytes)\
                     + ', shape: ' + str(shp2) +'x'+ str(len(dcmlist)) )
