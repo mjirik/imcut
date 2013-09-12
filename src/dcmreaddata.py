@@ -230,11 +230,11 @@ class DicomReader():
                 voxeldepth = 0
 
         
-        pixelsizemm = data.PixelSpacing
+        pixelsize_mm = data.PixelSpacing
         voxelsize_mm = [
                 voxeldepth,
-                float(pixelsizemm[0]),
-                float(pixelsizemm[1]),
+                float(pixelsize_mm[0]),
+                float(pixelsize_mm[1]),
                 ]
         metadata = {'voxelsize_mm': voxelsize_mm,
                 'Modality': data.Modality,
@@ -536,6 +536,6 @@ if __name__ == "__main__":
     data3d = dcr.get_3Ddata()
     metadata = dcr.get_metaData()
     savemat(options.out_filename, {'data': data3d,
-                                   'voxelsizemm': metadata['voxelsizemm']})
+                                   'voxelsize_mm': metadata['voxelsize_mm']})
 
     print "Data size: %d, shape: %s" % (data3d.nbytes, data3d.shape)
