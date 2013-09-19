@@ -116,6 +116,7 @@ class ImageGraphCut:
         #self.segparams = segparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
 
+        self.voxelsize = voxelsize
         if voxelsize is not None:
             self.voxel_volume = np.prod(voxelsize)
 
@@ -165,8 +166,8 @@ class ImageGraphCut:
             qt_app = QApplication(sys.argv)
         pyed = QTSeedEditor(self.img,
                             modeFun=self.interactivity_loop,
-                            voxelVolume=self.voxel_volume,
-                            seeds=self.seeds, minVal=min_val, maxVal=max_val)
+                            voxelSize=self.voxelsize,
+                            seeds=self.seeds)
         qt_app.exec_()
 
 
