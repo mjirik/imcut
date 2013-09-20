@@ -14,11 +14,12 @@ from scipy.io import loadmat
 import numpy as np
 import sys
 
-from PyQt4.QtCore import Qt, QSize, QPoint
-from PyQt4.QtGui import QImage, QDialog, QWidget, QColor,\
-    QApplication, QSlider, QPushButton, QGridLayout,\
+from PyQt4.QtCore import Qt, QSize, QString
+from PyQt4.QtGui import QImage, QDialog,\
+    QApplication, QSlider, QPushButton,\
     QLabel, QPixmap, QPainter, qRgba,\
-    QStatusBar, QFont, QComboBox, QIcon, QBitmap
+    QComboBox, QIcon, QStatusBar,\
+    QHBoxLayout, QVBoxLayout, QFrame, QSizePolicy
 
 # BGRA order
 GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
@@ -32,10 +33,14 @@ CONTOURS_COLORTABLE = np.array([[255, 255, 255, 0],
                                 [255, 0, 0, 64]], dtype=np.uint8)
 
 CONTOURLINES_COLORTABLE = np.array([[255, 255, 255, 0],
-                                    [255, 0, 0, 24],
+                                    [255, 0, 0, 16],
                                     [255, 0, 0, 255]], dtype=np.uint8)
 
-draw_mask = [
+VIEW_TABLE = {'axial': (1,0,2),
+              'sagittal': (0,2,1),
+              'coronal': (1,2,0)}
+
+DRAW_MASK = [
     (np.array([[1]], dtype=np.int8), 'small pen'),
     (np.array([[0, 1, 1, 1, 0],
                [1, 1, 1, 1, 1],
@@ -55,21 +60,21 @@ draw_mask = [
                [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0]], dtype=np.int8), 'large pen'),
     ]
 
-box_buttons_seed = {
+BOX_BUTTONS_SEED = {
     Qt.LeftButton: 1,
     Qt.RightButton: 2,
     }
 
-box_buttons_draw = {
+BOX_BUTTONS_DRAW = {
     Qt.LeftButton: 1,
     Qt.RightButton: 0,
     }
 
-nei_tab = [[-1, -1], [0, -1], [1, -1],
+NEI_TAB = [[-1, -1], [0, -1], [1, -1],
            [-1, 0], [1, 0],
            [-1, 1], [0, 1], [1, 1]]
 
-    #nei_tab = [[-1, 0], [1, 0]]
+#nei_tab = [[-1, 0], [1, 0]]
 
 def erase_reg(arr, p, val=0):
     buff = [p]
@@ -94,10 +99,10 @@ def erase_reg(arr, p, val=0):
             row[jj] = val
             jj +=1
 
-        for inb in nei_tab:
+        for inb in NEI_TAB:
             irow = p[1] + inb[0]
             islice = p[2] + inb[1]
-        
+
             if irow >= 0 and irow < arr.shape[1]\
               and islice >= 0 and islice < arr.shape[2]:
                 flag = True
@@ -115,25 +120,21 @@ class SliceBox(QLabel):
     """
     Widget for marking reagions of interest in DICOM slices.
     """
-    
-    def __init__(self, imageSize, sliceSize, grid,
-                 maxVal=1024, minVal=0, mode='seeds'):
+
+    def __init__(self, sliceSize, grid,
+                 mode='seeds'):
         """
         Initialize SliceBox.
 
         Parameters
         ----------
-        imageSize : QSize
-            Size of image windows.
         sliceSize : tuple of int
             Size of slice matrix.
-        grid : tuple of in
+        grid : tuple of float
             Pixel size:
-            imageSize = (grid_x * sliceSize_x, grid_y * sliceSize_y) 
-        maxVal : int
-            Maximal value in data (3D) matrix.
-        minVal : int
-            Minimal value in data (3D) matrix.
+            imageSize = (grid1 * sliceSize1, grid2 * sliceSize2) 
+        mode : str
+            Editor mode.
         """
 
         QLabel.__init__(self)
@@ -142,35 +143,35 @@ class SliceBox(QLabel):
         self.modified = False
         self.seed_mark = None
         self.last_position = None
-        self.imagesize = imageSize
+        self.imagesize = QSize(int(sliceSize[0] * grid[0]),
+                               int(sliceSize[1] * grid[1]))
         self.grid = grid
         self.slice_size = sliceSize
         self.ctslice_rgba = None
+        self.cw = {'c': 1.0, 'w': 1.0}
+
         self.seeds = None
         self.contours = None
-        self.max_val = maxVal
-        self.min_val = minVal
         self.mask_points = None
         self.erase_region_button = None
         self.erase_fun = None
-        self.erase_mode = 'erase_in'
+        self.erase_mode = 'inside'
         self.contour_mode = 'fill'
-
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
-            self.box_buttons = box_buttons_draw
+            self.box_buttons = BOX_BUTTONS_DRAW
             self.mode_draw = True
 
         else:
             self.seeds_colortable = SEEDS_COLORTABLE
-            self.box_buttons = box_buttons_seed
+            self.box_buttons = BOX_BUTTONS_SEED
             self.mode_draw = False
 
-        self.image = QImage(imageSize, QImage.Format_RGB32)
+        self.image = QImage(self.imagesize, QImage.Format_RGB32)
         self.setPixmap(QPixmap.fromImage(self.image))
-        self.setFixedSize(imageSize)
-        
+        self.setScaledContents(True)
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.drawImage(event.rect(), self.image)
@@ -188,10 +189,7 @@ class SliceBox(QLabel):
         xx = xx[ii]
         yy = yy[ii]
 
-        self.seeds[yy, xx] = self.seed_mark
-
-    def setMaskPoints(self, mask):
-        self.mask_points = mask
+        self.seeds[yy * self.slice_size[0] + xx] = self.seed_mark
 
     def drawLine(self, p0, p1):
         """
@@ -243,40 +241,17 @@ class SliceBox(QLabel):
 
         self.drawLine(self.last_position, pos)
         self.updateSlice()
-        
+
         self.modified = True
         self.last_position = pos
 
         self.update()
 
-    def arrayToImage(self, arr):
-        w, h = self.slice_size
-        img = QImage(arr.flatten(), w, h, QImage.Format_ARGB32)
-
-        return img
-
-    def composeRgba(self, bg, fg, cmap):
-        idxs = fg.nonzero()
-
-        if idxs[0].shape[0] > 0:
-            fg_rgb = cmap[fg[idxs[0]]]
-        
-            nn = np.prod(bg.shape)
-            af = fg_rgb[...,3].astype(np.uint32)
-            rgbf = fg_rgb[...,:3].astype(np.uint32)
-            rgbb = bg[idxs[0],:3].astype(np.uint32)
-        
-            rgbx = ((rgbf.T * af).T + (rgbb.T * (255 - af)).T) / 255
-            bg[idxs[0],:3] = rgbx.astype(np.uint8)
-
-    def overRgba(self, bg, fg, cmap):
-        idxs = fg.nonzero()
-        bg[idxs] = cmap[fg[idxs]]
-
     def get_contours(self, sl):
-        cnt = sl.copy()
+        sls = sl.reshape(self.slice_size, order='F')
+        cnt = sls.copy()
         chunk = np.zeros((cnt.shape[1] + 2,), dtype=np.int8)
-        for irow, row in enumerate(sl):
+        for irow, row in enumerate(sls):
             chunk[1:-1] = row
             chdiff = np.diff(chunk)
             idx1 = np.where(chdiff > 0)[0]
@@ -287,7 +262,7 @@ class SliceBox(QLabel):
                     cnt[irow,idx2 - 1] = 2
 
         chunk = np.zeros((cnt.shape[0] + 2,), dtype=np.int8)
-        for icol, col in enumerate(sl.T):
+        for icol, col in enumerate(sls.T):
             chunk[1:-1] = col
             chdiff = np.diff(chunk)
             idx1 = np.where(chdiff > 0)[0]
@@ -297,7 +272,24 @@ class SliceBox(QLabel):
                     cnt[idx1,icol] = 2
                     cnt[idx2 - 1,icol] = 2
 
-        return cnt
+        return cnt.ravel(order='F')
+
+    def composeRgba(self, bg, fg, cmap):
+        idxs = fg.nonzero()[0]
+
+        if idxs.shape[0] > 0:
+            fg_rgb = cmap[fg[idxs]]
+
+            af = fg_rgb[...,3].astype(np.uint32)
+            rgbf = fg_rgb[...,:3].astype(np.uint32)
+            rgbb = bg[idxs,:3].astype(np.uint32)
+
+            rgbx = ((rgbf.T * af).T + (rgbb.T * (255 - af)).T) / 255
+            bg[idxs,:3] = rgbx.astype(np.uint8)
+
+    def overRgba(self, bg, fg, cmap):
+        idxs = fg.nonzero()[0]
+        bg[idxs] = cmap[fg[idxs]]
 
     def updateSlice(self):
 
@@ -305,78 +297,85 @@ class SliceBox(QLabel):
             return
 
         img = self.ctslice_rgba.copy()
-        w, h = self.slice_size
-        n = h * w
-        img_as1d = img.reshape((n,4))
+
         if self.seeds is not None:
             if self.mode_draw:
                 if self.contour_mode == 'fill':
-                    self.composeRgba(img_as1d, self.seeds.reshape((n,)),
+                    self.composeRgba(img, self.seeds,
                                      self.seeds_colortable)
                 elif self.contour_mode == 'contours':
                     cnt = self.get_contours(self.seeds)
-                    self.composeRgba(img_as1d, cnt.reshape((n,)),
+                    self.composeRgba(img, cnt,
                                      CONTOURLINES_COLORTABLE)
 
             else:
-                self.overRgba(img_as1d, self.seeds.reshape((n,)),
+                self.overRgba(img, self.seeds,
                               self.seeds_colortable)
 
         if self.contours is not None:
             if self.contour_mode == 'fill':
-                self.composeRgba(img_as1d, self.contours.reshape((n,)),
+                self.composeRgba(img, self.contours,
                                  CONTOURS_COLORTABLE)
 
             elif self.contour_mode == 'contours':
                 cnt = self.get_contours(self.contours)
-                self.composeRgba(img_as1d, cnt.reshape((n,)),
+                self.composeRgba(img, cnt,
                                  CONTOURLINES_COLORTABLE)
 
-        image = self.arrayToImage(img).scaled(self.imagesize)
+        image = QImage(img.flatten(),
+                     self.slice_size[0], self.slice_size[1],
+                     QImage.Format_ARGB32).scaled(self.imagesize)
         painter = QPainter(self.image)
         painter.drawImage(0, 0, image)
         painter.end()
 
         self.update()
 
-    def setSlice(self, ctslice=None, seeds=None, contours=None):
+    def getSliceRGBA(self, ctslice):
+        if self.cw['w'] > 0:
+            mul = 255.0 / float(self.cw['w'])
 
-        
+        else:
+            mul = 0
+
+        lb = self.cw['c'] - self.cw['w'] / 2
+        aux = (ctslice.ravel(order='F') - lb) * mul
+        idxs = np.where(aux < 0)[0]
+        aux[idxs] = 0
+        idxs = np.where(aux > 255)[0]
+        aux[idxs] = 255
+
+        return aux.astype(np.uint8)
+
+    def updateSliceCW(self, ctslice=None):
         if ctslice is not None:
-            h, w = ctslice.shape
-            n = h * w
-            #aux = (ctslice.astype(np.float) / (float(self.max_val + 1) / 255)).astype(np.float)
-            aux = ((ctslice.astype(np.float) - float(self.min_val)) * 255 /
-                    (float(self.max_val + 1) - float(self.min_val)))
-            #print aux.dtype
-            aux[aux < 00] = 0
-            aux[aux > 255] = 255
-            aux=aux.astype(np.uint8)
-            self.ctslice_rgba = GRAY_COLORTABLE[aux.reshape((n,))]
-            
+            self.ctslice_rgba = GRAY_COLORTABLE[self.getSliceRGBA(ctslice)]
+
+        self.updateSlice()
+
+    def setSlice(self, ctslice=None, seeds=None, contours=None):
+        if ctslice is not None:
+            self.ctslice_rgba = GRAY_COLORTABLE[self.getSliceRGBA(ctslice)]
+
         if seeds is not None:
-            self.seeds = seeds
+            self.seeds = seeds.ravel(order='F')
+        else:
+            self.seeds = None
 
         if contours is not None:
-            self.contours = contours
+            self.contours = contours.ravel(order='F')
+        else:
+            self.contours = None
 
         self.updateSlice()
 
     def getSliceSeeds(self):
         if self.modified:
             self.modified = False
-            return self.seeds
+            return self.seeds.reshape(self.slice_size, order='F')
 
         else:
             return None
-
-    def eraseRegion(self, pos, mode):
-        if self.erase_fun is not None:
-            self.erase_fun(pos, mode)
-            self.updateSlice()
-
-    def setEraseFun(self, fun):
-        self.erase_fun = fun
 
     def gridPosition(self, pos):
         return (int(pos.x() / self.grid[0]),
@@ -408,26 +407,70 @@ class SliceBox(QLabel):
                              self.erase_mode)
 
             self.erase_region_button == False
-            
+
+    def resizeSlice(self, new_slice_size=None, new_grid=None):
+
+        if new_slice_size is not None:
+            self.slice_size = new_slice_size
+
+        if new_grid is not None:
+            self.grid = new_grid
+
+        self.imagesize = QSize(int(self.slice_size[0] * self.grid[0]),
+                               int(self.slice_size[1] * self.grid[1]))
+        self.image = QImage(self.imagesize, QImage.Format_RGB32)
+        self.setPixmap(QPixmap.fromImage(self.image))
+
+    def resizeEvent(self, event):
+        new_height = self.height()
+        new_grid = new_height / float(self.slice_size[1])
+        mul = new_grid / self.grid[1]
+
+        self.grid = np.array(self.grid * mul)
+        self.resizeSlice()
+        self.updateSlice()
+
     def leaveEvent(self, event):
         self.drawing = False
 
     def enterEvent(self, event):
         self.drawing = False
 
+    def setMaskPoints(self, mask):
+        self.mask_points = mask
+
+    def getCW(self):
+        return self.cw
+
+    def setCW(self, val, key):
+        self.cw[key] = val
+
+    def eraseRegion(self, pos, mode):
+        if self.erase_fun is not None:
+            self.erase_fun(pos, mode)
+            self.updateSlice()
+
+    def setEraseFun(self, fun):
+        self.erase_fun = fun
+
 class QTSeedEditor(QDialog):
     """
-    DICOM viewer and seed editor.
+    DICOM viewer.
     """
+    @staticmethod
+    def get_line(mode='h'):
+        line = QFrame()
+        if mode == 'h':
+            line.setFrameStyle(QFrame.HLine)
+        elif mode == 'v':
+            line.setFrameStyle(QFrame.VLine)
 
-    label_text = {
-        'seed': 'inner region - left button, outer region - right button',
-        'crop': 'bounds - left button',
-        'draw': 'draw - left button, erase - right button, vol. erase - middle button',
-        }
+        line.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
 
-    def initUI(self, shape, actualSlice=0,
-               maxVal=1024, minVal=0, mode='seed'):
+        return line
+
+    def initUI(self, shape, vscale, height=600,
+               mode='seed'):
         """
         Initialize UI.
 
@@ -435,129 +478,176 @@ class QTSeedEditor(QDialog):
         ----------
         shape : (int, int, int)
             Shape of data matrix.
-        actualSlice : int
-            Index of actual slice,
-            slice_data = data[..., actual_slice]
-        maxVal : int
-            Maximal value in data (3D) matrix.
+        vscale : (float, float, float)
+            Voxel scaling.
+        height : int
+            Maximal slice height in pixels.
         mode : str
             Editor mode.
         """
 
         # picture
-        boxsize = (600, 400)
-        slice_grid = np.ceil((boxsize[0] / float(shape[1]),
-                              boxsize[1] / float(shape[0])))
+        grid = height / float(shape[1] * vscale[1])
+        mgrid = (grid * vscale[0], grid * vscale[1])
+        self.slice_box = SliceBox(shape[:-1], mgrid,
+                                  mode)
 
-        mingrid = np.min(slice_grid)
-        slice_grid = np.array([mingrid, mingrid])
-        self.slice_box = SliceBox(QSize(shape[1] * slice_grid[0],
-                                        shape[0] * slice_grid[1]),
-                                  (shape[1], shape[0]), slice_grid,
-                                  maxVal, minVal,  mode)
-
-        # slider
+        # sliders
+        self.allow_select_slice = True
         self.n_slices = shape[2]
         self.slider = QSlider(Qt.Vertical)
-        self.slider.setValue(actualSlice + 1)
         self.slider.valueChanged.connect(self.selectSlice)
         self.slider.label = QLabel()
-        # font = QFont()
-        # font.setPointSize(12)
-        # font.setBold(True)
-        #self.slider.label.setFont(font)
         self.slider.setRange(1, self.n_slices)
 
-        self.volume_label = QLabel('volume [mm3]:\n unknown')
+        self.slider_cw = {}
+        self.slider_cw['c'] = QSlider(Qt.Horizontal)
+        self.slider_cw['c'].valueChanged.connect(self.changeC)
+        self.slider_cw['c'].label = QLabel()
 
-        text = QLabel()
-        text.setText(self.label_text[mode])
+        self.slider_cw['w'] = QSlider(Qt.Horizontal)
+        self.slider_cw['w'].valueChanged.connect(self.changeW)
+        self.slider_cw['w'].label = QLabel()
+
+        self.view_label = QLabel('View size: %d x %d' % self.img_aview.shape[:-1])
+        self.voxel_label = QLabel('Voxel size [mm]:\n  %.2f x %.2f x %.2f'\
+                                      % tuple(self.voxel_size[np.array(self.act_transposition)]))
+
+        combo_view_options = VIEW_TABLE.keys()
+        combo_view = QComboBox(self)
+        combo_view.activated[str].connect(self.setView)
+        combo_view.addItems(combo_view_options)
+
         # buttons
         btn_quit = QPushButton("Return", self)
         btn_quit.clicked.connect(self.quit)
 
-        btn_prev = QPushButton("down", self)
-        btn_prev.clicked.connect(self.slicePrev)
-        btn_next = QPushButton("up", self)
-        btn_next.clicked.connect(self.sliceNext)
+        combo_dmask = QComboBox(self)
+        combo_dmask.activated.connect(self.changeMask)
+        self.mask_points_tab, aux = self.init_draw_mask(DRAW_MASK, mgrid)
+        for icon, label in aux:
+            combo_dmask.addItem(icon, label)
+
+        self.slice_box.setMaskPoints(self.mask_points_tab[combo_dmask.currentIndex()])
+
         self.status_bar = QStatusBar()
 
-        grid = QGridLayout()
-        grid.setSpacing(10)
-        grid.addWidget(text, 0, 0, 1, 5)
-        grid.addWidget(self.slice_box, 1, 0, 10, 5)
-        grid.addWidget(self.slider, 1, 5, 10, 1)
-        grid.addWidget(btn_prev, 2, 7)
-        grid.addWidget(btn_next, 1, 7)
-        grid.addWidget(self.slider.label, 3, 7)
-        grid.addWidget(self.volume_label, 4, 7)
-
-        #self.slice_box.setMaskPoints(([0], [0]))
-        combo = QComboBox(self)
-        combo.activated.connect(self.changeMask)
-        self.mask_points_tab = []
-        for mask in draw_mask:
-            h, w = mask[0].shape
-            xx, yy = mask[0].nonzero()
-            self.mask_points_tab.append((xx - w/2, yy - h/2))
-            
-            img = QImage(w, h, QImage.Format_ARGB32)
-            img.fill(qRgba(255, 255, 255, 0))
-            for ii in range(xx.shape[0]):
-                img.setPixel(xx[ii], yy[ii], qRgba(0, 0, 0, 255))
-
-            img = img.scaled(QSize(w * slice_grid[0], h * slice_grid[1]))
-            icon = QIcon(QPixmap.fromImage(img))
-            combo.addItem(icon, mask[1])
-
-        self.slice_box.setMaskPoints(self.mask_points_tab[combo.currentIndex()])
-        grid.addWidget(combo, 10, 7)
-
-        combo3_options = ['fill', 'contours']
-        combo3 = QComboBox(self)
-        combo3.activated[str].connect(self.changeContourMode)
-        combo3.addItems(combo3_options)
-        grid.addWidget(combo3, 9, 7)
-        self.changeContourMode(combo3_options[combo3.currentIndex()])
-
-        #if mode not in ['seed','draw','crop']:
-        #    raise Exception('Wrong mode' + str(mode))
-
+        vopts = []
+        vmenu = []
+        appmenu = []
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
             btn_recalc.clicked.connect(self.recalculate)
-            grid.addWidget(btn_recalc, 12, 2)
+            appmenu.append(QLabel('<b>Segmentation mode</b><br><br><br>' +
+                                  'Select the region of interest<br>' +
+                                  'using the mouse buttons:<br><br>' +
+                                  '&nbsp;&nbsp;<i>left</i> - inner region<br>' +
+                                  '&nbsp;&nbsp;<i>right</i> - outer region<br><br>'))
+            appmenu.append(btn_recalc)
+            appmenu.append(QLabel())
+            self.volume_label = QLabel('Volume [mm3]:\n  unknown')
+            appmenu.append(self.volume_label)
 
         if mode == 'seed' or mode == 'crop':
-            btn_del = QPushButton("Delete", self)
-            btn_del.clicked.connect(self.delete)
+            btn_del = QPushButton("Delete Seeds", self)
+            btn_del.clicked.connect(self.deleteSliceSeeds)
+            vmenu.append(None)
+            vmenu.append(btn_del)
+
+            combo_contour_options = ['fill', 'contours', 'off']
+            combo_contour = QComboBox(self)
+            combo_contour.activated[str].connect(self.changeContourMode)
+            combo_contour.addItems(combo_contour_options)
+            self.changeContourMode(combo_contour_options[combo_contour.currentIndex()])
+            vopts.append(QLabel('Selection mode:'))
+            vopts.append(combo_contour)
+
+        if mode == 'crop':
+            btn_crop = QPushButton("Crop", self)
+            btn_crop.clicked.connect(self.crop)
+            appmenu.append(QLabel('<b>Crop mode</b><br><br><br>' +
+                                  'Select the crop region<br>' +
+                                  'using the left mouse button<br><br>'))
+            appmenu.append(btn_crop)
 
         if mode == 'draw':
-            btn_del = QPushButton("Reset", self)
-            btn_del.clicked.connect(self.reset)
+            appmenu.append(QLabel('<b>Manual segmentation<br> mode</b><br><br><br>' +
+                                  'Mark the region of interest<br>' +
+                                  'using the mouse buttons:<br><br>' +
+                                  '&nbsp;&nbsp;<i>left</i> - draw<br>' +
+                                  '&nbsp;&nbsp;<i>right</i> - erase<br>' +
+                                  '&nbsp;&nbsp;<i>middle</i> - vol. erase<br><br>'))
 
-            combo2_options = ['erase_in', 'erase_out']
-            combo2 = QComboBox(self)
-            combo2.activated[str].connect(self.changeEraseMode)
-            combo2.addItems(combo2_options)
-            grid.addWidget(combo2, 8, 7)
-            self.changeEraseMode(combo2_options[combo2.currentIndex()])
+            btn_reset = QPushButton("Reset", self)
+            btn_reset.clicked.connect(self.resetSliceDraw)
+            vmenu.append(None)
+            vmenu.append(btn_reset)
 
-        grid.addWidget(btn_del, 12, 0)
-        grid.addWidget(btn_quit, 12, 4)
-        grid.addWidget(self.status_bar, 13, 0, 1, 9)
-        self.setLayout(grid)
+            combo_erase_options = ['inside', 'outside']
+            combo_erase = QComboBox(self)
+            combo_erase.activated[str].connect(self.changeEraseMode)
+            combo_erase.addItems(combo_erase_options)
+            self.changeEraseMode(combo_erase_options[combo_erase.currentIndex()])
+            vopts.append(QLabel('Volume erase mode:'))
+            vopts.append(combo_erase)
+
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        vbox_left = QVBoxLayout()
+        vbox_app = QVBoxLayout()
+
+        hbox.addWidget(self.slice_box)
+        hbox.addWidget(self.slider)
+        vbox_left.addWidget(self.slider.label)
+        vbox_left.addWidget(self.view_label)
+        vbox_left.addWidget(self.voxel_label)
+        vbox_left.addWidget(QLabel())
+        vbox_left.addWidget(QLabel('View plane:'))
+        vbox_left.addWidget(combo_view)
+        vbox_left.addWidget(self.get_line())
+        vbox_left.addWidget(self.slider_cw['c'].label)
+        vbox_left.addWidget(self.slider_cw['c'])
+        vbox_left.addWidget(self.slider_cw['w'].label)
+        vbox_left.addWidget(self.slider_cw['w'])
+        vbox_left.addWidget(self.get_line())
+        vbox_left.addWidget(QLabel('Drawing mask:'))
+        vbox_left.addWidget(combo_dmask)
+
+        for ii in vopts:
+            vbox_left.addWidget(ii)
+
+        for ii in vmenu:
+            if ii is None:
+                vbox_left.addStretch(1)
+
+            else:
+                vbox_left.addWidget(ii)
+
+        for ii in appmenu:
+            if ii is None:
+                vbox_app.addStretch(1)
+
+            else:
+                vbox_app.addWidget(ii)
+
+        vbox_app.addStretch(1)
+        vbox_app.addWidget(btn_quit)
+
+        hbox.addLayout(vbox_left)
+        hbox.addWidget(self.get_line('v'))
+        hbox.addLayout(vbox_app)
+        vbox.addLayout(hbox)
+        vbox.addWidget(self.status_bar)
+        self.setLayout(vbox)
 
         self.setWindowTitle('Segmentation Editor')
-        self.status_bar.showMessage("Ready. Min = %.3g, Max %.3g" % 
-                (minVal,maxVal)) 
         self.show()
+
 
     def __init__(self, img, actualSlice=0,
                  seeds=None, contours=None,
                  mode='seed', modeFun=None,
-                 voxelVolume=None, 
-                 minVal=None, maxVal=None):
+                 voxelSize=[1,1,1]):
         """
         Initiate Editor
 
@@ -578,6 +668,8 @@ class QTSeedEditor(QDialog):
                'draw' - drawing
         modeFun : fun
             Mode function invoked by user button.
+        voxelSize : tuple of float
+            voxel size [mm]
         """
 
         QDialog.__init__(self)
@@ -585,52 +677,229 @@ class QTSeedEditor(QDialog):
         self.mode = mode
         self.mode_fun = modeFun
 
-        self.img = img
-        self.actual_slice = actualSlice
-        self.contours = contours
-        self.voxel_volume = voxelVolume
-        
-        if seeds is None:
-            self.seeds = np.zeros(img.shape, np.int8)
+        self.actual_view = 'axial'
+        self.act_transposition = VIEW_TABLE[self.actual_view]
+        self.last_view_position = {}
+        for ii in VIEW_TABLE.iterkeys():
+            self.last_view_position[ii] = 0
 
+        self.img = img
+        self.img_aview = self.img.transpose(self.act_transposition)
+        self.actual_slice = actualSlice
+        self.last_view_position[self.actual_view] = self.actual_slice
+
+        # set contours
+        self.contours = contours
+        if self.contours is None:
+            self.contours_aview = None
+
+        else:
+            self.contours_aview = self.contours.transpose(self.act_transposition)
+
+        self.voxel_size = np.array(voxelSize)
+        self.voxel_scale = self.voxel_size / float(np.min(self.voxel_size))
+        self.voxel_volume = np.prod(voxelSize)
+
+        # set seeds
+        if seeds is None:
+            self.seeds = np.zeros(self.img.shape, np.int8)
         else:
             self.seeds = seeds
 
-        if minVal is None:
-            minVal = np.min(img)
-        if maxVal is None:
-            maxVal = np.max(img)
+        self.seeds_aview = self.seeds.transpose(self.act_transposition)
+        self.seeds_modified = False
 
-        self.initUI(img.shape, actualSlice, maxVal, minVal, mode)
+        self.initUI(self.img_aview.shape,
+                    self.voxel_scale[np.array(self.act_transposition)],
+                    600, mode)
+
         if mode == 'draw':
             self.seeds_orig = self.seeds.copy()
-            self.slice_box.setEraseFun(self.eraseRegion)
-                    
-        self.selectSlice(self.actual_slice + 1)
-        
-    def recalculate(self, event):
-        if np.abs(np.min(self.seeds) - np.max(self.seeds)) < 2:
-            self.status_bar.showMessage("Inner and outer regions not defined!")
+            self.slice_box.setEraseFun(self.eraseVolume)
+
+        # set view window values C/W
+        lb = np.min(img)
+        ub = np.max(img)
+        dul = ub - lb
+        self.cw_range = {'c': [lb, ub], 'w': [1, dul]}
+        self.slider_cw['c'].setRange(lb, ub)
+        self.slider_cw['w'].setRange(1, dul)
+        self.changeC(dul / 2)
+        self.changeW(dul - lb)
+
+        self.crop_bounds = None
+        self.offsetmm = self.voxel_size * 0
+
+    def showStatus(self, msg):
+        self.status_bar.showMessage(QString(msg))
+        QApplication.processEvents()
+
+    def init_draw_mask(self, draw_mask, grid):
+        mask_points = []
+        mask_iconlabel = []
+        for mask, label in draw_mask:
+            w, h = mask.shape
+            xx, yy = mask.nonzero()
+            mask_points.append((xx - w/2, yy - h/2))
+
+            img = QImage(w, h, QImage.Format_ARGB32)
+            img.fill(qRgba(255, 255, 255, 0))
+            for ii in range(xx.shape[0]):
+                img.setPixel(xx[ii], yy[ii], qRgba(0, 0, 0, 255))
+
+            img = img.scaled(QSize(w * grid[0], h * grid[1]))
+            icon = QIcon(QPixmap.fromImage(img))
+            mask_iconlabel.append((icon, label))
+
+        return mask_points, mask_iconlabel
+
+    def saveSliceSeeds(self):
+        aux = self.slice_box.getSliceSeeds()
+        if aux is not None:
+            self.seeds_aview[...,self.actual_slice] = aux
+            self.seeds_modified = True
+
+        else:
+            self.seeds_modified = False
+
+    def updateCropBounds(self, sliceSeeds):
+        aux = sliceSeeds.nonzero()
+        if aux[0].nbytes > 0:
+            abounds = np.array([[np.min(aux[0]), np.max(aux[0])],
+                                [np.min(aux[1]), np.max(aux[1])],
+                                [self.actual_slice, self.actual_slice]])
+
+            if self.crop_bounds is None:
+                self.crop_bounds = abounds[self.act_transposition,:]
+
+            else:
+                for jj, ii in enumerate(self.act_transposition):
+                    if abounds[jj,0] < self.crop_bounds[ii,0]:
+                        self.crop_bounds[ii,0] = abounds[jj,0]
+
+                    if abounds[jj,1] > self.crop_bounds[ii,1]:
+                        self.crop_bounds[ii,1] = abounds[jj,1]
+
+        # else:
+        #     zbnds = self.crop_bounds[self.act_transposition[2]]
+
+        self.contours = self.getContoursFromBounds(self.crop_bounds)
+        self.contours_aview = self.contours.transpose(self.act_transposition)
+
+    def selectSlice(self, value, force=False):
+        if not(self.allow_select_slice):
             return
 
-        self.status_bar.showMessage("Processing...")
-        QApplication.processEvents()
-        self.mode_fun(self)
+        val = value - 1
+        if (value < 1) or (value > self.n_slices):
+            return
+
+        if (val != self.actual_slice) or force:
+            self.saveSliceSeeds()
+            if self.seeds_modified and (self.mode == 'crop'):
+                self.updateCropBounds(self.seeds_aview[...,self.actual_slice])
+
+        if self.contours is None:
+            contours = None
+
+        else:
+            contours = self.contours_aview[...,val]
+
+        self.slider.setValue(value)
+        self.slider.label.setText('Slice: %d / %d' % (value, self.n_slices))
+
+        self.slice_box.setSlice(self.img_aview[...,val],
+                                self.seeds_aview[...,val],
+                                contours)
+        self.actual_slice = val
+
+    def slicePrev(self):
+        self.selectSlice(self.slider.value() - 1)
+
+    def sliceNext(self):
+        self.selectSlice(self.slider.value() + 1)
+
+    def getSeeds(self):
+        return self.seeds
+
+    def getImg(self):
+        return self.img
+
+    def getOffset(self):
+        return self.offsetmm
+
+    def getSeedsVal(self, label):
+        return self.img[self.seeds==label]
+
+    def getContours(self):
+        return self.contours
+
+    def setContours(self, contours):
+        self.contours = contours
+        self.contours_aview = self.contours.transpose(self.act_transposition)
+
         self.selectSlice(self.actual_slice + 1)
-        self.status_bar.showMessage("Done")
 
-    def quit(self, event):
-        self.close()
+    def changeCW(self, value, key):
+        rg = self.cw_range[key]
+        if (value < rg[0]) or (value > rg[1]):
+            return
 
-    def delete(self, event):
-        self.seeds[...,self.actual_slice] = 0
-        self.slice_box.setSlice(seeds=self.seeds[...,self.actual_slice])
-        self.slice_box.updateSlice()
+        if (value != self.slice_box.getCW()[key]):
+            self.slider_cw[key].setValue(value)
+            self.slider_cw[key].label.setText('%s: %d' % (key.upper(), value))
+            self.slice_box.setCW(value, key)
+            self.slice_box.updateSliceCW(self.img_aview[...,self.actual_slice])
 
-    def reset(self, event):
-        self.seeds[...,self.actual_slice] = self.seeds_orig[...,self.actual_slice]
-        self.slice_box.setSlice(seeds=self.seeds[...,self.actual_slice])
-        self.slice_box.updateSlice()
+    def changeC(self, value):
+        self.changeCW(value, 'c')
+
+    def changeW(self, value):
+        self.changeCW(value, 'w')
+
+    def setView(self, value):
+        self.last_view_position[self.actual_view] = self.actual_slice
+        # save seeds
+        self.saveSliceSeeds()
+        if self.seeds_modified and (self.mode == 'crop'):
+            self.updateCropBounds(self.seeds_aview[...,self.actual_slice])
+
+        key = str(value)
+        self.actual_view = key
+        self.actual_slice = self.last_view_position[key]
+
+        self.act_transposition = VIEW_TABLE[key]
+        self.img_aview = self.img.transpose(self.act_transposition)
+        self.seeds_aview = self.seeds.transpose(self.act_transposition)
+
+        if self.contours is not None:
+            self.contours_aview = self.contours.transpose(self.act_transposition)
+            contours = self.contours_aview[...,self.actual_slice]
+
+        else:
+            contours = None
+
+        vscale = self.voxel_scale[np.array(self.act_transposition)]
+        height = self.slice_box.height()
+        grid = height / float(self.img_aview.shape[1] * vscale[1])
+        mgrid = (grid * vscale[0], grid * vscale[1])
+
+        self.slice_box.resizeSlice(new_slice_size=self.img_aview.shape[:-1],
+                                   new_grid=mgrid)
+
+        self.slice_box.setSlice(self.img_aview[...,self.actual_slice],
+                                self.seeds_aview[...,self.actual_slice],
+                                contours)
+
+        self.allow_select_slice = False
+        self.n_slices = self.img_aview.shape[2]
+        self.slider.setValue(self.actual_slice + 1)
+        self.slider.setRange(1, self.n_slices)
+        self.allow_select_slice = True
+
+        self.slider.label.setText('Slice: %d / %d' % (self.actual_slice + 1,
+                                                      self.n_slices))
+        self.view_label.setText('View size: %d x %d' % self.img_aview.shape[:-1])
 
     def changeMask(self, val):
         self.slice_box.setMaskPoints(self.mask_points_tab[val])
@@ -642,97 +911,144 @@ class QTSeedEditor(QDialog):
     def changeEraseMode(self, val):
         self.slice_box.erase_mode = str(val)
 
-    def getBounds(self):
-        aux = self.seeds.nonzero()
+    def eraseVolume(self, pos, mode):
+        self.showStatus("Processing...")
+        x, y = pos
+        p = np.array([x, y, self.actual_slice])[np.array(self.act_transposition)]
+        if self.seeds[tuple(p)] > 0:
+            if mode == 'inside':
+                erase_reg(self.seeds, p, val=0)
 
-        if aux[0].nbytes <= 0:
-            return None
-
-        else:
-            return [[np.min(aux[0]), np.max(aux[0])],
-                    [np.min(aux[1]), np.max(aux[1])],
-                    [np.min(aux[2]), np.max(aux[2])]]
-
-    def getContoursFromBounds(self, b):
-        if b is None:
-            return None
-
-        else:
-            b = np.array(b)
-            b[:,1] += 1
-            contours = np.zeros(self.img.shape, np.int8)
-            contours[b[0][0]:b[0][1],
-                     b[1][0]:b[1][1],
-                     b[2][0]:b[2][1]] = 1
-
-            return contours
-
-    def selectSlice(self, value):
-        val = value - 1
-        if (value < 1) or (value > self.n_slices):
-            return
-
-        if (val != self.actual_slice):
-            aux = self.slice_box.getSliceSeeds()
-            if aux is not None:
-                self.seeds[...,self.actual_slice] = aux
-
-        if self.mode == 'crop':
-            self.contours = self.getContoursFromBounds(self.getBounds())
+            elif mode == 'outside':
+                erase_reg(self.seeds, p, val=-1)
+                idxs = np.where(self.seeds < 0)
+                self.seeds.fill(0)
+                self.seeds[idxs] = 1
 
         if self.contours is None:
             contours = None
 
         else:
-            contours = self.contours[...,val]
+            contours = self.contours_aview[...,self.actual_slice]
 
-        self.slider.setValue(value)
-        self.slider.label.setText('slice: %d' % value)
-        self.slice_box.setSlice(self.img[...,val],
-                                self.seeds[...,val],
+        self.slice_box.setSlice(self.img_aview[...,self.actual_slice],
+                                self.seeds_aview[...,self.actual_slice],
                                 contours)
 
-        self.actual_slice = val
-        self.updateVolume()
+        self.showStatus("Done")
 
-    def slicePrev(self):
-        self.selectSlice(self.slider.value() - 1)
+    def cropUpdate(self, img):
 
-    def sliceNext(self):
-        self.selectSlice(self.slider.value() + 1)
+        for ii in VIEW_TABLE.iterkeys():
+            self.last_view_position[ii] = 0
+        self.actual_slice = 0
 
-    def getSeeds(self):
-        return self.seeds
+        self.img = img
+        self.img_aview = self.img.transpose(self.act_transposition)
 
-    def getContours(self):
-        return self.contours
+        self.contours = None
+        self.contours_aview = None
 
-    def getSeedsVal(self, label):
-        return self.img[self.seeds==label]
+        self.seeds = np.zeros(self.img.shape, np.int8)
+        self.seeds_aview = self.seeds.transpose(self.act_transposition)
+        self.seeds_modified = False
 
-    def setContours(self, contours):
-        self.contours = contours
+        vscale = self.voxel_scale[np.array(self.act_transposition)]
+        height = self.slice_box.height()
+        grid = height / float(self.img_aview.shape[1] * vscale[1])
+        mgrid = (grid * vscale[0], grid * vscale[1])
+
+        self.slice_box.resizeSlice(new_slice_size=self.img_aview.shape[:-1],
+                                   new_grid=mgrid)
+
+        self.slice_box.setSlice(self.img_aview[...,self.actual_slice],
+                                self.seeds_aview[...,self.actual_slice],
+                                None)
+
+        self.allow_select_slice = False
+        self.crop_bounds = None
+        self.n_slices = self.img_aview.shape[2]
+        self.slider.setValue(self.actual_slice + 1)
+        self.slider.setRange(1, self.n_slices)
+        self.allow_select_slice = True
+
+        self.slider.label.setText('Slice: %d / %d' % (self.actual_slice + 1,
+                                                      self.n_slices))
+        self.view_label.setText('View size: %d x %d' % self.img_aview.shape[:-1])
+
+    def crop(self):
+        self.showStatus("Processing...")
+
+        nzs = self.seeds.nonzero()
+
+        if nzs is not None:
+            cri = []
+            for ii in range(3):
+                if nzs[ii].shape[0] == 0:
+                    nzs = None
+                    break
+                smin, smax = np.min(nzs[ii]), np.max(nzs[ii])
+                if smin == smax:
+                    nzs = None
+                    break
+
+                cri.append((smin, smax))
+            cri = np.array(cri)
+
+        if nzs is not None:
+            crop = self.img[cri[0][0]:(cri[0][1] + 1),
+                            cri[1][0]:(cri[1][1] + 1),
+                            cri[2][0]:(cri[2][1] + 1)]
+            self.img = np.ascontiguousarray(crop)
+            self.offsetmm += cri[:,0] * self.voxel_size
+
+            self.showStatus('Done')
+
+        else:
+            self.showStatus('Region not selected!')
+
+        self.cropUpdate(self.img)
+
+    def recalculate(self, event):
+        self.saveSliceSeeds()
+        if np.abs(np.min(self.seeds) - np.max(self.seeds)) < 2:
+            self.showStatus('Inner and outer regions not defined!')
+            return
+
+        self.showStatus("Processing...")
+        self.mode_fun(self)
         self.selectSlice(self.actual_slice + 1)
+        self.updateVolume()
+        self.showStatus("Done")
 
-    def eraseRegion(self, pos, mode):
-        self.status_bar.showMessage("Processing...")
-        QApplication.processEvents()
-        x, y = pos
-        p = (y, x, self.actual_slice)
-        if self.seeds[p] > 0:
-            if mode == 'erase_in':
-                erase_reg(self.seeds, p, val=0)
+    def deleteSliceSeeds(self, event):
+        self.seeds_aview[...,self.actual_slice] = 0
+        self.slice_box.setSlice(seeds=self.seeds_aview[...,self.actual_slice])
+        self.slice_box.updateSlice()
 
-            elif mode == 'erase_out':
-                erase_reg(self.seeds, p, val=-1)
-                idxs = np.where(self.seeds < 0)
-                self.seeds.fill(0)
-                self.seeds[idxs] = 1
-                
-        self.status_bar.showMessage("Done")
+    def resetSliceDraw(self, event):
+        seeds_orig_aview = self.seeds_orig.transpose(self.act_transposition)
+        self.seeds_aview[...,self.actual_slice] = seeds_orig_aview[...,self.actual_slice]
+        self.slice_box.setSlice(seeds=self.seeds_aview[...,self.actual_slice])
+        self.slice_box.updateSlice()
+
+    def quit(self, event):
+        self.close()
+
+    def getContoursFromBounds(self, b):
+
+        contours = np.zeros(self.img.shape, np.int8)
+        if b is not None:
+            b = np.array(b)
+            b[:,1] += 1
+            contours[b[0][0]:b[0][1],
+                     b[1][0]:b[1][1],
+                     b[2][0]:b[2][1]] = 1
+
+        return contours
 
     def updateVolume(self):
-        text = 'volume [mm3]:\n unknown'
+        text = 'Volume [mm3]:\n  unknown'
         if self.voxel_volume is not None:
             if self.mode == 'draw':
                 vd = self.seeds
@@ -743,7 +1059,7 @@ class QTSeedEditor(QDialog):
             if vd is not None:
                 nzs = vd.nonzero()
                 nn = nzs[0].shape[0]
-                text = 'volume [mm3]:\n %.2e' % (nn * self.voxel_volume)
+                text = 'Volume [mm3]:\n  %.2e' % (nn * self.voxel_volume)
 
         self.volume_label.setText(text)
 
@@ -757,7 +1073,7 @@ def gen_test():
 usage = '%prog [options]\n' + __doc__.rstrip()
 help = {
     'in_file': 'input *.mat file with "data" field',
-    'mode': '"seed" or "crop" mode',
+    'mode': '"seed", "crop" or "draw" mode',
     #'out_file': 'store the output matrix to the file',
     #'debug': 'run in debug mode',
     'gen_test': 'generate test data',
@@ -783,11 +1099,6 @@ def main():
     #                   help=help['out_file'])
     (options, args) = parser.parse_args()
 
-    # if options.tests:
-    #     # hack for use argparse and unittest in one module
-    #     sys.argv[1:]=[]
-    #     unittest.main()
-
     if options.gen_test:
         dataraw = gen_test()
 
@@ -797,12 +1108,17 @@ def main():
 
         else:
             dataraw = loadmat(options.in_filename,
-                              variable_names=['data', 'voxelsizemm'])
-    
+                              variable_names=['data', 'segdata',
+                                              'voxelsizemm', 'seeds'])
+            if not ('segdata' in dataraw):
+                dataraw['segdata'] = None
+
     app = QApplication(sys.argv)
     pyed = QTSeedEditor(dataraw['data'],
+                        seeds=dataraw['segdata'],
                         mode=options.mode,
-                        voxelVolume=np.prod(dataraw['voxelsizemm']))
+                        voxelSize=dataraw['voxelsizemm'])
+
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
