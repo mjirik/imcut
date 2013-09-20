@@ -36,10 +36,13 @@ CONTOURLINES_COLORTABLE = np.array([[255, 255, 255, 0],
                                     [255, 0, 0, 16],
                                     [255, 0, 0, 255]], dtype=np.uint8)
 
-VIEW_TABLE = {'axial': (1,0,2),
-              'sagittal': (0,2,1),
-              'coronal': (1,2,0)}
+#VIEW_TABLE = {'axial': (1,0,2),
+#              'sagittal': (0,2,1),
+#              'coronal': (1,2,0)}
 
+VIEW_TABLE = {'axial': (2,1,0),
+              'sagittal': (0,1,2),
+              'coronal': (0,2,1)}
 DRAW_MASK = [
     (np.array([[1]], dtype=np.int8), 'small pen'),
     (np.array([[0, 1, 1, 1, 0],
