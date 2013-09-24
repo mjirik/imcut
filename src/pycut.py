@@ -22,6 +22,7 @@ from pygco import cut_simple, cut_from_graph
 
 import sklearn
 import sklearn.mixture
+import os
 
 # version comparison
 from pkg_resources import parse_version
@@ -412,11 +413,23 @@ def main():
     if options.in_filename is None:
         raise IOError('No input data!')
 
-    else:
+    elif (os.path.isfile(options.in_filename) &
+        options.in_filename.endswith('.mat')):
         dataraw = loadmat(options.in_filename,
                           variable_names=['data', 'voxelsizemm'])
+        data3d = dataraw['data']
+        voxelsize_mm = dataraw['voxelsizemm']
+    else:
+        import dcmreaddata
+        dcmr = dcmreaddata.DicomReader(options.in_filename)
+        data3d = dcmr.get_3Ddata()
+        metadata = dcmr.get_metaData()
+        import pdb; pdb.set_trace()
+        voxelsize_mm = metadata['voxelsize_mm']
 
-    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsizemm'])
+
+    
+    igc = ImageGraphCut(data3d, voxelsize=voxelsize_mm)
     igc.interactivity()
 
     logger.debug(igc.segmentation.shape)
