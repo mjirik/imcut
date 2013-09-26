@@ -724,8 +724,8 @@ class QTSeedEditor(QDialog):
         self.cw_range = {'c': [lb, ub], 'w': [1, dul]}
         self.slider_cw['c'].setRange(lb, ub)
         self.slider_cw['w'].setRange(1, dul)
-        self.changeC(dul / 2)
-        self.changeW(dul - lb)
+        self.changeC(lb + dul / 2)
+        self.changeW(dul)
 
         self.crop_bounds = None
         self.offsetmm = self.voxel_size * 0
