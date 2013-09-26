@@ -69,9 +69,9 @@ class DicomReader():
     metadata = dcr.get_metaData()
 
     """
-    
     dicomdir_filename = 'dicomdir.pkl'
-    def __init__(self, dirpath=None, initdir='.', qt_app=None, series_number = None):
+    def __init__(self, dirpath=None, initdir='.',
+                 qt_app=None, series_number = None):
         self.valid = False
         self.dirpath = dirpath
         self.dcmdir = self.get_dir()
@@ -82,15 +82,16 @@ class DicomReader():
             self.valid = True
             counts, bins = self.status_dir()
 
-            
             if len (bins) > 1:
                 if self.series_number == None:
                     if qt_app is not None:
                         from PyQt4.QtGui import QInputDialog
                         sbins = ', '.join([str(ii) for ii in bins])
-                        snstring, ok = QInputDialog.getText(qt_app, 'Select serie:',
-                                                            'Select serie [%s]:' % sbins,
-                                                            text='%d' % bins[0])
+                        snstring, ok = \
+                            QInputDialog.getText(qt_app,
+                                                 'Select serie:',
+                                                 'Select serie [%s]:' % sbins,
+                                                 text='%d' % bins[0])
                     else:
                         series_info = self.dcmdirstats()
                         print self.print_series_info(series_info)
@@ -109,7 +110,7 @@ class DicomReader():
 
     def validData(self):
         return self.valid
-        
+
     def get_overlay(self):
         """
         Function make 3D data from dicom file slices. There are usualy 
@@ -131,23 +132,23 @@ class DicomReader():
                         data2d = self.decode_overlay_slice(data,i_overlay)
                         #import pdb; pdb.set_trace()
                         shp2 = data2d.shape
-                        overlay[i_overlay]= np.zeros([len(dcmlist), shp2[0], shp2[1] ],
-                                  dtype=np.int8)
+                        overlay[i_overlay]= np.zeros([len(dcmlist), shp2[0],
+                                                      shp2[1] ], dtype=np.int8)
                         overlay[i_overlay][-i-1,:,:] = data2d
+
                     except:
                         #print "nefunguje", i_overlay
                         pass
+
             else:
                 for i_overlay in overlay.keys():
                         data2d = self.decode_overlay_slice(data,i_overlay)
                         overlay[i_overlay][i,:,:] = data2d
 
-                
-
-
         return overlay
+
     def decode_overlay_slice(self, data, i_overlay):
-            # overlay index 
+            # overlay index
             n_bits = 8
 
 
@@ -168,14 +169,12 @@ class DicomReader():
 # TODO neni tady ta jednička blbě? 
             for i in range(1,len(overlay_raw)):
                 for k in range (0,n_bits):
-                    byte_as_int = ord(overlay_raw[i]) 
+                    byte_as_int = ord(overlay_raw[i])
                     decoded_linear[i*n_bits + k] = (byte_as_int >> k) & 0b1
 
             #overlay = np.array(pol)
-
             overlay_slice = np.reshape(decoded_linear,[rows,cols])
             return overlay_slice
-
 
     def get_3Ddata(self):
         """
@@ -184,7 +183,7 @@ class DicomReader():
         data3d = []
         dcmlist = self.dcmlist
 
-        for i  in range(len(dcmlist)):
+        for i in range(len(dcmlist)):
             onefile = dcmlist[i]
             logger.info(onefile)
             data = dicom.read_file(onefile)
@@ -195,13 +194,16 @@ class DicomReader():
                 shp2 = data2d.shape
                 data3d = np.zeros([len(dcmlist), shp2[0], shp2[1]],
                                   dtype=np.int16)
-            #else:
+
             try:
-                data2d = (data.RescaleSlope * data2d) + data.RescaleIntercept
+                new_data2d = (np.float(data.RescaleSlope) * data2d)\
+                    + np.float(data.RescaleIntercept)
+
             except:
                 logger.warning('problem with RescaleSlope and RescaleIntercept')
             # first readed slide is at the end
-            data3d [-i-1,:,:] = data2d
+
+            data3d[-i-1,:,:] = new_data2d
 
             logger.debug("Data size: " + str(data3d.nbytes)\
                     + ', shape: ' + str(shp2) +'x'+ str(len(dcmlist)) )
@@ -211,7 +213,7 @@ class DicomReader():
     def get_metaData(self, dcmlist =None, ifile=0):
         """
         Get metadata.
-        Voxel size is obtained from PixelSpacing and difference of 
+        Voxel size is obtained from PixelSpacing and difference of
         SliceLocation of two neighboorhoding slices (first have index ifile).
         Files in are used.
         """
@@ -223,14 +225,16 @@ class DicomReader():
             data2 = dicom.read_file(dcmlist[ifile+1])
             voxeldepth = float(np.abs(data.SliceLocation - data2.SliceLocation ))
         except:
-            logger.warning('Problem with voxel depth. Using SliceThickness, SeriesNumber: ' + str(data.SeriesNumber))
+            logger.warning('Problem with voxel depth. Using SliceThickness,'\
+                               + ' SeriesNumber: ' + str(data.SeriesNumber))
+
             try:
                 voxeldepth = float(data.SliceThickness)
             except:
-                logger.warning('Probem with SliceThicknes, setting zero. ' + traceback.format_exc())
+                logger.warning('Probem with SliceThicknes, setting zero. '\
+                                   + traceback.format_exc())
                 voxeldepth = 0
 
-        
         pixelsize_mm = data.PixelSpacing
         voxelsize_mm = [
                 voxeldepth,
@@ -275,7 +279,8 @@ class DicomReader():
 
 # počítání velikosti série
         try:
-            dcmdirseries = [line['SeriesNumber'] for line in dcmdir ]
+            dcmdirseries = [line['SeriesNumber'] for line in dcmdir]
+
         except:
             logger.debug('Dicom tag SeriesNumber not found')
             series_info = {0:{'Count':0}}
@@ -306,7 +311,6 @@ class DicomReader():
                     metadata.items()
                     )
 
-
         return series_info
 
     def print_series_info(self, series_info):
@@ -316,11 +320,15 @@ class DicomReader():
         strinfo = ''
         if len (series_info) > 1:
             for serie_number in series_info.keys():
-                strl = str(serie_number) + " (" + str(series_info[serie_number]['Count']) 
+                strl = str(serie_number) + " ("\
+                    + str(series_info[serie_number]['Count']) 
                 try:
-                    strl = strl + ", " + str( series_info[serie_number]['Modality'])
-                    strl = strl + ", " + str( series_info[serie_number]['SeriesDescription'])
-                    strl = strl + ", " + str( series_info[serie_number]['ImageComments'])
+                    strl = strl + ", "\
+                        + str( series_info[serie_number]['Modality'])
+                    strl = strl + ", "\
+                        + str( series_info[serie_number]['SeriesDescription'])
+                    strl = strl + ", "\
+                        + str( series_info[serie_number]['ImageComments'])
                 except:
                     logger.debug('Tag Modlity or ImageComment not found in dcminfo')
                     pass
@@ -334,7 +342,7 @@ class DicomReader():
     def files_in_dir(self, dirpath, wildcard="*", startpath=None):
         """
         Function generates list of files from specific dir
-        
+
         files_in_dir(dirpath, wildcard="*.*", startpath=None)
 
         dirpath: required directory
@@ -376,7 +384,7 @@ class DicomReader():
 
         dcmdir = get_dir(dirpath)
 
-        dcmdir: list with filenames, SeriesNumber, InstanceNumber and 
+        dcmdir: list with filenames, SeriesNumber, InstanceNumber and
         AcquisitionNumber
         """
         createdcmdir = True
@@ -502,7 +510,7 @@ def get_dcmdir_qt(app=False):
     if len(dcmdir) > 0:
         dcmdir = str(dcmdir)
     else:
-        dcmdir = None    
+        dcmdir = None
     return dcmdir
 
 
@@ -536,6 +544,7 @@ if __name__ == "__main__":
     dcr = DicomReader(os.path.abspath(dcmdir))
     data3d = dcr.get_3Ddata()
     metadata = dcr.get_metaData()
+
     savemat(options.out_filename, {'data': data3d,
                                    'voxelsize_mm': metadata['voxelsize_mm']})
 
