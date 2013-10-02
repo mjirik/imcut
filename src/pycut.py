@@ -421,9 +421,9 @@ def main():
 
     else:
         dataraw = loadmat(options.in_filename,
-                          variable_names=['data', 'voxelsizemm'])
+                          variable_names=['data', 'voxelsize_mm'])
 
-    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsizemm'])
+    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'])
     igc.interactivity()
 
     logger.debug(igc.segmentation.shape)

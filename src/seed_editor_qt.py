@@ -727,8 +727,8 @@ class QTSeedEditor(QDialog):
         self.cw_range = {'c': [lb, ub], 'w': [1, dul]}
         self.slider_cw['c'].setRange(lb, ub)
         self.slider_cw['w'].setRange(1, dul)
-        self.changeC(dul / 2)
-        self.changeW(dul - lb)
+        self.changeC(lb + dul / 2)
+        self.changeW(dul)
 
         self.crop_bounds = None
         self.offsetmm = self.voxel_size * 0
@@ -1070,7 +1070,7 @@ class QTSeedEditor(QDialog):
 def gen_test():
     test = {}
     test['data'] = np.zeros((10,10,4), dtype=np.uint8)
-    test['voxelsizemm'] = (2, 2, 2.5)
+    test['voxelsize_mm'] = (2, 2, 2.5)
 
     return test
 
@@ -1113,7 +1113,7 @@ def main():
         else:
             dataraw = loadmat(options.in_filename,
                               variable_names=['data', 'segdata',
-                                              'voxelsizemm', 'seeds'])
+                                              'voxelsize_mm', 'seeds'])
             if not ('segdata' in dataraw):
                 dataraw['segdata'] = None
 
@@ -1121,7 +1121,7 @@ def main():
     pyed = QTSeedEditor(dataraw['data'],
                         seeds=dataraw['segdata'],
                         mode=options.mode,
-                        voxelSize=dataraw['voxelsizemm'])
+                        voxelSize=dataraw['voxelsize_mm'])
 
     sys.exit(app.exec_())
 
