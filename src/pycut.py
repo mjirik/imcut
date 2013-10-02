@@ -22,7 +22,6 @@ from pygco import cut_simple, cut_from_graph
 
 import sklearn
 import sklearn.mixture
-import os
 
 # version comparison
 from pkg_resources import parse_version
@@ -162,6 +161,10 @@ class ImageGraphCut:
         if max_val is None:
             max_val = np.max(self.img)
 
+
+        window_c = ((max_val + min_val)/2)#.astype(np.int16)
+        window_w = (max_val - min_val)#.astype(np.int16)
+
         
         if qt_app is None:
             qt_app = QApplication(sys.argv)
@@ -169,6 +172,9 @@ class ImageGraphCut:
                             modeFun=self.interactivity_loop,
                             voxelSize=self.voxelsize,
                             seeds=self.seeds)
+        pyed.changeC(window_c)
+        pyed.changeW(window_w)
+
         qt_app.exec_()
 
 
@@ -413,23 +419,11 @@ def main():
     if options.in_filename is None:
         raise IOError('No input data!')
 
-    elif (os.path.isfile(options.in_filename) &
-        options.in_filename.endswith('.mat')):
+    else:
         dataraw = loadmat(options.in_filename,
                           variable_names=['data', 'voxelsizemm'])
-        data3d = dataraw['data']
-        voxelsize_mm = dataraw['voxelsizemm']
-    else:
-        import dcmreaddata
-        dcmr = dcmreaddata.DicomReader(options.in_filename)
-        data3d = dcmr.get_3Ddata()
-        metadata = dcmr.get_metaData()
-        import pdb; pdb.set_trace()
-        voxelsize_mm = metadata['voxelsize_mm']
 
-
-    
-    igc = ImageGraphCut(data3d, voxelsize=voxelsize_mm)
+    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsizemm'])
     igc.interactivity()
 
     logger.debug(igc.segmentation.shape)

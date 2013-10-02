@@ -854,6 +854,7 @@ class QTSeedEditor(QDialog):
             self.slice_box.setCW(value, key)
             self.slice_box.updateSliceCW(self.img_aview[...,self.actual_slice])
 
+
     def changeC(self, value):
         self.changeCW(value, 'c')
 
