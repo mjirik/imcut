@@ -143,7 +143,7 @@ class DicomReader():
             else:
                 for i_overlay in overlay.keys():
                         data2d = self.decode_overlay_slice(data,i_overlay)
-                        overlay[i_overlay][i,:,:] = data2d
+                        overlay[i_overlay][-i-1,:,:] = data2d
 
         return overlay
 
