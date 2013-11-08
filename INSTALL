@@ -37,6 +37,20 @@ Windows:
    cd ..
    python setup.py build_ext -i --compiler=mingw32
 
+Mac:
+
+   git clone https://github.com/amueller/gco_python.git
+   cd gco_python
+   mkdir gco_src
+   cd gco_src
+   curl -O http://vision.csd.uwo.ca/code/gco-v3.0.zip
+   unzip gco-v3.0.zip
+   curl -O https://raw.github.com/mjirik/pyseg_base/master/distr/energy.patch
+   patch energy.h < energy.patch
+   cd ..
+   sudo python setup.py install
+
+
 
 Install PYSEG_BASE:
 
