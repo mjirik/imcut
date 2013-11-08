@@ -1,0 +1,59 @@
+--- energy.h	2012-11-15 17:28:04.000000000 +0100
++++ ../gco_python/gco_src/energy.h	2013-11-07 13:29:54.000000000 +0100
+@@ -204,7 +204,7 @@
+ inline void Energy<captype,tcaptype,flowtype>::add_term1(Var x,
+                               Value A, Value B)
+ {
+-	add_tweights(x, B, A);
++	this->add_tweights(x, B, A);
+ }
+ 
+ template <typename captype, typename tcaptype, typename flowtype> 
+@@ -217,7 +217,7 @@
+ 	       D D     C-D 0
+ 	   Add edges for the first term
+ 	*/
+-	add_tweights(x, D, A);
++	this->add_tweights(x, D, A);
+ 	B -= A; C -= D;
+ 
+ 	/* now need to represent
+@@ -232,9 +232,9 @@
+ 		   B B  +  -B 0  +  0   0
+ 		   0 0     -B 0     B+C 0
+ 		*/
+-		add_tweights(x, 0, B); /* first term */
+-		add_tweights(y, 0, -B); /* second term */
+-		add_edge(x, y, 0, B+C); /* third term */
++		this->add_tweights(x, 0, B); /* first term */
++		this->add_tweights(y, 0, -B); /* second term */
++		this->add_edge(x, y, 0, B+C); /* third term */
+ 	}
+ 	else if (C < 0)
+ 	{
+@@ -242,13 +242,13 @@
+ 		   -C -C  +  C 0  +  0 B+C
+ 		    0  0     C 0     0 0
+ 		*/
+-		add_tweights(x, 0, -C); /* first term */
+-		add_tweights(y, 0, C); /* second term */
+-		add_edge(x, y, B+C, 0); /* third term */
++		this->add_tweights(x, 0, -C); /* first term */
++		this->add_tweights(y, 0, C); /* second term */
++		this->add_edge(x, y, B+C, 0); /* third term */
+ 	}
+ 	else /* B >= 0, C >= 0 */
+ 	{
+-		add_edge(x, y, B, C);
++		this->add_edge(x, y, B, C);
+ 	}
+ }
+ 
+@@ -325,6 +325,6 @@
+ return Econst + GraphT::maxflow(); }
+ 
+ template <typename captype, typename tcaptype, typename flowtype> 
+-inline int Energy<captype,tcaptype,flowtype>::get_var(Var x) { return (int) what_segment(x); }
++inline int Energy<captype,tcaptype,flowtype>::get_var(Var x) { return (int) this->what_segment(x); }
+ 
+ #endif
