@@ -508,7 +508,9 @@ def get_dcmdir_qt(app=False):
         #app.exec_()
         app.exit(0)
     if len(dcmdir) > 0:
-        dcmdir = str(dcmdir)
+       
+        dcmdir = "%s" %(dcmdir)
+        dcmdir = dcmdir.encode("utf8")
     else:
         dcmdir = None
     return dcmdir
