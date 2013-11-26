@@ -113,7 +113,7 @@ class DicomReader():
 
     def get_overlay(self):
         """
-        Function make 3D data from dicom file slices. There are usualy 
+        Function make 3D data from dicom file slices. There are usualy
         more overlays in the data.
         """
         overlay = {}
@@ -128,7 +128,7 @@ class DicomReader():
 # first there is created dictionary with avalible overlay indexes
                 for i_overlay in range (0,50):
                     try:
-                        # overlay index 
+                        # overlay index
                         data2d = self.decode_overlay_slice(data,i_overlay)
                         #import pdb; pdb.set_trace()
                         shp2 = data2d.shape
@@ -152,8 +152,8 @@ class DicomReader():
             n_bits = 8
 
 
-            # On (60xx,3000) are stored ovelays. 
-            # First is (6000,3000), second (6002,3000), third (6004,3000),  
+            # On (60xx,3000) are stored ovelays.
+            # First is (6000,3000), second (6002,3000), third (6004,3000),
             # and so on.
             dicom_tag1 = 0x6000 + 2*i_overlay
 
@@ -166,7 +166,7 @@ class DicomReader():
             decoded_linear = np.zeros(len(overlay_raw)*n_bits)
 
             # Decoding data. Each bit is stored as array element
-# TODO neni tady ta jednička blbě? 
+# TODO neni tady ta jednička blbě?
             for i in range(1,len(overlay_raw)):
                 for k in range (0,n_bits):
                     byte_as_int = ord(overlay_raw[i])
@@ -250,18 +250,23 @@ class DicomReader():
             metadata['SeriesDescription'] = data.SeriesDescription
 
         except:
-            logger.warning('Problem with tag SeriesDescription, \
-                    SeriesNumber: ' + str(data.SeriesNumber))
+            logger.warning(
+                'Problem with tag SeriesDescription, SeriesNumber: ' +
+                str(data.SeriesNumber))
         try:
             metadata['ImageComments'] = data.ImageComments
         except:
-            logger.warning('Problem with tag ImageComments, \
-                    SeriesNumber: ' + str(data.SeriesNumber))
+            logger.warning(
+                'Problem with tag ImageComments, SeriesNumber: ' +
+                str(data.SeriesNumber))
         try:
             metadata['Modality'] = data.Modality
         except:
-            logger.warning('Problem with tag Modality, \
-                    SeriesNumber: ' + str(data.SeriesNumber))
+            logger.warning(
+                'Problem with tag Modality, SeriesNumber: ' +
+                str(data.SeriesNumber))
+
+        metadata['dcmfilelist'] = self.dcmlist
 
         #import pdb; pdb.set_trace()
         return metadata
@@ -273,7 +278,7 @@ class DicomReader():
         import numpy as np
         dcmdir = self.dcmdir
         # get series number
-# vytvoření slovníku, kde je klíčem číslo série a hodnotou jsou všechny 
+# vytvoření slovníku, kde je klíčem číslo série a hodnotou jsou všechny
 # informace z dicomdir
         series_info = {line['SeriesNumber']:line for line in dcmdir}
 
@@ -297,7 +302,7 @@ class DicomReader():
 
         #pdb.set_trace();
 
-        # sestavení informace o velikosti série a slovníku 
+        # sestavení informace o velikosti série a slovníku
 
         for i in range(0,len(bins)):
             series_info[bins[i]]['Count']=counts[i]
@@ -307,7 +312,7 @@ class DicomReader():
             metadata = self.get_metaData(dcmlist = lst)
 # adding dictionary metadata to series_info dictionary
             series_info[bins[i]] = dict(
-                    series_info[bins[i]].items() + 
+                    series_info[bins[i]].items() +
                     metadata.items()
                     )
 
@@ -321,7 +326,7 @@ class DicomReader():
         if len (series_info) > 1:
             for serie_number in series_info.keys():
                 strl = str(serie_number) + " ("\
-                    + str(series_info[serie_number]['Count']) 
+                    + str(series_info[serie_number]['Count'])
                 try:
                     strl = strl + ", "\
                         + str( series_info[serie_number]['Modality'])
@@ -425,7 +430,7 @@ class DicomReader():
             head, teil = os.path.split(filepath)
             try:
                 dcmdata=dicom.read_file(filepath)
-                metadataline = {'filename' : teil, 
+                metadataline = {'filename' : teil,
                               'InstanceNumber' : dcmdata.InstanceNumber,
                               'SeriesNumber' : dcmdata.SeriesNumber,
                               'AcquisitionNumber' : dcmdata.AcquisitionNumber
@@ -508,7 +513,7 @@ def get_dcmdir_qt(app=False):
         #app.exec_()
         app.exit(0)
     if len(dcmdir) > 0:
-       
+
         dcmdir = "%s" %(dcmdir)
         dcmdir = dcmdir.encode("utf8")
     else:
