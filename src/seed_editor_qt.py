@@ -36,13 +36,9 @@ CONTOURLINES_COLORTABLE = np.array([[255, 255, 255, 0],
                                     [255, 0, 0, 16],
                                     [255, 0, 0, 255]], dtype=np.uint8)
 
-#VIEW_TABLE = {'axial': (1,0,2),
-#              'sagittal': (0,2,1),
-#              'coronal': (1,2,0)}
-
 VIEW_TABLE = {'axial': (2,1,0),
-              'sagittal': (0,1,2),
-              'coronal': (0,2,1)}
+              'sagittal': (1,0,2),
+              'coronal': (2,0,1)}
 DRAW_MASK = [
     (np.array([[1]], dtype=np.int8), 'small pen'),
     (np.array([[0, 1, 1, 1, 0],
@@ -77,7 +73,6 @@ NEI_TAB = [[-1, -1], [0, -1], [1, -1],
            [-1, 0], [1, 0],
            [-1, 1], [0, 1], [1, 1]]
 
-#nei_tab = [[-1, 0], [1, 0]]
 
 def erase_reg(arr, p, val=0):
     buff = [p]
@@ -499,7 +494,7 @@ class QTSeedEditor(QDialog):
         self.allow_select_slice = True
         self.n_slices = shape[2]
         self.slider = QSlider(Qt.Vertical)
-        self.slider.valueChanged.connect(self.selectSlice)
+        self.slider.valueChanged.connect(self.sliderSelectSlice)
         self.slider.label = QLabel()
         self.slider.setRange(1, self.n_slices)
 
@@ -646,7 +641,6 @@ class QTSeedEditor(QDialog):
         self.setWindowTitle('Segmentation Editor')
         self.show()
 
-
     def __init__(self, img, actualSlice=0,
                  seeds=None, contours=None,
                  mode='seed', modeFun=None,
@@ -684,11 +678,11 @@ class QTSeedEditor(QDialog):
         self.act_transposition = VIEW_TABLE[self.actual_view]
         self.last_view_position = {}
         for ii in VIEW_TABLE.iterkeys():
-            self.last_view_position[ii] = 0
+            self.last_view_position[ii] = img.shape[VIEW_TABLE[ii][-1]] - 1
 
         self.img = img
         self.img_aview = self.img.transpose(self.act_transposition)
-        self.actual_slice = actualSlice
+        self.actual_slice = self.img_aview.shape[-1] - actualSlice - 1
         self.last_view_position[self.actual_view] = self.actual_slice
 
         # set contours
@@ -730,7 +724,6 @@ class QTSeedEditor(QDialog):
         self.changeC(lb + dul / 2)
         self.changeW(dul)
 
-        self.crop_bounds = None
         self.offsetmm = self.voxel_size * 0
 
     def showStatus(self, msg):
@@ -765,62 +758,43 @@ class QTSeedEditor(QDialog):
         else:
             self.seeds_modified = False
 
-    def updateCropBounds(self, sliceSeeds):
-        aux = sliceSeeds.nonzero()
-        if aux[0].nbytes > 0:
-            abounds = np.array([[np.min(aux[0]), np.max(aux[0])],
-                                [np.min(aux[1]), np.max(aux[1])],
-                                [self.actual_slice, self.actual_slice]])
+    def updateCropBounds(self):
+        crp = self.getCropBounds()
+        if crp is not None:
+            _, cri = crp
+            self.contours = np.zeros(self.img.shape, np.int8)
+            self.contours[cri].fill(1)
+            self.contours_aview = self.contours.transpose(self.act_transposition)
 
-            if self.crop_bounds is None:
-                self.crop_bounds = abounds[self.act_transposition,:]
-
-            else:
-                for jj, ii in enumerate(self.act_transposition):
-                    if abounds[jj,0] < self.crop_bounds[ii,0]:
-                        self.crop_bounds[ii,0] = abounds[jj,0]
-
-                    if abounds[jj,1] > self.crop_bounds[ii,1]:
-                        self.crop_bounds[ii,1] = abounds[jj,1]
-
-        # else:
-        #     zbnds = self.crop_bounds[self.act_transposition[2]]
-
-        self.contours = self.getContoursFromBounds(self.crop_bounds)
-        self.contours_aview = self.contours.transpose(self.act_transposition)
+    def sliderSelectSlice(self, value):
+        self.selectSlice(self.n_slices - value)
 
     def selectSlice(self, value, force=False):
         if not(self.allow_select_slice):
             return
 
-        val = value - 1
-        if (value < 1) or (value > self.n_slices):
+        if (value < 0) or (value >= self.n_slices):
             return
 
-        if (val != self.actual_slice) or force:
+        if (value != self.actual_slice) or force:
             self.saveSliceSeeds()
             if self.seeds_modified and (self.mode == 'crop'):
-                self.updateCropBounds(self.seeds_aview[...,self.actual_slice])
+                self.updateCropBounds()
 
         if self.contours is None:
             contours = None
 
         else:
-            contours = self.contours_aview[...,val]
+            contours = self.contours_aview[...,value]
 
-        self.slider.setValue(value)
-        self.slider.label.setText('Slice: %d / %d' % (value, self.n_slices))
+        slider_val = self.n_slices - value
+        self.slider.setValue(slider_val)
+        self.slider.label.setText('Slice: %d / %d' % (slider_val, self.n_slices))
 
-        self.slice_box.setSlice(self.img_aview[...,val],
-                                self.seeds_aview[...,val],
+        self.slice_box.setSlice(self.img_aview[...,value],
+                                self.seeds_aview[...,value],
                                 contours)
-        self.actual_slice = val
-
-    def slicePrev(self):
-        self.selectSlice(self.slider.value() - 1)
-
-    def sliceNext(self):
-        self.selectSlice(self.slider.value() + 1)
+        self.actual_slice = value
 
     def getSeeds(self):
         return self.seeds
@@ -841,7 +815,7 @@ class QTSeedEditor(QDialog):
         self.contours = contours
         self.contours_aview = self.contours.transpose(self.act_transposition)
 
-        self.selectSlice(self.actual_slice + 1)
+        self.selectSlice(self.actual_slice)
 
     def changeCW(self, value, key):
         rg = self.cw_range[key]
@@ -897,11 +871,12 @@ class QTSeedEditor(QDialog):
 
         self.allow_select_slice = False
         self.n_slices = self.img_aview.shape[2]
-        self.slider.setValue(self.actual_slice + 1)
+        slider_val = self.n_slices - self.actual_slice
+        self.slider.setValue(slider_val)
         self.slider.setRange(1, self.n_slices)
         self.allow_select_slice = True
 
-        self.slider.label.setText('Slice: %d / %d' % (self.actual_slice + 1,
+        self.slider.label.setText('Slice: %d / %d' % (slider_val,
                                                       self.n_slices))
         self.view_label.setText('View size: %d x %d' % self.img_aview.shape[:-1])
 
@@ -917,9 +892,9 @@ class QTSeedEditor(QDialog):
 
     def eraseVolume(self, pos, mode):
         self.showStatus("Processing...")
-        x, y = pos
-        p = np.array([x, y, self.actual_slice])[np.array(self.act_transposition)]
-        if self.seeds[tuple(p)] > 0:
+        xyz = pos + (self.actual_slice,)
+        p = tuple(np.array(xyz)[np.array(self.act_transposition)])
+        if self.seeds[p] > 0:
             if mode == 'inside':
                 erase_reg(self.seeds, p, val=0)
 
@@ -970,7 +945,6 @@ class QTSeedEditor(QDialog):
                                 None)
 
         self.allow_select_slice = False
-        self.crop_bounds = None
         self.n_slices = self.img_aview.shape[2]
         self.slider.setValue(self.actual_slice + 1)
         self.slider.setRange(1, self.n_slices)
@@ -980,31 +954,47 @@ class QTSeedEditor(QDialog):
                                                       self.n_slices))
         self.view_label.setText('View size: %d x %d' % self.img_aview.shape[:-1])
 
+    def getCropBounds(self):
+
+        nzs = self.seeds.nonzero()
+        cri = []
+        flag = True
+        for ii in range(3):
+            if nzs[ii].shape[0] == 0:
+                flag = False
+                break
+
+            smin, smax = np.min(nzs[ii]), np.max(nzs[ii])
+            if smin == smax:
+                flag = False
+                break
+
+            cri.append((smin, smax))
+
+        if flag:
+            cri = np.array(cri)
+
+            out = []
+            offset = []
+            for jj, ii in enumerate(cri):
+                out.append(slice(ii[0], ii[1] + 1))
+                offset.append(ii[0] * self.voxel_size[jj])
+
+            return np.array(offset), tuple(out)
+
+        else:
+            return None
+
     def crop(self):
         self.showStatus("Processing...")
 
-        nzs = self.seeds.nonzero()
+        crp = self.getCropBounds()
 
-        if nzs is not None:
-            cri = []
-            for ii in range(3):
-                if nzs[ii].shape[0] == 0:
-                    nzs = None
-                    break
-                smin, smax = np.min(nzs[ii]), np.max(nzs[ii])
-                if smin == smax:
-                    nzs = None
-                    break
-
-                cri.append((smin, smax))
-            cri = np.array(cri)
-
-        if nzs is not None:
-            crop = self.img[cri[0][0]:(cri[0][1] + 1),
-                            cri[1][0]:(cri[1][1] + 1),
-                            cri[2][0]:(cri[2][1] + 1)]
+        if crp is not None:
+            offset, cri = crp
+            crop = self.img[cri]
             self.img = np.ascontiguousarray(crop)
-            self.offsetmm += cri[:,0] * self.voxel_size
+            self.offsetmm += offset
 
             self.showStatus('Done')
 
@@ -1021,7 +1011,7 @@ class QTSeedEditor(QDialog):
 
         self.showStatus("Processing...")
         self.mode_fun(self)
-        self.selectSlice(self.actual_slice + 1)
+        self.selectSlice(self.actual_slice)
         self.updateVolume()
         self.showStatus("Done")
 
@@ -1038,18 +1028,6 @@ class QTSeedEditor(QDialog):
 
     def quit(self, event):
         self.close()
-
-    def getContoursFromBounds(self, b):
-
-        contours = np.zeros(self.img.shape, np.int8)
-        if b is not None:
-            b = np.array(b)
-            b[:,1] += 1
-            contours[b[0][0]:b[0][1],
-                     b[1][0]:b[1][1],
-                     b[2][0]:b[2][1]] = 1
-
-        return contours
 
     def updateVolume(self):
         text = 'Volume [mm3]:\n  unknown'
