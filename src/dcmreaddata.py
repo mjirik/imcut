@@ -71,7 +71,7 @@ class DicomReader():
     """
     dicomdir_filename = 'dicomdir.pkl'
     def __init__(self, dirpath=None, initdir='.',
-                 qt_app=None, series_number = None):
+                 qt_app=None, gui=True, series_number = None):
         self.valid = False
         self.dirpath = dirpath
         self.dcmdir = self.get_dir()
@@ -84,7 +84,7 @@ class DicomReader():
 
             if len (bins) > 1:
                 if self.series_number == None:
-                    if qt_app is not None:
+                    if (qt_app is not None) or gui:
                         from PyQt4.QtGui import QInputDialog
                         sbins = ', '.join([str(ii) for ii in bins])
                         snstring, ok = \
