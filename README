@@ -42,4 +42,4 @@ See data:
     
 Make graph_cut:
 
-    python src/pycut -f output.mat
+    python src/pycut.py -f output.mat
