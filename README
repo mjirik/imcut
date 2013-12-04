@@ -34,7 +34,7 @@ Run
 
 Create output.mat file:
     
-    python src/dcmreaddata.py -d directoryWithDicomFiles
+    python src/dcmreaddata.py -d directoryWithDicomFiles --degrad 4
     
 See data:
 

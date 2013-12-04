@@ -525,6 +525,7 @@ usage = '%prog [options]\n' + __doc__.rstrip()
 help = {
     'dcm_dir': 'DICOM data direcotory',
     'out_file': 'store the output matrix to the file',
+    "degrad": "degradation of input data. For no degradation use 1"
 }
 
 if __name__ == "__main__":
@@ -535,6 +536,9 @@ if __name__ == "__main__":
     parser.add_option('-o', '--outputfile', action='store',
                       dest='out_filename', default='output.mat',
                       help=help['out_file'])
+    parser.add_option('--degrad', action='store',
+                      dest='degrad', default=1,
+                      help=help['degrad'])
     (options, args) = parser.parse_args()
 
     logger.setLevel(logging.WARNING)
@@ -552,7 +556,12 @@ if __name__ == "__main__":
     data3d = dcr.get_3Ddata()
     metadata = dcr.get_metaData()
 
-    savemat(options.out_filename, {'data': data3d,
-                                   'voxelsize_mm': metadata['voxelsize_mm']})
+    degrad = int(options.degrad)
 
-    print "Data size: %d, shape: %s" % (data3d.nbytes, data3d.shape)
+    data3d_out = data3d[::degrad, ::degrad, ::degrad]
+    vs_out = metadata['voxelsize_mm']*degrad
+
+    savemat(options.out_filename, {'data': data3d_out,
+                                   'voxelsize_mm': vs_out})
+
+    print "Data size: %d, shape: %s" % (data3d_out.nbytes, data3d_out.shape)

@@ -130,7 +130,7 @@ class SliceBox(QLabel):
             Size of slice matrix.
         grid : tuple of float
             Pixel size:
-            imageSize = (grid1 * sliceSize1, grid2 * sliceSize2) 
+            imageSize = (grid1 * sliceSize1, grid2 * sliceSize2)
         mode : str
             Editor mode.
         """
@@ -1047,7 +1047,11 @@ class QTSeedEditor(QDialog):
 
 def gen_test():
     test = {}
-    test['data'] = np.zeros((10,10,4), dtype=np.uint8)
+    d_shp = [30,40,50]
+    data = np.random.random(d_shp)*30#, dtype=np.uint8)
+    data [10:20, 20:30,30:40 ] += 100
+
+    test["data"] = data.astype(np.uint8)
     test['voxelsize_mm'] = (2, 2, 2.5)
 
     return test
@@ -1082,7 +1086,10 @@ def main():
     (options, args) = parser.parse_args()
 
     if options.gen_test:
+
         dataraw = gen_test()
+        dataraw["segdata"]=None
+
 
     else:
         if options.in_filename is None:
