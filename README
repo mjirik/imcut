@@ -32,4 +32,14 @@ See INSTALL file for more information
 Run
 ---
 
-    python src/pycut -f directoryWithDicomFiles
+Create output.mat file:
+    
+    python src/dcmreaddata.py -d directoryWithDicomFiles
+    
+See data:
+
+    python src/seed_editor_qt.py -f output.mat
+    
+Make graph_cut:
+
+    python src/pycut -f output.mat
