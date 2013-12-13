@@ -15,10 +15,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 from scipy.io import loadmat
-import scipy.ndimage
 import numpy as np
 
-from pygco import cut_simple, cut_from_graph
+from pygco import cut_from_graph
 
 import sklearn
 import sklearn.mixture
@@ -45,7 +44,7 @@ class Model:
 
         self.mdl = {}
         self.modelparams = modelparams
-        
+
     def train(self, clx, cl):
         """ Train clas number cl with data clx """
 
@@ -95,9 +94,10 @@ class ImageGraphCut:
     igc.make_gc()
     igc.show_segmentation()
     """
-    def __init__(self, img, modelparams = defaultmodelparams,
-            segparams = {},
-            voxelsize=None):
+    def __init__(self, img,
+                 modelparams=defaultmodelparams,
+                 segparams={},
+                 voxelsize=None):
 
 # default values                              use_boundary_penalties
         #self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
@@ -110,7 +110,7 @@ class ImageGraphCut:
 
         self.img = img
         self.tdata = {}
-        self.segmentation = []
+        self.segmentation = None
         self.imgshape = img.shape
         self.modelparams = modelparams
         #self.segparams = segparams
@@ -134,20 +134,11 @@ class ImageGraphCut:
         self.make_gc()
         pyed.setContours(1 - self.segmentation.astype(np.int8))
 
-        #from PyQt4.QtGui import QApplication
-        #QApplication.beep()
-
-        #import audiosupport
-        #audiosupport.beep()
-        
-        #print 'hoja hoj'
-        
         try:
             import audiosupport
             audiosupport.beep()
         except:
             print("cannot open audiosupport")
-
 
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
@@ -161,23 +152,21 @@ class ImageGraphCut:
         if max_val is None:
             max_val = np.max(self.img)
 
-
         window_c = ((max_val + min_val)/2)#.astype(np.int16)
         window_w = (max_val - min_val)#.astype(np.int16)
 
-        
         if qt_app is None:
             qt_app = QApplication(sys.argv)
+
         pyed = QTSeedEditor(self.img,
                             modeFun=self.interactivity_loop,
                             voxelSize=self.voxelsize,
                             seeds=self.seeds)
+
         pyed.changeC(window_c)
         pyed.changeW(window_w)
 
         qt_app.exec_()
-
-
 
     def set_seeds(self,seeds):
         """
@@ -191,12 +180,10 @@ class ImageGraphCut:
         self.voxels1 = self.img[self.seeds == 1]
         self.voxels2 = self.img[self.seeds == 2]
 
-
-
-
-
     def make_gc(self):
-        res_segm = self.set_data(self.img, self.voxels1, self.voxels2, seeds=self.seeds)
+        res_segm = self.set_data(self.img,
+                                 self.voxels1, self.voxels2,
+                                 seeds=self.seeds)
 
         self.segmentation = res_segm
 
@@ -210,10 +197,10 @@ class ImageGraphCut:
 
     def boundary_penalties_array(self, axis, sigma = None):
 
-        import scipy.ndimage.filters
+        import scipy.ndimage.filters as scf
 
         #for axis in range(0,dim):
-        filtered = scipy.ndimage.filters.prewitt(self.img, axis=axis)
+        filtered = scf.prewitt(self.img, axis=axis)
         if sigma is None:
             sigma2 = np.var(self.img)
         else:
@@ -246,16 +233,13 @@ class ImageGraphCut:
 ##            diffs.insert(0,
         return filtered
 
-
-
-    def set_data(self, data, voxels1, voxels2, 
-            seeds=False, 
-            hard_constraints=True,
-            area_weight=1):
+    def set_data(self, data, voxels1, voxels2,
+                 seeds=False,
+                 hard_constraints=True,
+                 area_weight=1):
         """
         Setting of data.
         You need set seeds if you want use hard_constraints.
-        
         """
 
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se 
@@ -279,8 +263,10 @@ class ImageGraphCut:
             #pdb.set_trace();
             if (type(seeds)=='bool'):
                 raise Exception ('Seeds variable  not set','There is need set seed if you want use hard constraints')
-            tdata1, tdata2 = self.set_hard_hard_constraints(tdata1, tdata2, seeds)
-            
+            tdata1, tdata2 = self.set_hard_hard_constraints(tdata1,
+                                                            tdata2,
+                                                            seeds)
+
 
         unariesalt = (0+(area_weight * np.dstack([tdata1.reshape(-1,1), tdata2.reshape(-1,1)]).copy("C"))).astype(np.int32)
 
@@ -289,9 +275,7 @@ class ImageGraphCut:
         pairwise = -(np.eye(2)-1)
         pairwise = (self.segparams['pairwise_alpha'] * pairwise).astype(np.int32)
         #pairwise = np.array([[0,30],[30,0]]).astype(np.int32)
-        print pairwise
-
-
+        #print pairwise
 
         self.iparams = {}
 
@@ -336,7 +320,6 @@ class ImageGraphCut:
         #import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
 
-
 # edges - seznam indexu hran, kteres spolu sousedi
 
 # we flatten the unaries
@@ -347,7 +330,7 @@ class ImageGraphCut:
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
-                                                                                                        
+
 # class Tests(unittest.TestCase):
 #     def setUp(self):
 #         pass
