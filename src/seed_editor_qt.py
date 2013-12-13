@@ -130,7 +130,7 @@ class SliceBox(QLabel):
             Size of slice matrix.
         grid : tuple of float
             Pixel size:
-            imageSize = (grid1 * sliceSize1, grid2 * sliceSize2)
+            imageSize = (grid1 * sliceSize1, grid2 * sliceSize2) 
         mode : str
             Editor mode.
         """
@@ -424,7 +424,7 @@ class SliceBox(QLabel):
         new_grid = new_height / float(self.slice_size[1])
         mul = new_grid / self.grid[1]
 
-        self.grid = np.array(self.grid * mul)
+        self.grid = np.array(self.grid) * mul
         self.resizeSlice()
         self.updateSlice()
 
@@ -724,7 +724,7 @@ class QTSeedEditor(QDialog):
         self.changeC(lb + dul / 2)
         self.changeW(dul)
 
-        self.offsetmm = self.voxel_size * 0
+        self.offset = np.zeros((3,), dtype=np.int16)
 
     def showStatus(self, msg):
         self.status_bar.showMessage(QString(msg))
@@ -803,7 +803,7 @@ class QTSeedEditor(QDialog):
         return self.img
 
     def getOffset(self):
-        return self.offsetmm
+        return self.offset * self.voxel_size
 
     def getSeedsVal(self, label):
         return self.img[self.seeds==label]
@@ -978,7 +978,7 @@ class QTSeedEditor(QDialog):
             offset = []
             for jj, ii in enumerate(cri):
                 out.append(slice(ii[0], ii[1] + 1))
-                offset.append(ii[0] * self.voxel_size[jj])
+                offset.append(ii[0])
 
             return np.array(offset), tuple(out)
 
@@ -994,7 +994,8 @@ class QTSeedEditor(QDialog):
             offset, cri = crp
             crop = self.img[cri]
             self.img = np.ascontiguousarray(crop)
-            self.offsetmm += offset
+            self.offset += offset
+
 
             self.showStatus('Done')
 
@@ -1045,13 +1046,22 @@ class QTSeedEditor(QDialog):
 
         self.volume_label.setText(text)
 
+    def getROI(self):
+        crp = self.getCropBounds()
+        if crp is not None:
+            _, cri = crp
+
+        else:
+            cri = []
+            for jj, ii in enumerate(self.img.shape):
+                off = self.offset[jj]
+                cri.append(slice(off, off + ii))
+
+        return cri
+
 def gen_test():
     test = {}
-    d_shp = [30,40,50]
-    data = np.random.random(d_shp)*30#, dtype=np.uint8)
-    data [10:20, 20:30,30:40 ] += 100
-
-    test["data"] = data.astype(np.uint8)
+    test['data'] = np.zeros((10,10,4), dtype=np.uint8)
     test['voxelsize_mm'] = (2, 2, 2.5)
 
     return test
@@ -1086,10 +1096,7 @@ def main():
     (options, args) = parser.parse_args()
 
     if options.gen_test:
-
         dataraw = gen_test()
-        dataraw["segdata"]=None
-
 
     else:
         if options.in_filename is None:
