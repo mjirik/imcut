@@ -14,7 +14,7 @@ from scipy.io import loadmat
 import numpy as np
 import sys
 
-from PyQt4.QtCore import Qt, QSize, QString
+from PyQt4.QtCore import Qt, QSize, QString, SIGNAL
 from PyQt4.QtGui import QImage, QDialog,\
     QApplication, QSlider, QPushButton,\
     QLabel, QPixmap, QPainter, qRgba,\
@@ -155,6 +155,7 @@ class SliceBox(QLabel):
         self.erase_fun = None
         self.erase_mode = 'inside'
         self.contour_mode = 'fill'
+        self.scroll_fun = None
 
         if mode == 'draw':
             self.seeds_colortable = CONTOURS_COLORTABLE
@@ -433,6 +434,7 @@ class SliceBox(QLabel):
 
     def enterEvent(self, event):
         self.drawing = False
+        self.emit(SIGNAL('focus_slider'))
 
     def setMaskPoints(self, mask):
         self.mask_points = mask
@@ -450,6 +452,15 @@ class SliceBox(QLabel):
 
     def setEraseFun(self, fun):
         self.erase_fun = fun
+
+    def setScrollFun(self, fun):
+        self.scroll_fun = fun
+
+    def wheelEvent(self, event):
+        d = event.delta()
+        nd = d / abs(d)
+        if self.scroll_fun is not None:
+            self.scroll_fun(-nd)
 
 class QTSeedEditor(QDialog):
     """
@@ -489,6 +500,8 @@ class QTSeedEditor(QDialog):
         mgrid = (grid * vscale[0], grid * vscale[1])
         self.slice_box = SliceBox(shape[:-1], mgrid,
                                   mode)
+        self.slice_box.setScrollFun(self.scrollSlices)
+        self.connect(self.slice_box, SIGNAL('focus_slider'), self.focusSliceSlider)
 
         # sliders
         self.allow_select_slice = True
@@ -766,8 +779,16 @@ class QTSeedEditor(QDialog):
             self.contours[cri].fill(1)
             self.contours_aview = self.contours.transpose(self.act_transposition)
 
+    def focusSliceSlider(self):
+        self.slider.setFocus(True)
+
     def sliderSelectSlice(self, value):
         self.selectSlice(self.n_slices - value)
+
+    def scrollSlices(self, inc):
+        if abs(inc) > 0:
+            new = self.actual_slice + inc
+            self.selectSlice(new)
 
     def selectSlice(self, value, force=False):
         if not(self.allow_select_slice):
