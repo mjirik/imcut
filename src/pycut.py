@@ -33,7 +33,7 @@ else:
 
 
 class Model:
-    """ Model for image intensity. Last dimension represent feature vector. 
+    """ Model for image intensity. Last dimension represent feature vector.
     m = Model()
     m.train(cla, clb)
     X = numpy.random.random([2,3,4])
@@ -46,22 +46,29 @@ class Model:
         self.modelparams = modelparams
 
     def train(self, clx, cl):
-        """ Train clas number cl with data clx """
+        """ Train clas number cl with data clx.
 
+        clx: data, 2d matrix
+        cl: label, integer
+        """
+
+        if len(clx.shape) == 1:
+     #  je to jen jednorozměrný vektor, tak je potřeba to převést na 2d matici
+            clx = clx.reshape(-1, 1)
         if self.modelparams['type'] == 'gmmsame':
             gmmparams = self.modelparams['params']
             self.mdl[cl] = sklearn.mixture.GMM(**gmmparams)
-            if len(clx.shape) == 1:
-                # je to jen jednorozměrný vektor, tak je potřeba to převést na 2d matici
-                clx = clx.reshape(-1,1)
             self.mdl[cl].fit(clx)
 
+        elif self.modelparams['type'] == 'kernel':
+            kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
+            self.mdl[cl] = KernelDensity(**kernelmodelparams).fit(clx)
         else:
             raise NameError("Unknown model type")
 
         #pdb.set_trace();
 
-    def likelihood(self, x, cl, onedimfv = True):
+    def likelihood(self, x, cl, onedimfv=True):
         """
         X = numpy.random.random([2,3,4])
         # we have data 2x3 with fature vector with 4 fatures
@@ -74,15 +81,20 @@ class Model:
         else:
             xr = x.reshape(-1, sha[-1])
 
-        px = self.mdl[cl].score(xr)
+        if self.modelparams['type'] == 'gmmsame':
+            px = self.mdl[cl].score(xr)
 
 #todo ošetřit více dimenzionální fv
-        px = px.reshape(sha)
+            px = px.reshape(sha)
+        elif self.modelparams['type'] == 'kernel':
+            px = self.mdl[cl].score_samples(xr)
         return px
 
+
 class ImageGraphCut:
+
     """
-    Interactive Graph Cut
+    Interactive Graph Cut.
 
     ImageGraphCut(data, zoom, modelparams)
     scale
@@ -93,7 +105,9 @@ class ImageGraphCut:
     igc.interactivity()
     igc.make_gc()
     igc.show_segmentation()
+
     """
+
     def __init__(self, img,
                  modelparams=defaultmodelparams,
                  segparams={},
@@ -124,8 +138,8 @@ class ImageGraphCut:
             self.voxel_volume = None
 
     def interactivity_loop(self, pyed):
-# @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď jedničku, 
-# pravé dvojku. Pravým však zpravidla označujeme pozadí a tak nám vyjde 
+# @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď jedničku,
+# pravé dvojku. Pravým však zpravidla označujeme pozadí a tak nám vyjde
 # popředí jako nula a pozadí jako jednička.
 # Tím také dopadne jinak interaktivní a neinteraktivní varianta.
         self.seeds = pyed.getSeeds()
@@ -170,7 +184,7 @@ class ImageGraphCut:
 
     def set_seeds(self,seeds):
         """
-        Function for manual seed setting. Sets variable seeds and prepares 
+        Function for manual seed setting. Sets variable seeds and prepares
         voxels for density model.
         """
         if self.img.shape != seeds.shape:
@@ -217,15 +231,15 @@ class ImageGraphCut:
                 np.max(filtered), np.min(filtered), np.mean(filtered))
 #
 ## @TODO Check why forumla with exp is not stable
-## Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto, 
+## Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
 ## aby to slušně vycházelo, takže jsem si jí upravil
 ## Originální vzorec je
 ## Bpq = exp( - (Ip - Iq)^2 / (2 * \sigma^2) ) * 1 / dist(p,q)
-#        filtered = (-np.power(filtered,2)/(16*sigma)) 
+#        filtered = (-np.power(filtered,2)/(16*sigma))
 ## Přičítám tu 256 což je empiricky zjištěná hodnota - aby to dobře vyšlo
 ## nedávám to do exponenciely, protože je to numericky nestabilní
 #        filtered = filtered + 255 # - np.min(filtered2) + 1e-30
-## Ještě by tady měl a následovat exponenciela, ale s ní je to numericky 
+## Ještě by tady měl a následovat exponenciela, ale s ní je to numericky
 ## nestabilní. Netuším proč.
 #        #if dim >= 1:
 ## odecitame od sebe tentyz obrazek
@@ -242,7 +256,7 @@ class ImageGraphCut:
         You need set seeds if you want use hard_constraints.
         """
 
-        # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se 
+        # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
         mdl = Model ( modelparams = self.modelparams )
         mdl.train(voxels1, 1)
@@ -254,12 +268,12 @@ class ImageGraphCut:
 # There is a need to have small vaues for good fit
 # R(obj) = -ln( Pr (Ip | O) )
 # R(bck) = -ln( Pr (Ip | B) )
-# Boykov2001b 
-# ln is computed in likelihood 
+# Boykov2001b
+# ln is computed in likelihood
         tdata1 = (-(mdl.likelihood(data, 1))) * 10
         tdata2 = (-(mdl.likelihood(data, 2))) * 10
 
-        if hard_constraints: 
+        if hard_constraints:
             #pdb.set_trace();
             if (type(seeds)=='bool'):
                 raise Exception ('Seeds variable  not set','There is need set seed if you want use hard constraints')
