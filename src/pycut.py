@@ -25,6 +25,8 @@ import sklearn.mixture
 # version comparison
 from pkg_resources import parse_version
 
+DEBUG = False
+
 if parse_version(sklearn.__version__) > parse_version('0.10'):
     #new versions
     defaultmodelparams =  {'type':'gmmsame','params':{'covariance_type':'full'}}
@@ -39,6 +41,11 @@ class Model:
     X = numpy.random.random([2,3,4])
     # we have data 2x3 with fature vector with 4 fatures
     m.likelihood(X,0)
+
+    modelparams['type']: type of model estimation. Gaussian mixture from EM
+    algorithm is implemented as 'gmmsame'. Gaussian kernel density estimation
+    is implemented as 'gaussian_kde'. General kernel estimation ('kernel')
+    is from scipy version 0.14 and it is not tested.
     """
     def __init__ (self, nObjects=2, modelparams=defaultmodelparams):
 
@@ -52,17 +59,25 @@ class Model:
         cl: label, integer
         """
 
-        if len(clx.shape) == 1:
-     #  je to jen jednorozměrný vektor, tak je potřeba to převést na 2d matici
-            clx = clx.reshape(-1, 1)
         if self.modelparams['type'] == 'gmmsame':
+            if len(clx.shape) == 1:
+     #  je to jen jednorozměrný vektor, tak je potřeba to převést na 2d matici
+                clx = clx.reshape(-1, 1)
             gmmparams = self.modelparams['params']
             self.mdl[cl] = sklearn.mixture.GMM(**gmmparams)
             self.mdl[cl].fit(clx)
 
         elif self.modelparams['type'] == 'kernel':
+            from sklearn.neighbors.kde import KernelDensity
             kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
             self.mdl[cl] = KernelDensity(**kernelmodelparams).fit(clx)
+        elif self.modelparams['type'] == 'gaussian_kde':
+           # print clx
+            import scipy.stats
+           # from PyQt4.QtCore import pyqtRemoveInputHook
+           # pyqtRemoveInputHook()
+           # import ipdb; ipdb.set_trace() # BREAKPOINT
+            self.mdl[cl] = scipy.stats.gaussian_kde(clx)
         else:
             raise NameError("Unknown model type")
 
@@ -78,16 +93,43 @@ class Model:
         sha = x.shape
         if onedimfv:
             xr = x.reshape(-1, 1)
+            outsha = sha
         else:
             xr = x.reshape(-1, sha[-1])
-
+            outsha = sha[:-1]
+            #from PyQt4.QtCore import pyqtRemoveInputHook
+            #pyqtRemoveInputHook()
+            #import ipdb; ipdb.set_trace() # BREAKPOINT
         if self.modelparams['type'] == 'gmmsame':
+
             px = self.mdl[cl].score(xr)
 
 #todo ošetřit více dimenzionální fv
-            px = px.reshape(sha)
+            px = px.reshape(outsha)
         elif self.modelparams['type'] == 'kernel':
             px = self.mdl[cl].score_samples(xr)
+        elif self.modelparams['type'] == 'gaussian_kde':
+            # print x
+# np.log because it is likelihood
+            px = np.log(self.mdl[cl](xr.reshape(-1)))
+            px = px.reshape(outsha)
+            #from PyQt4.QtCore import pyqtRemoveInputHook
+            #pyqtRemoveInputHook()
+            #import ipdb; ipdb.set_trace() # BREAKPOINT
+        if DEBUG:
+            pass
+#            import matplotlib.pyplot as plt
+#            fig = plt.figure()
+#            ax = fig.add_subplot(111)
+#            ax.imshow(px[5, :, :])
+#            print 'max ', np.max(px), 'min ', np.min(px)
+
+#            fig = plt.figure()
+#            ax = fig.add_subplot(111)
+#            hstx = np.linspace(-1000, 1000)
+#            ax.plot(self.mdl[cl](hstx))
+
+#            plt.show()
         return px
 
 
@@ -272,6 +314,26 @@ class ImageGraphCut:
 # ln is computed in likelihood
         tdata1 = (-(mdl.likelihood(data, 1))) * 10
         tdata2 = (-(mdl.likelihood(data, 2))) * 10
+        if DEBUG:
+### Show model parameters
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.imshow(tdata1[5, :, :])
+            print 'max ', np.max(tdata1), 'min ', np.min(tdata1)
+
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.imshow(tdata2[5, :, :])
+            print 'max ', np.max(tdata2), 'min ', np.min(tdata2)
+
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            hstx = np.linspace(-1000, 1000, 400)
+            ax.plot(hstx, mdl.likelihood(hstx,1))
+            ax.plot(hstx, mdl.likelihood(hstx,2))
+
+            plt.show()
 
         if hard_constraints:
             #pdb.set_trace();
@@ -394,7 +456,7 @@ def main():
     logger.addHandler(ch)
 
     parser = OptionParser(description='Organ segmentation')
-    parser.add_option('-b','--debug', action='store_true',
+    parser.add_option('-d','--debug', action='store_true',
                       dest='debug', help=help['debug'])
     parser.add_option('-f','--filename', action='store',
                       dest='in_filename', default=None,
@@ -408,6 +470,8 @@ def main():
 
     if options.debug:
         logger.setLevel(logging.DEBUG)
+        print DEBUG
+        DEBUG = True
 
     # if options.tests:
     #     sys.argv[1:]=[]
@@ -420,7 +484,8 @@ def main():
         dataraw = loadmat(options.in_filename,
                           variable_names=['data', 'voxelsize_mm'])
 
-    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'])
+    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm']
+                        , modelparams={'type':'gaussian_kde', 'params':[]})
     igc.interactivity()
 
     logger.debug(igc.segmentation.shape)
