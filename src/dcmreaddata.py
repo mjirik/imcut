@@ -90,6 +90,14 @@ class DicomReader():
             if len(bins) > 1:
                 if self.series_number is None:
                     if (qt_app is not None) or gui:
+                        if qt_app is None:
+# @TODO  there is problem with type of qappliaction
+                            import PyQt4
+                            from PyQt4.QtGui import QApplication
+                            #qt_app = QApplication(sys.argv)
+                            #qt_app = PyQt4.QtGui.QWidget(sys.argv)
+                            print qt_app
+
                         from PyQt4.QtGui import QInputDialog
                         sbins = ', '.join([str(ii) for ii in bins])
                         snstring, ok = \
@@ -99,6 +107,7 @@ class DicomReader():
                                                  sbins,
                                                  editable=False)
                     else:
+                        print 'series'
                         series_info = self.dcmdirstats()
                         print self.print_series_info(series_info)
                         snstring = raw_input('Select Serie: ')
@@ -571,7 +580,7 @@ if __name__ == "__main__":
     else:
         dcmdir = options.dcmdir
 
-    dcr = DicomReader(os.path.abspath(dcmdir))
+    dcr = DicomReader(os.path.abspath(dcmdir), gui=False)
     data3d = dcr.get_3Ddata()
     metadata = dcr.get_metaData()
 
