@@ -93,10 +93,11 @@ class DicomReader():
                         from PyQt4.QtGui import QInputDialog
                         sbins = ', '.join([str(ii) for ii in bins])
                         snstring, ok = \
-                            QInputDialog.getText(qt_app,
+                            QInputDialog.getItem(qt_app,
+                                                 'Serie Selection',
                                                  'Select serie:',
-                                                 'Select serie [%s]:' % sbins,
-                                                 text='%d' % bins[0])
+                                                 sbins,
+                                                 editable=False)
                     else:
                         series_info = self.dcmdirstats()
                         print self.print_series_info(series_info)
