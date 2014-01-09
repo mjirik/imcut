@@ -25,7 +25,6 @@ import sklearn.mixture
 # version comparison
 from pkg_resources import parse_version
 
-DEBUG = False
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
     #new versions
@@ -116,20 +115,6 @@ class Model:
             #from PyQt4.QtCore import pyqtRemoveInputHook
             #pyqtRemoveInputHook()
             #import ipdb; ipdb.set_trace() # BREAKPOINT
-        if DEBUG:
-            pass
-#            import matplotlib.pyplot as plt
-#            fig = plt.figure()
-#            ax = fig.add_subplot(111)
-#            ax.imshow(px[5, :, :])
-#            print 'max ', np.max(px), 'min ', np.min(px)
-
-#            fig = plt.figure()
-#            ax = fig.add_subplot(111)
-#            hstx = np.linspace(-1000, 1000)
-#            ax.plot(self.mdl[cl](hstx))
-
-#            plt.show()
         return px
 
 
@@ -153,15 +138,22 @@ class ImageGraphCut:
     def __init__(self, img,
                  modelparams=defaultmodelparams,
                  segparams={},
-                 voxelsize=None):
+                 voxelsize=None,
+                 debug_images=False
+                 ):
+        logger.debug('modelparams: ' + str(modelparams) + ' segparams: ' +
+                     str(segparams) + " voxelsize: " + str(voxelsize) +
+                     " debug_images: " + str(debug_images))
 
 # default values                              use_boundary_penalties
         #self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
-        self.segparams = {'type':'graphcut',
-                'pairwise_alpha':20,
-                'use_boundary_penalties':False,
-                'boundary_penalties_sigma':200,
-                'boundary_penalties_weight':30}
+        self.segparams = {
+            'type': 'graphcut',
+            'pairwise_alpha': 20,
+            'use_boundary_penalties': False,
+            'boundary_penalties_sigma': 200,
+            'boundary_penalties_weight': 30
+        }
         self.segparams.update(segparams)
 
         self.img = img
@@ -171,6 +163,7 @@ class ImageGraphCut:
         self.modelparams = modelparams
         #self.segparams = segparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
+        self.debug_images = debug_images
 
         self.voxelsize = voxelsize
         if voxelsize is not None:
@@ -314,7 +307,7 @@ class ImageGraphCut:
 # ln is computed in likelihood
         tdata1 = (-(mdl.likelihood(data, 1))) * 10
         tdata2 = (-(mdl.likelihood(data, 2))) * 10
-        if DEBUG:
+        if self.debug_images:
 ### Show model parameters
             import matplotlib.pyplot as plt
             fig = plt.figure()
@@ -468,10 +461,13 @@ def main():
                       help=help['out_file'])
     (options, args) = parser.parse_args()
 
+    debug_images = False
+
     if options.debug:
         logger.setLevel(logging.DEBUG)
-        print DEBUG
-        DEBUG = True
+        debug_images = True
+        #print DEBUG
+        #DEBUG = True
 
     # if options.tests:
     #     sys.argv[1:]=[]
@@ -484,7 +480,8 @@ def main():
         dataraw = loadmat(options.in_filename,
                           variable_names=['data', 'voxelsize_mm'])
 
-    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm']
+    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
+                        debug_images=debug_images
                         , modelparams={'type':'gaussian_kde', 'params':[]})
     igc.interactivity()
 
