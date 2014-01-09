@@ -100,6 +100,9 @@ class DicomReader():
 
                         from PyQt4.QtGui import QInputDialog
                         sbins = ', '.join([str(ii) for ii in bins])
+                        print 'sbins 1 ', sbins
+                        sbins = [str(ii) for ii in bins]
+                        print 'sbins 2 ', sbins
                         snstring, ok = \
                             QInputDialog.getItem(qt_app,
                                                  'Serie Selection',
@@ -580,7 +583,7 @@ if __name__ == "__main__":
     else:
         dcmdir = options.dcmdir
 
-    dcr = DicomReader(os.path.abspath(dcmdir), gui=False)
+    dcr = DicomReader(os.path.abspath(dcmdir), gui=True)
     data3d = dcr.get_3Ddata()
     metadata = dcr.get_metaData()
 
