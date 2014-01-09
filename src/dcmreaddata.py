@@ -99,10 +99,8 @@ class DicomReader():
                             print qt_app
 
                         from PyQt4.QtGui import QInputDialog
-                        sbins = ', '.join([str(ii) for ii in bins])
-                        print 'sbins 1 ', sbins
+                        #sbins = ', '.join([str(ii) for ii in bins])
                         sbins = [str(ii) for ii in bins]
-                        print 'sbins 2 ', sbins
                         snstring, ok = \
                             QInputDialog.getItem(qt_app,
                                                  'Serie Selection',
