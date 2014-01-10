@@ -507,9 +507,12 @@ class QTSeedEditor(QDialog):
         self.allow_select_slice = True
         self.n_slices = shape[2]
         self.slider = QSlider(Qt.Vertical)
+        self.slider.setRange(1, self.n_slices)
+        self.slider.setValue(self.actual_slice)
         self.slider.valueChanged.connect(self.sliderSelectSlice)
         self.slider.label = QLabel()
-        self.slider.setRange(1, self.n_slices)
+        self.slider.label.setText('Slice: %d / %d' % (self.actual_slice,
+                                                      self.n_slices))
 
         self.slider_cw = {}
         self.slider_cw['c'] = QSlider(Qt.Horizontal)
@@ -649,12 +652,13 @@ class QTSeedEditor(QDialog):
         hbox.addLayout(vbox_app)
         vbox.addLayout(hbox)
         vbox.addWidget(self.status_bar)
+        self.my_layout = vbox
         self.setLayout(vbox)
 
         self.setWindowTitle('Segmentation Editor')
         self.show()
 
-    def __init__(self, img, actualSlice=0,
+    def __init__(self, img, viewPositions=None,
                  seeds=None, contours=None,
                  mode='seed', modeFun=None,
                  voxelSize=[1,1,1]):
@@ -689,14 +693,21 @@ class QTSeedEditor(QDialog):
 
         self.actual_view = 'axial'
         self.act_transposition = VIEW_TABLE[self.actual_view]
-        self.last_view_position = {}
-        for ii in VIEW_TABLE.iterkeys():
-            self.last_view_position[ii] = img.shape[VIEW_TABLE[ii][-1]] - 1
-
         self.img = img
         self.img_aview = self.img.transpose(self.act_transposition)
-        self.actual_slice = self.img_aview.shape[-1] - actualSlice - 1
-        self.last_view_position[self.actual_view] = self.actual_slice
+
+        self.last_view_position = {}
+        for jj, ii in enumerate(VIEW_TABLE.iterkeys()):
+            if viewPositions is None:
+                viewpos = img.shape[VIEW_TABLE[ii][-1]] / 2
+
+            else:
+                viewpos = viewPositions[jj]
+
+            self.last_view_position[ii] =\
+                img.shape[VIEW_TABLE[ii][-1]] - viewpos - 1
+
+        self.actual_slice = self.last_view_position[self.actual_view]
 
         # set contours
         self.contours = contours
@@ -861,7 +872,7 @@ class QTSeedEditor(QDialog):
         # save seeds
         self.saveSliceSeeds()
         if self.seeds_modified and (self.mode == 'crop'):
-            self.updateCropBounds(self.seeds_aview[...,self.actual_slice])
+            self.updateCropBounds()
 
         key = str(value)
         self.actual_view = key
@@ -881,6 +892,11 @@ class QTSeedEditor(QDialog):
         vscale = self.voxel_scale[np.array(self.act_transposition)]
         height = self.slice_box.height()
         grid = height / float(self.img_aview.shape[1] * vscale[1])
+        # width = (self.img_aview.shape[0] * vscale[0])[0]
+        # if width > 800:
+        #     height = 400
+        #     grid = height / float(self.img_aview.shape[1] * vscale[1])
+
         mgrid = (grid * vscale[0], grid * vscale[1])
 
         self.slice_box.resizeSlice(new_slice_size=self.img_aview.shape[:-1],
@@ -893,13 +909,16 @@ class QTSeedEditor(QDialog):
         self.allow_select_slice = False
         self.n_slices = self.img_aview.shape[2]
         slider_val = self.n_slices - self.actual_slice
-        self.slider.setValue(slider_val)
         self.slider.setRange(1, self.n_slices)
+        self.slider.setValue(slider_val)
         self.allow_select_slice = True
 
         self.slider.label.setText('Slice: %d / %d' % (slider_val,
                                                       self.n_slices))
         self.view_label.setText('View size: %d x %d' % self.img_aview.shape[:-1])
+
+        self.adjustSize()
+        self.adjustSize()
 
     def changeMask(self, val):
         self.slice_box.setMaskPoints(self.mask_points_tab[val])
