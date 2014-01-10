@@ -413,8 +413,7 @@ class DicomReader():
 
         dcmdir = get_dir(dirpath)
 
-        dcmdir: list with filenames, SeriesNumber, InstanceNumber and
-        AcquisitionNumber
+        dcmdir: list with filenames, SeriesNumber and SliceLocation
         """
         createdcmdir = True
 
@@ -454,9 +453,8 @@ class DicomReader():
             try:
                 dcmdata = dicom.read_file(filepath)
                 metadataline = {'filename': teil,
-                                'InstanceNumber': dcmdata.InstanceNumber,
                                 'SeriesNumber': dcmdata.SeriesNumber,
-                                'AcquisitionNumber': dcmdata.AcquisitionNumber
+                                'SliceLocation': float(dcmdata.SliceLocation),
                                 }
 
                 #try:
@@ -471,9 +469,7 @@ class DicomReader():
                 if head != self.dicomdir_filename:
                     print 'Dicom read problem with file ' + filepath
 
-        files.sort(key=lambda x: x['InstanceNumber'])
-        files.sort(key=lambda x: x['SeriesNumber'])
-        files.sort(key=lambda x: x['AcquisitionNumber'])
+        files.sort(key=lambda x: x['SliceLocation'])
 
         dcmdirplus = {'version': __version__, 'filesinfo': files}
         return dcmdirplus
@@ -505,9 +501,7 @@ class DicomReader():
         get_sortedlist('~/data/')
         """
         dcmdir = self.dcmdir[:]
-        dcmdir.sort(key=lambda x: x['InstanceNumber'])
-        dcmdir.sort(key=lambda x: x['SeriesNumber'])
-        dcmdir.sort(key=lambda x: x['AcquisitionNumber'])
+        dcmdir.sort(key=lambda x: x['SliceLocation'])
 
         # select sublist with SeriesNumber
         if SeriesNumber is not None:
