@@ -208,11 +208,13 @@ class SliceBox(QLabel):
         dy = np.abs(y1-y0)
         if x0 < x1:
             sx = 1
+
         else:
             sx = -1
 
         if y0 < y1:
             sy = 1
+
         else:
             sy = -1
 
@@ -358,11 +360,13 @@ class SliceBox(QLabel):
 
         if seeds is not None:
             self.seeds = seeds.ravel(order='F')
+
         else:
             self.seeds = None
 
         if contours is not None:
             self.contours = contours.ravel(order='F')
+
         else:
             self.contours = None
 
@@ -507,12 +511,12 @@ class QTSeedEditor(QDialog):
         self.allow_select_slice = True
         self.n_slices = shape[2]
         self.slider = QSlider(Qt.Vertical)
-        self.slider.setRange(1, self.n_slices)
-        self.slider.setValue(self.actual_slice)
-        self.slider.valueChanged.connect(self.sliderSelectSlice)
         self.slider.label = QLabel()
         self.slider.label.setText('Slice: %d / %d' % (self.actual_slice,
                                                       self.n_slices))
+        self.slider.setRange(1, self.n_slices)
+        self.slider.valueChanged.connect(self.sliderSelectSlice)
+        self.slider.setValue(self.actual_slice)
 
         self.slider_cw = {}
         self.slider_cw['c'] = QSlider(Qt.Horizontal)
@@ -724,6 +728,7 @@ class QTSeedEditor(QDialog):
         # set seeds
         if seeds is None:
             self.seeds = np.zeros(self.img.shape, np.int8)
+
         else:
             self.seeds = seeds
 
