@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-__version__ = [1, 2]
+__version__ = [1, 3]
 
 
 def obj_from_file(filename='annotation.yaml', filetype='yaml'):
