@@ -13,6 +13,7 @@ from optparse import OptionParser
 from scipy.io import loadmat
 import numpy as np
 import sys
+from scipy.spatial import Delaunay
 
 from PyQt4.QtCore import Qt, QSize, QString, SIGNAL
 from PyQt4.QtGui import QImage, QDialog,\
@@ -208,11 +209,13 @@ class SliceBox(QLabel):
         dy = np.abs(y1-y0)
         if x0 < x1:
             sx = 1
+
         else:
             sx = -1
 
         if y0 < y1:
             sy = 1
+
         else:
             sy = -1
 
@@ -358,11 +361,13 @@ class SliceBox(QLabel):
 
         if seeds is not None:
             self.seeds = seeds.ravel(order='F')
+
         else:
             self.seeds = None
 
         if contours is not None:
             self.contours = contours.ravel(order='F')
+
         else:
             self.contours = None
 
@@ -507,12 +512,12 @@ class QTSeedEditor(QDialog):
         self.allow_select_slice = True
         self.n_slices = shape[2]
         self.slider = QSlider(Qt.Vertical)
-        self.slider.setRange(1, self.n_slices)
-        self.slider.setValue(self.actual_slice)
-        self.slider.valueChanged.connect(self.sliderSelectSlice)
         self.slider.label = QLabel()
         self.slider.label.setText('Slice: %d / %d' % (self.actual_slice,
                                                       self.n_slices))
+        self.slider.setRange(1, self.n_slices)
+        self.slider.valueChanged.connect(self.sliderSelectSlice)
+        self.slider.setValue(self.actual_slice)
 
         self.slider_cw = {}
         self.slider_cw['c'] = QSlider(Qt.Horizontal)
@@ -562,7 +567,8 @@ class QTSeedEditor(QDialog):
             self.volume_label = QLabel('Volume [mm3]:\n  unknown')
             appmenu.append(self.volume_label)
 
-        if mode == 'seed' or mode == 'crop':
+        if mode == 'seed' or mode == 'crop'\
+                or mode == 'mask' or mode == 'draw':
             btn_del = QPushButton("Delete Seeds", self)
             btn_del.clicked.connect(self.deleteSliceSeeds)
             vmenu.append(None)
@@ -575,6 +581,18 @@ class QTSeedEditor(QDialog):
             self.changeContourMode(combo_contour_options[combo_contour.currentIndex()])
             vopts.append(QLabel('Selection mode:'))
             vopts.append(combo_contour)
+
+        if mode == 'mask':
+            btn_recalc_mask = QPushButton("Recalculate mask", self)
+            btn_recalc_mask.clicked.connect(self.updateMaskRegion_btn)
+            btn_mask = QPushButton("Mask region", self)
+            btn_mask.clicked.connect(self.maskRegion)
+            appmenu.append(QLabel('<b>Mask mode</b><br><br><br>' +
+                                  'Select the region to mask<br>' +
+                                  'using the left mouse button<br><br>'))
+            appmenu.append(btn_recalc_mask)
+            appmenu.append(btn_mask)
+            self.mask_qhull = None
 
         if mode == 'crop':
             btn_crop = QPushButton("Crop", self)
@@ -680,6 +698,7 @@ class QTSeedEditor(QDialog):
                'seed' - seed editor
                'crop' - manual crop
                'draw' - drawing
+               'mask' - mask region
         modeFun : fun
             Mode function invoked by user button.
         voxelSize : tuple of float
@@ -724,6 +743,7 @@ class QTSeedEditor(QDialog):
         # set seeds
         if seeds is None:
             self.seeds = np.zeros(self.img.shape, np.int8)
+
         else:
             self.seeds = seeds
 
@@ -740,6 +760,7 @@ class QTSeedEditor(QDialog):
 
         # set view window values C/W
         lb = np.min(img)
+        self.img_min_val = lb
         ub = np.max(img)
         dul = ub - lb
         self.cw_range = {'c': [lb, ub], 'w': [1, dul]}
@@ -782,6 +803,38 @@ class QTSeedEditor(QDialog):
         else:
             self.seeds_modified = False
 
+    def updateMaskRegion_btn(self):
+        self.saveSliceSeeds()
+        self.updateMaskRegion()
+
+    def updateMaskRegion(self):
+        crp = self.getCropBounds(return_nzs=True)
+        if crp is not None:
+            off, cri, nzs = crp
+            if nzs[0].shape[0] <=5:
+                self.showStatus("Not enough points (need >= 5)!")
+
+            else:
+                points = np.transpose(nzs)
+                hull = Delaunay(points)
+                X, Y, Z = np.mgrid[cri[0], cri[1], cri[2]]
+                grid = np.vstack([X.ravel(), Y.ravel(), Z.ravel()]).T
+                simplex = hull.find_simplex(grid)
+                fill = grid[simplex >=0,:]
+                fill = (fill[:,0], fill[:,1], fill[:,2])
+                self.contours = np.zeros(self.img.shape, np.int8)
+                self.contours[fill] = 1
+                self.contours_aview = self.contours.transpose(self.act_transposition)
+
+                self.selectSlice(self.actual_slice)
+
+    def maskRegion(self):
+        nzs = self.contours.nonzero()
+        self.img[nzs] = self.img_min_val
+        self.contours.fill(0)
+        self.seeds.fill(0)
+        self.selectSlice(self.actual_slice)
+
     def updateCropBounds(self):
         crp = self.getCropBounds()
         if crp is not None:
@@ -810,8 +863,12 @@ class QTSeedEditor(QDialog):
 
         if (value != self.actual_slice) or force:
             self.saveSliceSeeds()
-            if self.seeds_modified and (self.mode == 'crop'):
-                self.updateCropBounds()
+            if self.seeds_modified:
+                if self.mode == 'crop':
+                    self.updateCropBounds()
+
+                elif self.mode == 'mask':
+                    self.updateMaskRegion()
 
         if self.contours is None:
             contours = None
@@ -871,8 +928,12 @@ class QTSeedEditor(QDialog):
         self.last_view_position[self.actual_view] = self.actual_slice
         # save seeds
         self.saveSliceSeeds()
-        if self.seeds_modified and (self.mode == 'crop'):
-            self.updateCropBounds()
+        if self.seeds_modified:
+            if self.mode == 'crop':
+                self.updateCropBounds()
+
+            elif self.mode == 'mask':
+                self.updateMaskRegion()
 
         key = str(value)
         self.actual_view = key
@@ -994,7 +1055,7 @@ class QTSeedEditor(QDialog):
                                                       self.n_slices))
         self.view_label.setText('View size: %d x %d' % self.img_aview.shape[:-1])
 
-    def getCropBounds(self):
+    def getCropBounds(self, return_nzs=False, flat=False):
 
         nzs = self.seeds.nonzero()
         cri = []
@@ -1005,9 +1066,10 @@ class QTSeedEditor(QDialog):
                 break
 
             smin, smax = np.min(nzs[ii]), np.max(nzs[ii])
-            if smin == smax:
-                flag = False
-                break
+            if not(flat):
+                if smin == smax:
+                    flag = False
+                    break
 
             cri.append((smin, smax))
 
@@ -1020,7 +1082,11 @@ class QTSeedEditor(QDialog):
                 out.append(slice(ii[0], ii[1] + 1))
                 offset.append(ii[0])
 
-            return np.array(offset), tuple(out)
+            if return_nzs:
+                return np.array(offset), tuple(out), nzs
+
+            else:
+                return np.array(offset), tuple(out)
 
         else:
             return None
@@ -1109,7 +1175,7 @@ def gen_test():
 usage = '%prog [options]\n' + __doc__.rstrip()
 help = {
     'in_file': 'input *.mat file with "data" field',
-    'mode': '"seed", "crop" or "draw" mode',
+    'mode': '"seed", "crop", "mask" or "draw" mode',
     #'out_file': 'store the output matrix to the file',
     #'debug': 'run in debug mode',
     'gen_test': 'generate test data',
