@@ -76,44 +76,12 @@ NEI_TAB = [[-1, -1], [0, -1], [1, -1],
 
 
 def erase_reg(arr, p, val=0):
-    buff = [p]
+    from scipy.ndimage.measurements import label
 
-    while len(buff) > 0:
-        p = buff.pop()
-        row = arr[:,p[1],p[2]]
-        ii = p[0]
-        while ii >= 0:
-            if row[ii] <= 0:
-                break
-
-            ii -= 1
-
-        ii += 1
-
-        jj = ii
-        while jj < arr.shape[0]:
-            if row[jj] <= 0:
-                break
-
-            row[jj] = val
-            jj +=1
-
-        for inb in NEI_TAB:
-            irow = p[1] + inb[0]
-            islice = p[2] + inb[1]
-
-            if irow >= 0 and irow < arr.shape[1]\
-              and islice >= 0 and islice < arr.shape[2]:
-                flag = True
-                row = arr[:,irow,islice]
-                for kk in np.arange(ii, jj):
-                    if flag and row[kk] > 0:
-                        buff.append((kk, irow, islice))
-                        flag = False
-                        continue
-
-                    if flag == False and row[kk] <= 0:
-                        flag = True
+    labs, num = label(arr)
+    aval = labs[p]
+    idxs = np.where(labs == aval)
+    arr[idxs] = val
 
 class SliceBox(QLabel):
     """
