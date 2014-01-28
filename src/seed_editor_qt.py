@@ -961,8 +961,11 @@ class QTSeedEditor(QDialog):
 
     def eraseVolume(self, pos, mode):
         self.showStatus("Processing...")
-        xyz = pos + (self.actual_slice,)
-        p = tuple(np.array(xyz)[np.array(self.act_transposition)])
+        xyz = np.array(pos + (self.actual_slice,))
+        p = np.zeros_like(xyz)
+        p[np.array(self.act_transposition)] = xyz
+        p = tuple(p)
+
         if self.seeds[p] > 0:
             if mode == 'inside':
                 erase_reg(self.seeds, p, val=0)
