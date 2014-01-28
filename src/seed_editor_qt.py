@@ -99,7 +99,7 @@ class SliceBox(QLabel):
             Size of slice matrix.
         grid : tuple of float
             Pixel size:
-            imageSize = (grid1 * sliceSize1, grid2 * sliceSize2) 
+            imageSize = (grid1 * sliceSize1, grid2 * sliceSize2)
         mode : str
             Editor mode.
         """
@@ -647,7 +647,7 @@ class QTSeedEditor(QDialog):
     def __init__(self, img, viewPositions=None,
                  seeds=None, contours=None,
                  mode='seed', modeFun=None,
-                 voxelSize=[1,1,1]):
+                 voxelSize=[1,1,1], volume_unit='mm'):
         """
         Initiate Editor
 
@@ -671,6 +671,7 @@ class QTSeedEditor(QDialog):
             Mode function invoked by user button.
         voxelSize : tuple of float
             voxel size [mm]
+        volume_unit : allow select output volume in mililiters or mm^3
         """
 
         QDialog.__init__(self)
@@ -682,6 +683,8 @@ class QTSeedEditor(QDialog):
         self.act_transposition = VIEW_TABLE[self.actual_view]
         self.img = img
         self.img_aview = self.img.transpose(self.act_transposition)
+
+        self.volume_unit = volume_unit
 
         self.last_view_position = {}
         for jj, ii in enumerate(VIEW_TABLE.iterkeys()):
@@ -1119,7 +1122,11 @@ class QTSeedEditor(QDialog):
             if vd is not None:
                 nzs = vd.nonzero()
                 nn = nzs[0].shape[0]
-                text = 'Volume [mm3]:\n  %.2e' % (nn * self.voxel_volume)
+                if self.volume_unit == 'ml':
+                    text = 'Volume [ml]:\n  %.2f' %\
+                        (nn * self.voxel_volume / 1000)
+                else:
+                    text = 'Volume [mm3]:\n  %.2e' % (nn * self.voxel_volume)
 
         self.volume_label.setText(text)
 

@@ -139,7 +139,8 @@ class ImageGraphCut:
                  modelparams=defaultmodelparams,
                  segparams={},
                  voxelsize=None,
-                 debug_images=False
+                 debug_images=False,
+                 volume_unit='mm'
                  ):
         logger.debug('modelparams: ' + str(modelparams) + ' segparams: ' +
                      str(segparams) + " voxelsize: " + str(voxelsize) +
@@ -164,6 +165,7 @@ class ImageGraphCut:
         #self.segparams = segparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
         self.debug_images = debug_images
+        self.volume_unit = volume_unit
 
         self.voxelsize = voxelsize
         if voxelsize is not None:
@@ -210,7 +212,9 @@ class ImageGraphCut:
         pyed = QTSeedEditor(self.img,
                             modeFun=self.interactivity_loop,
                             voxelSize=self.voxelsize,
-                            seeds=self.seeds)
+                            seeds=self.seeds,
+                            volume_unit=self.volume_unit
+                            )
 
         pyed.changeC(window_c)
         pyed.changeW(window_w)
