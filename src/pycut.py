@@ -140,7 +140,7 @@ class ImageGraphCut:
                  segparams={},
                  voxelsize=None,
                  debug_images=False,
-                 volume_unit='mm'
+                 volume_unit='mm3'
                  ):
         logger.debug('modelparams: ' + str(modelparams) + ' segparams: ' +
                      str(segparams) + " voxelsize: " + str(voxelsize) +

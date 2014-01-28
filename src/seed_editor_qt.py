@@ -532,7 +532,7 @@ class QTSeedEditor(QDialog):
                                   '&nbsp;&nbsp;<i>right</i> - outer region<br><br>'))
             appmenu.append(btn_recalc)
             appmenu.append(QLabel())
-            self.volume_label = QLabel('Volume [mm3]:\n  unknown')
+            self.volume_label = QLabel('Volume:\n  unknown')
             appmenu.append(self.volume_label)
 
         if mode == 'seed' or mode == 'crop'\
@@ -647,7 +647,7 @@ class QTSeedEditor(QDialog):
     def __init__(self, img, viewPositions=None,
                  seeds=None, contours=None,
                  mode='seed', modeFun=None,
-                 voxelSize=[1,1,1], volume_unit='mm'):
+                 voxelSize=[1,1,1], volume_unit='mm3'):
         """
         Initiate Editor
 
@@ -671,7 +671,8 @@ class QTSeedEditor(QDialog):
             Mode function invoked by user button.
         voxelSize : tuple of float
             voxel size [mm]
-        volume_unit : allow select output volume in mililiters or mm^3
+        volume_unit : allow select output volume in mililiters or mm3
+            [mm, ml]
         """
 
         QDialog.__init__(self)
@@ -1111,7 +1112,7 @@ class QTSeedEditor(QDialog):
         self.close()
 
     def updateVolume(self):
-        text = 'Volume [mm3]:\n  unknown'
+        text = 'Volume:\n  unknown'
         if self.voxel_volume is not None:
             if self.mode == 'draw':
                 vd = self.seeds
