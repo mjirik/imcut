@@ -548,12 +548,13 @@ usage = '%prog [options]\n' + __doc__.rstrip()
 help = {
     'dcm_dir': 'DICOM data direcotory',
     'out_file': 'store the output matrix to the file',
-    "degrad": "degradation of input data. For no degradation use 1"
+    "degrad": "degradation of input data. For no degradation use 1",
+	'debug': 'Print debug info'
 }
 
 if __name__ == "__main__":
     parser = OptionParser(description='Read DIOCOM data.')
-    parser.add_option('-d', '--dcmdir', action='store',
+    parser.add_option('-i', '--dcmdir', action='store',
                       dest='dcmdir', default=None,
                       help=help['dcm_dir'])
     parser.add_option('-o', '--outputfile', action='store',
@@ -562,11 +563,17 @@ if __name__ == "__main__":
     parser.add_option('--degrad', action='store',
                       dest='degrad', default=1,
                       help=help['degrad'])
+    parser.add_option('-d','--debug', action='store_true',
+                      dest='debug',
+                      help=help['debug'])
     (options, args) = parser.parse_args()
 
     logger.setLevel(logging.WARNING)
     ch = logging.StreamHandler()
     logger.addHandler(ch)
+
+    if options.debug:
+        logger.setLevel(logging.DEBUG)
 
     if options.dcmdir is None:
         dcmdir = get_dcmdir_qt()
@@ -582,8 +589,9 @@ if __name__ == "__main__":
     degrad = int(options.degrad)
 
     data3d_out = data3d[::degrad, ::degrad, ::degrad]
-    vs_out = metadata['voxelsize_mm'] * degrad
-
+    vs_out = list(np.array(metadata['voxelsize_mm']) * degrad)
+    
+    logger.debug('voxelsize_mm ' + vs_out.__str__())
     savemat(options.out_filename,
             {'data': data3d_out, 'voxelsize_mm': vs_out}
             )

@@ -483,8 +483,12 @@ def main():
     else:
         dataraw = loadmat(options.in_filename,
                           variable_names=['data', 'voxelsize_mm'])
+    #import pdb; pdb.set_trace() # BREAKPOINT
+    
+    logger.debug('\nvoxelsize_mm ' + dataraw['voxelsize_mm'].__str__())
 
-    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
+
+    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'][0],
                         debug_images=debug_images
                         , modelparams={'type':'gaussian_kde', 'params':[]})
     igc.interactivity()
