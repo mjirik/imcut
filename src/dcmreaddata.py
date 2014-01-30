@@ -549,7 +549,8 @@ help = {
     'dcm_dir': 'DICOM data direcotory',
     'out_file': 'store the output matrix to the file',
     "degrad": "degradation of input data. For no degradation use 1",
-	'debug': 'Print debug info'
+    'debug': 'Print debug info',
+    'zoom': 'Resize input data wit defined zoom. Use zoom 0.5 to obtain half voxels.'
 }
 
 if __name__ == "__main__":
@@ -563,6 +564,9 @@ if __name__ == "__main__":
     parser.add_option('--degrad', action='store',
                       dest='degrad', default=1,
                       help=help['degrad'])
+    parser.add_option('-z', '--zoom', action='store',
+                      dest='zoom', default=1,
+                      help=help['zoom'])
     parser.add_option('-d','--debug', action='store_true',
                       dest='debug',
                       help=help['debug'])
@@ -585,6 +589,15 @@ if __name__ == "__main__":
     dcr = DicomReader(os.path.abspath(dcmdir), gui=True)
     data3d = dcr.get_3Ddata()
     metadata = dcr.get_metaData()
+    
+    zoom = eval(options.zoom)
+    if options.zoom != 1:
+        import scipy
+        import scipy.ndimage
+        #zoom = float(options.zoom)
+        #import pdb; pdb.set_trace()
+        data3d = scipy.ndimage.zoom(data3d, zoom=zoom)
+        metadata['voxelsize_mm'] = list(np.array(metadata['voxelsize_mm']) / zoom)
 
     degrad = int(options.degrad)
 
