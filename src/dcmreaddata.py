@@ -550,7 +550,8 @@ help = {
     'out_file': 'store the output matrix to the file',
     "degrad": "degradation of input data. For no degradation use 1",
     'debug': 'Print debug info',
-    'zoom': 'Resize input data wit defined zoom. Use zoom 0.5 to obtain half voxels.'
+    'zoom': 'Resize input data wit defined zoom. Use zoom 0.5 to obtain half voxels. \
+Various zoom can be used for each axis: -z [1,0.5,2.5]'
 }
 
 if __name__ == "__main__":
