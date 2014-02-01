@@ -442,7 +442,7 @@ help = {
     'debug': 'debug mode',
     'test': 'run unit test',
 }
-
+#@profile
 def main():
     logger = logging.getLogger()
     logger.setLevel(logging.WARNING)
