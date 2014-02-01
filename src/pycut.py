@@ -179,10 +179,21 @@ class ImageGraphCut:
 # pravé dvojku. Pravým však zpravidla označujeme pozadí a tak nám vyjde
 # popředí jako nula a pozadí jako jednička.
 # Tím také dopadne jinak interaktivní a neinteraktivní varianta.
+        #import sys
+        #print "logger ", logging.getLogger().getEffectiveLevel()
+        #from guppy import hpy
+        #h = hpy()
+        #print h.heap()
+        #import pdb
+
+        #logger.debug("obj gc   " + str(sys.getsizeof(self)))
+
         self.seeds = pyed.getSeeds()
         self.voxels1 = pyed.getSeedsVal(1)
         self.voxels2 = pyed.getSeedsVal(2)
+
         self.make_gc()
+
         pyed.setContours(1 - self.segmentation.astype(np.int8))
 
         try:
