@@ -297,6 +297,9 @@ class ImageGraphCut:
 ##            diffs.insert(0,
         return filtered
 
+    def __construct_graph(self):
+        pass
+
     def set_data(self, data, voxels1, voxels2,
                  seeds=False,
                  hard_constraints=True,
@@ -338,8 +341,8 @@ class ImageGraphCut:
             fig = plt.figure()
             ax = fig.add_subplot(111)
             hstx = np.linspace(-1000, 1000, 400)
-            ax.plot(hstx, mdl.likelihood(hstx,1))
-            ax.plot(hstx, mdl.likelihood(hstx,2))
+            ax.plot(hstx, mdl.likelihood(hstx, 1))
+            ax.plot(hstx, mdl.likelihood(hstx, 2))
 
             plt.show()
 
@@ -363,6 +366,7 @@ class ImageGraphCut:
 
         self.iparams = {}
 
+# @TODO copy into __create_graph_function
 # use the gerneral graph algorithm
 # first, we construct the grid graph
         inds = np.arange(data.size).reshape(data.shape)
