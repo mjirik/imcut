@@ -495,11 +495,15 @@ def main():
         dataraw = loadmat(options.in_filename,
                           variable_names=['data', 'voxelsize_mm'])
     #import pdb; pdb.set_trace() # BREAKPOINT
-    
+
     logger.debug('\nvoxelsize_mm ' + dataraw['voxelsize_mm'].__str__())
 
+    if sys.platform == 'win32':
+# hack, on windows is voxelsize read as 2D array like [[1, 0.5, 0.5]]
+        dataraw['voxelsize_mm'] = dataraw['voxelsize_mm'][0]
 
-    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'][0],
+
+    igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
                         , modelparams={'type':'gaussian_kde', 'params':[]})
     igc.interactivity()
