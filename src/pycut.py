@@ -297,18 +297,8 @@ class ImageGraphCut:
 ##            diffs.insert(0,
         return filtered
 
-    def __construct_graph(self):
-        pass
-
-    def set_data(self, data, voxels1, voxels2,
-                 seeds=False,
-                 hard_constraints=True,
-                 area_weight=1):
-        """
-        Setting of data.
-        You need set seeds if you want use hard_constraints.
-        """
-
+    def __create_tlinks(self, data, voxels1, voxels2, seeds,
+                                          area_weight, hard_constraints):
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
         mdl = Model ( modelparams = self.modelparams )
@@ -356,16 +346,9 @@ class ImageGraphCut:
 
 
         unariesalt = (0+(area_weight * np.dstack([tdata1.reshape(-1,1), tdata2.reshape(-1,1)]).copy("C"))).astype(np.int32)
+        return unariesalt
 
-# create potts pairwise
-        #pairwiseAlpha = -10
-        pairwise = -(np.eye(2)-1)
-        pairwise = (self.segparams['pairwise_alpha'] * pairwise).astype(np.int32)
-        #pairwise = np.array([[0,30],[30,0]]).astype(np.int32)
-        #print pairwise
-
-        self.iparams = {}
-
+    def __create_nlinks(self, data):
 # @TODO copy into __create_graph_function
 # use the gerneral graph algorithm
 # first, we construct the grid graph
@@ -407,14 +390,53 @@ class ImageGraphCut:
 
         #import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
+# edges - seznam indexu hran, kteres spolu sousedi
+        return edges
 
+    def set_data(self, data, voxels1, voxels2,
+                 seeds=False,
+                 hard_constraints=True,
+                 area_weight=1):
+        """
+        Setting of data.
+        You need set seeds if you want use hard_constraints.
+        """
+        #from PyQt4.QtCore import pyqtRemoveInputHook
+        #pyqtRemoveInputHook()
+        #print '1'
+        #import pdb; pdb.set_trace() # BREAKPOINT
+
+        unariesalt = self.__create_tlinks(data, voxels1, voxels2, seeds,
+                                          area_weight, hard_constraints)
+        print '2'
+        #import pdb; pdb.set_trace() # BREAKPOINT
+# create potts pairwise
+        #pairwiseAlpha = -10
+        pairwise = -(np.eye(2)-1)
+        pairwise = (self.segparams['pairwise_alpha'] * pairwise).astype(np.int32)
+        #pairwise = np.array([[0,30],[30,0]]).astype(np.int32)
+        #print pairwise
+
+        self.iparams = {}
+
+        print '3'
+        #import pdb; pdb.set_trace() # BREAKPOINT
+# @TODO copy into __create_graph_function
+        nlinks = self.__create_nlinks(data)
+
+        print '4'
+        #import pdb; pdb.set_trace() # BREAKPOINT
 # edges - seznam indexu hran, kteres spolu sousedi
 
 # we flatten the unaries
-        #result_graph = cut_from_graph(edges, unaries.reshape(-1, 2), pairwise)
-        result_graph = cut_from_graph(edges, unariesalt.reshape(-1,2), pairwise)
+        #result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2), pairwise)
+        result_graph = cut_from_graph(nlinks, unariesalt.reshape(-1,2), pairwise)
 
+        print '5'
+        #import pdb; pdb.set_trace() # BREAKPOINT
         #print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
+        print '6'
+        #import pdb; pdb.set_trace() # BREAKPOINT
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
@@ -509,7 +531,8 @@ def main():
 
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
-                        , modelparams={'type':'gaussian_kde', 'params':[]})
+#                        , modelparams={'type':'gaussian_kde', 'params':[]}
+                        )
     igc.interactivity()
 
     logger.debug(igc.segmentation.shape)
