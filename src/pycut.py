@@ -189,19 +189,60 @@ class ImageGraphCut:
 
         #logger.debug("obj gc   " + str(sys.getsizeof(self)))
 
-        self.seeds = pyed.getSeeds()
-        self.voxels1 = pyed.getSeedsVal(1)
-        self.voxels2 = pyed.getSeedsVal(2)
+        if self.segparams['type'] in ('graphcut'):
 
-        self.make_gc()
+            self.seeds = pyed.getSeeds()
+            self.voxels1 = pyed.getSeedsVal(1)
+            self.voxels2 = pyed.getSeedsVal(2)
 
-        pyed.setContours(1 - self.segmentation.astype(np.int8))
+            self.make_gc()
+
+            pyed.setContours(1 - self.segmentation.astype(np.int8))
+        elif self.segparams['type'] in ('multiscale_gc'):
+            self.__multiscale_gc(pyed)
+
 
         try:
             import audiosupport
             audiosupport.beep()
         except:
             print("cannot open audiosupport")
+
+    def __multiscale_gc(self, pyed):
+            from PyQt4.QtCore import pyqtRemoveInputHook
+            pyqtRemoveInputHook()
+            import scipy
+            import scipy.ndimage
+            zoom = 0.125 #self.segparams['scale']
+            loseeds = pyed.getSeeds()
+# @TODO smart interpolation for seeds in one block
+            loseeds = scipy.ndimage.interpolation.zoom(
+                loseeds.astype(np.double), zoom)
+            loseeds = loseeds.astype(np.int8)
+
+            self.seeds = loseeds
+            self.voxels1 = pyed.getSeedsVal(1)
+            self.voxels2 = pyed.getSeedsVal(2)
+
+            img_orig = self.img
+
+            self.img = scipy.ndimage.interpolation.zoom(img_orig, zoom)
+
+            self.make_gc()
+            seg = 1 - self.segmentation.astype(np.int8)
+
+            seg = scipy.ndimage.filters.laplace(seg, mode='constant')
+            seg[seg!=0] = 1
+            print seg.shape
+            segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), 1.0/zoom).astype('int8')
+            #segz [segz > 0.1] = 1
+            #segz.astype('int8')
+            #import pdb; pdb.set_trace() # BREAKPOINT
+# @todo back resize
+            seg = np.zeros(img_orig.shape, dtype='int8')
+            seg [:segz.shape[0],:segz.shape[1],:segz.shape[2]]=segz
+            #import pdb; pdb.set_trace() # BREAKPOINT
+            pyed.setContours(seg)
 
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
@@ -525,6 +566,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
+                        , segparams = {'type':'multiscale_gc'}
                         )
     igc.interactivity()
 
