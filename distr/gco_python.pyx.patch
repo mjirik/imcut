@@ -1,0 +1,8 @@
+--- gco_python.pyx.old	Thu Jan 30 08:52:47 2014
++++ gco_python.pyx	Thu Feb 13 09:47:04 2014
+@@ -192,4 +192,5 @@
+     cdef int * result_ptr = <int*>result.data
+     for i in xrange(n_vertices):
+         result_ptr[i] = gc.whatLabel(i)
++    del gc
+     return result
