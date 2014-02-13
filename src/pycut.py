@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 from scipy.io import loadmat
 import numpy as np
 
-from pygco import cut_from_graph
+import pygco
+#from pygco import cut_from_graph
 
 import sklearn
 import sklearn.mixture
@@ -403,13 +404,10 @@ class ImageGraphCut:
         """
         #from PyQt4.QtCore import pyqtRemoveInputHook
         #pyqtRemoveInputHook()
-        #print '1'
         #import pdb; pdb.set_trace() # BREAKPOINT
 
         unariesalt = self.__create_tlinks(data, voxels1, voxels2, seeds,
                                           area_weight, hard_constraints)
-        print '2'
-        #import pdb; pdb.set_trace() # BREAKPOINT
 # create potts pairwise
         #pairwiseAlpha = -10
         pairwise = -(np.eye(2)-1)
@@ -419,24 +417,19 @@ class ImageGraphCut:
 
         self.iparams = {}
 
-        print '3'
-        #import pdb; pdb.set_trace() # BREAKPOINT
-# @TODO copy into __create_graph_function
         nlinks = self.__create_nlinks(data)
 
-        print '4'
-        #import pdb; pdb.set_trace() # BREAKPOINT
 # edges - seznam indexu hran, kteres spolu sousedi
 
 # we flatten the unaries
         #result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2), pairwise)
-        result_graph = cut_from_graph(nlinks, unariesalt.reshape(-1,2), pairwise)
+        result_graph = pygco.cut_from_graph(nlinks, unariesalt.reshape(-1,2), pairwise)
 
-        print '5'
-        #import pdb; pdb.set_trace() # BREAKPOINT
+# probably not necessary
+#        del nlinks
+#        del unariesalt
+
         #print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
-        print '6'
-        #import pdb; pdb.set_trace() # BREAKPOINT
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
