@@ -31,13 +31,16 @@ Linux:
 Windows:
 
    git clone https://github.com/amueller/gco_python.git
+   cd gco_python
    mkdir gco_src && cd gco_src
-   wget http://vision.csd.uwo.ca/code/gco-v3.0.zip
-   uznip gco-v3.0.zip
+   curl -O http://vision.csd.uwo.ca/code/gco-v3.0.zip
+   unzip gco-v3.0.zip
    cd ..
    curl -O https://raw2.github.com/mjirik/pyseg_base/master/distr/gco_python.pyx.patch
    patch gco_python.pyx < gco_python.pyx.patch
    python setup.py build_ext -i --compiler=mingw32
+   python.exe setup.py build --compiler=mingw32
+   python.exe setup.py install --skip-build
 
 Mac:
 
