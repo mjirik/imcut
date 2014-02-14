@@ -215,6 +215,7 @@ class ImageGraphCut:
             import scipy.ndimage
             zoom = 0.125 #self.segparams['scale']
             loseeds = pyed.getSeeds()
+            print np.unique(loseeds)
 # @TODO smart interpolation for seeds in one block
             loseeds = scipy.ndimage.interpolation.zoom(
                 loseeds.astype(np.double), zoom)
@@ -226,23 +227,100 @@ class ImageGraphCut:
 
             img_orig = self.img
 
-            self.img = scipy.ndimage.interpolation.zoom(img_orig, zoom)
+            self.img = scipy.ndimage.interpolation.zoom(img_orig, zoom, order=0)
 
             self.make_gc()
+            print 'segmentation'
+            print np.max(self.segmentation)
+            print np.min(self.segmentation)
             seg = 1 - self.segmentation.astype(np.int8)
 
-            seg = scipy.ndimage.filters.laplace(seg, mode='constant')
-            seg[seg!=0] = 1
+            segl = scipy.ndimage.filters.laplace(seg, mode='constant')
+            print np.max(segl)
+            print np.min(segl)
+            segl[segl!=0] = 1
+            print np.max(segl)
+            print np.min(segl)
+            seg = scipy.ndimage.morphology.binary_dilation(
+                seg
+                #np.ones([3,3,3])
+            )
             print seg.shape
-            segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), 1.0/zoom).astype('int8')
+            segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), 1.0/zoom, order=0).astype('int8')
             #segz [segz > 0.1] = 1
             #segz.astype('int8')
             #import pdb; pdb.set_trace() # BREAKPOINT
 # @todo back resize
-            seg = np.zeros(img_orig.shape, dtype='int8')
-            seg [:segz.shape[0],:segz.shape[1],:segz.shape[2]]=segz
+            segzz = np.zeros(img_orig.shape, dtype='int8')
+            segzz [:segz.shape[0],:segz.shape[1],:segz.shape[2]]=segz
+            pyed.img = segzz * 100
+            import pdb; pdb.set_trace() # BREAKPOINT
+            self.__multiscale_indexes(seg, img_orig.shape, zoom, pyed)
+
             #import pdb; pdb.set_trace() # BREAKPOINT
-            pyed.setContours(seg)
+            #pyed.setContours(seg)
+
+    def __relabel(self, data):
+        """
+        Makes relabeling of data if there are unused values.
+        """
+#TODO arange a nějak- přemapování
+        unq = np.unique(data)
+        actual_label = 0
+        for lab in unq:
+            data[data == lab] = actual_label
+            actual_label += 1
+
+        return data
+
+
+    def __multiscale_indexes(self, mask, orig_shape, zoom, pyed):
+        """
+        Function computes multiscale indexes of ndarray.
+        mask: Says where is original resolution (0) and where is small
+        resolution (1). Mask is in small resolution.
+
+        orig_shape: Original shape of input data.
+        """
+
+        inds_small = np.arange(mask.size).reshape(mask.shape)
+        inds_small_in_orig = self.__zoom_to_shape(inds_small, 1.0/zoom,
+                                                  orig_shape, dtype=np.int8)
+        inds_orig = np.arange(np.prod(orig_shape)).reshape(orig_shape)
+
+        mask_orig = self.__zoom_to_shape(mask, 1.0/zoom,
+                                                  orig_shape, dtype=np.int8)
+
+        inds_orig += np.max(inds_small_in_orig) + 1
+        inds_small_in_orig[mask_orig==True] = inds_orig[mask_orig==True]
+        inds = inds_small_in_orig
+        print np.max(inds)
+        print np.min(inds)
+        inds = self.__relabel(inds)
+        print np.max(inds)
+        print np.min(inds)
+        #inds_orig[mask_orig==True] = 0
+        #inds_small_in_orig[mask_orig==False] = 0
+        #inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
+
+        print 'indexes'
+        import pdb; pdb.set_trace() # BREAKPOINT
+
+        pass
+    def __zoom_to_shape(self, data, zoom, shape, dtype=None):
+        """
+        Zoom data to specific shape.
+        """
+        import scipy
+        import scipy.ndimage
+        datares = scipy.ndimage.interpolation.zoom(data, zoom, order=0)
+        dataout = np.zeros(shape, dtype=dtype)
+        dataout [:shape[0], :shape[1], :shape[2]] = datares
+        return datares
+
+
+
+
 
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
@@ -274,7 +352,7 @@ class ImageGraphCut:
 
         qt_app.exec_()
 
-    def set_seeds(self,seeds):
+    def set_seeds(self, seeds):
         """
         Function for manual seed setting. Sets variable seeds and prepares
         voxels for density model.
@@ -381,13 +459,17 @@ class ImageGraphCut:
         if hard_constraints:
             #pdb.set_trace();
             if (type(seeds)=='bool'):
-                raise Exception ('Seeds variable  not set','There is need set seed if you want use hard constraints')
+                raise Exception (
+                    'Seeds variable  not set',
+                    'There is need set seed if you want use hard constraints')
             tdata1, tdata2 = self.set_hard_hard_constraints(tdata1,
                                                             tdata2,
                                                             seeds)
 
-
-        unariesalt = (0+(area_weight * np.dstack([tdata1.reshape(-1,1), tdata2.reshape(-1,1)]).copy("C"))).astype(np.int32)
+        unariesalt = (0 + (area_weight *
+                           np.dstack([tdata1.reshape(-1, 1),
+                                      tdata2.reshape(-1, 1)]).copy("C"))
+                      ).astype(np.int32)
         return unariesalt
 
     def __create_nlinks(self, data):
