@@ -264,12 +264,18 @@ class ImageGraphCut:
         """
         Makes relabeling of data if there are unused values.
         """
-#TODO arange a nějak- přemapování
-        unq = np.unique(data)
-        actual_label = 0
-        for lab in unq:
-            data[data == lab] = actual_label
-            actual_label += 1
+        palette, index = np.unique(data,return_inverse=True)
+        data = index.reshape(data.shape)
+# realy slow solution
+#        unq = np.unique(data)
+#        actual_label = 0
+#        for lab in unq:
+#            data[data == lab] = actual_label
+#            actual_label += 1
+
+        # one another solution probably slower
+        # arr = data
+        # data = (np.digitize(arr.reshape(-1,),np.unique(arr))-1).reshape(arr.shape)
 
         return data
 
