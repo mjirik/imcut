@@ -566,7 +566,7 @@ if __name__ == "__main__":
                       dest='degrad', default=1,
                       help=help['degrad'])
     parser.add_option('-z', '--zoom', action='store',
-                      dest='zoom', default=1,
+                      dest='zoom', default='1',
                       help=help['zoom'])
     parser.add_option('-d','--debug', action='store_true',
                       dest='debug',
@@ -590,7 +590,7 @@ if __name__ == "__main__":
     dcr = DicomReader(os.path.abspath(dcmdir), gui=True)
     data3d = dcr.get_3Ddata()
     metadata = dcr.get_metaData()
-    
+
     zoom = eval(options.zoom)
     if options.zoom != 1:
         import scipy
@@ -604,7 +604,7 @@ if __name__ == "__main__":
 
     data3d_out = data3d[::degrad, ::degrad, ::degrad]
     vs_out = list(np.array(metadata['voxelsize_mm']) * degrad)
-    
+
     logger.debug('voxelsize_mm ' + vs_out.__str__())
     savemat(options.out_filename,
             {'data': data3d_out, 'voxelsize_mm': vs_out}
