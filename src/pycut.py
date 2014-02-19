@@ -208,57 +208,91 @@ class ImageGraphCut:
         except:
             print("cannot open audiosupport")
 
-    def __multiscale_gc(self, pyed):
-            from PyQt4.QtCore import pyqtRemoveInputHook
-            pyqtRemoveInputHook()
-            import scipy
-            import scipy.ndimage
-            zoom = 0.125 #self.segparams['scale']
-            loseeds = pyed.getSeeds()
-            print np.unique(loseeds)
+    def __seed_zoom(self, seeds, zoom):
+        """
+        Smart zoom for sparse matrix. If there is resize to bigger resolution
+        thin line of label could be lost. This function prefers labels larger
+        then zero. If there is only one small voxel in larger volume with zeros
+        it is selected.
+        """
+        import scipy
+        # loseeds=seeds
+        labels = np.unique(seeds)
+# remove first label - 0
+        labels = np.delete(labels, 0)
+        print 'labels', labels
 # @TODO smart interpolation for seeds in one block
-            loseeds = scipy.ndimage.interpolation.zoom(
-                loseeds.astype(np.double), zoom)
-            loseeds = loseeds.astype(np.int8)
+#        loseeds = scipy.ndimage.interpolation.zoom(
+#            seeds, zoom, order=0)
+        loshape = np.ceil(np.array(seeds.shape)*1.0/zoom)
+        loseeds = np.zeros(loshape, dtype=np.int8)
+        print 'loseeds.shape ', loseeds.shape
+        loseeds = loseeds.astype(np.int8)
+        for label in labels:
+            a,b,c = np.where(seeds==label)
+            loa = np.round(a/zoom)
+            lob = np.round(b/zoom)
+            loc = np.round(c/zoom)
+            #loseeds = np.zeros(loshape)
 
-            self.seeds = loseeds
-            self.voxels1 = pyed.getSeedsVal(1)
-            self.voxels2 = pyed.getSeedsVal(2)
+            loseeds[loa,lob,loc] = label
 
-            img_orig = self.img
 
-            self.img = scipy.ndimage.interpolation.zoom(img_orig, zoom, order=0)
+        import ipdb; ipdb.set_trace() # BREAKPOINT
+        return loseeds
 
-            self.make_gc()
-            print 'segmentation'
-            print np.max(self.segmentation)
-            print np.min(self.segmentation)
-            seg = 1 - self.segmentation.astype(np.int8)
 
-            segl = scipy.ndimage.filters.laplace(seg, mode='constant')
-            print np.max(segl)
-            print np.min(segl)
-            segl[segl!=0] = 1
-            print np.max(segl)
-            print np.min(segl)
-            seg = scipy.ndimage.morphology.binary_dilation(
-                seg
-                #np.ones([3,3,3])
-            )
-            print seg.shape
-            segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), 1.0/zoom, order=0).astype('int8')
-            #segz [segz > 0.1] = 1
-            #segz.astype('int8')
-            #import pdb; pdb.set_trace() # BREAKPOINT
+    def __multiscale_gc(self, pyed):
+        import py3DSeedEditor as ped
+
+        from PyQt4.QtCore import pyqtRemoveInputHook
+        pyqtRemoveInputHook()
+        import scipy
+        import scipy.ndimage
+        zoom = 8 #0.125 #self.segparams['scale']
+        loseeds = pyed.getSeeds()
+        print np.unique(loseeds)
+        loseeds = self.__seed_zoom(loseeds, zoom)
+        print np.unique(loseeds)
+
+        self.seeds = loseeds
+        self.voxels1 = pyed.getSeedsVal(1)
+        self.voxels2 = pyed.getSeedsVal(2)
+
+        img_orig = self.img
+
+        self.img = scipy.ndimage.interpolation.zoom(img_orig, 1.0/zoom, order=0)
+
+        self.make_gc()
+        print 'segmentation'
+        print np.max(self.segmentation)
+        print np.min(self.segmentation)
+        seg = 1 - self.segmentation.astype(np.int8)
+
+        segl = scipy.ndimage.filters.laplace(seg, mode='constant')
+        print np.max(segl)
+        print np.min(segl)
+        segl[segl!=0] = 1
+        print np.max(segl)
+        print np.min(segl)
+        seg = scipy.ndimage.morphology.binary_dilation(
+            seg
+            #np.ones([3,3,3])
+        )
+        print seg.shape
+        segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom, order=0).astype('int8')
+        #segz [segz > 0.1] = 1
+        #segz.astype('int8')
+        #import pdb; pdb.set_trace() # BREAKPOINT
 # @todo back resize
-            segzz = np.zeros(img_orig.shape, dtype='int8')
-            segzz [:segz.shape[0],:segz.shape[1],:segz.shape[2]]=segz
-            pyed.img = segzz * 100
-            import pdb; pdb.set_trace() # BREAKPOINT
-            self.__multiscale_indexes(seg, img_orig.shape, zoom, pyed)
+        segzz = np.zeros(img_orig.shape, dtype='int8')
+        segzz [:segz.shape[0],:segz.shape[1],:segz.shape[2]]=segz
+        pyed.img = segzz * 100
+        import pdb; pdb.set_trace() # BREAKPOINT
+        self.__multiscale_indexes(seg, img_orig.shape, 1.0/zoom, pyed)
 
-            #import pdb; pdb.set_trace() # BREAKPOINT
-            #pyed.setContours(seg)
+        #import pdb; pdb.set_trace() # BREAKPOINT
+        #pyed.setContours(seg)
 
     def __relabel(self, data):
         """
@@ -422,9 +456,16 @@ class ImageGraphCut:
 ##            df0 = self.img[:-1,:] - self.img[]
 ##            diffs.insert(0,
         return filtered
+    def __create_multiscale_tlinks(self, ):
+        pass
 
-    def __create_tlinks(self, data, voxels1, voxels2, seeds,
-                                          area_weight, hard_constraints):
+    def __similarity_for_tlinks_obj_bgr(self, data, voxels1, voxels2,
+                             seeds, otherfeatures=None):
+        """
+        Compute edge values for graph cut tlinks based on image intensity
+        and texture.
+        """
+
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
         mdl = Model ( modelparams = self.modelparams )
@@ -441,6 +482,13 @@ class ImageGraphCut:
 # ln is computed in likelihood
         tdata1 = (-(mdl.likelihood(data, 1))) * 10
         tdata2 = (-(mdl.likelihood(data, 2))) * 10
+        return tdata1, tdata2
+
+
+    def __create_tlinks(self, data, voxels1, voxels2, seeds,
+                                          area_weight, hard_constraints):
+        tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data, voxels1,
+                                                   voxels2, seeds)
         if self.debug_images:
 ### Show model parameters
             import matplotlib.pyplot as plt
@@ -654,7 +702,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
-                        , segparams = {'type':'multiscale_gc'}
+#                        , segparams = {'type':'multiscale_gc'}
                         )
     igc.interactivity()
 
