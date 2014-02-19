@@ -520,18 +520,20 @@ class DicomReader():
         return filelist
 
 
-def get_dcmdir_qt(app=False):
+def get_dcmdir_qt(app=False, directory=''):
     from PyQt4.QtGui import QFileDialog, QApplication
     if app:
         dcmdir = QFileDialog.getExistingDirectory(
             caption='Select DICOM Folder',
-            options=QFileDialog.ShowDirsOnly
+            options=QFileDialog.ShowDirsOnly,
+            directory=directory
         )
     else:
         app = QApplication(sys.argv)
         dcmdir = QFileDialog.getExistingDirectory(
             caption='Select DICOM Folder',
-            options=QFileDialog.ShowDirsOnly
+            options=QFileDialog.ShowDirsOnly,
+            directory=directory
         )
         #app.exec_()
         app.exit(0)
