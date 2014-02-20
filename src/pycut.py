@@ -29,9 +29,11 @@ from pkg_resources import parse_version
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
     #new versions
-    defaultmodelparams =  {'type':'gmmsame','params':{'covariance_type':'full'}}
+    defaultmodelparams = {'type': 'gmmsame',
+                          'params': {'covariance_type': 'full'}}
 else:
-    defaultmodelparams =  {'type':'gmmsame','params':{'cvtype':'full'}}
+    defaultmodelparams = {'type': 'gmmsame',
+                          'params': {'cvtype': 'full'}}
 
 
 class Model:
@@ -120,7 +122,6 @@ class Model:
 
 
 class ImageGraphCut:
-
     """
     Interactive Graph Cut.
 
@@ -201,7 +202,6 @@ class ImageGraphCut:
         elif self.segparams['type'] in ('multiscale_gc'):
             self.__multiscale_gc(pyed)
 
-
         try:
             import audiosupport
             audiosupport.beep()
@@ -215,7 +215,7 @@ class ImageGraphCut:
         then zero. If there is only one small voxel in larger volume with zeros
         it is selected.
         """
-        import scipy
+        #import scipy
         # loseeds=seeds
         labels = np.unique(seeds)
 # remove first label - 0
@@ -224,21 +224,25 @@ class ImageGraphCut:
 # @TODO smart interpolation for seeds in one block
 #        loseeds = scipy.ndimage.interpolation.zoom(
 #            seeds, zoom, order=0)
-        loshape = np.ceil(np.array(seeds.shape)*1.0/zoom)
+        loshape = np.ceil(np.array(seeds.shape) * 1.0 / zoom)
         loseeds = np.zeros(loshape, dtype=np.int8)
         print 'loseeds.shape ', loseeds.shape
         loseeds = loseeds.astype(np.int8)
         for label in labels:
-            a,b,c = np.where(seeds==label)
-            loa = np.round(a/zoom)
-            lob = np.round(b/zoom)
-            loc = np.round(c/zoom)
+            a, b, c = np.where(seeds == label)
+            loa = np.round(a / zoom)
+            lob = np.round(b / zoom)
+            loc = np.round(c / zoom)
             #loseeds = np.zeros(loshape)
 
-            loseeds[loa,lob,loc] = label
+            loseeds[loa, lob, loc] = label
 
 
-        import ipdb; ipdb.set_trace() # BREAKPOINT
+       # import py3DSeedEditor
+       # ped = py3DSeedEditor.py3DSeedEditor(loseeds)
+       # ped.show()
+
+        #import ipdb; ipdb.set_trace() # BREAKPOINT
         return loseeds
 
 
@@ -280,7 +284,8 @@ class ImageGraphCut:
             #np.ones([3,3,3])
         )
         print seg.shape
-        segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom, order=0).astype('int8')
+        segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
+                                                order=0).astype('int8')
         #segz [segz > 0.1] = 1
         #segz.astype('int8')
         #import pdb; pdb.set_trace() # BREAKPOINT
@@ -288,11 +293,33 @@ class ImageGraphCut:
         segzz = np.zeros(img_orig.shape, dtype='int8')
         segzz [:segz.shape[0],:segz.shape[1],:segz.shape[2]]=segz
         pyed.img = segzz * 100
+        msinds = self.__multiscale_indexes(seg, img_orig.shape, zoom, pyed)
+        print 'msinds'
+        pd = ped.py3DSeedEditor(msinds)
+        pd.show()
         import pdb; pdb.set_trace() # BREAKPOINT
-        self.__multiscale_indexes(seg, img_orig.shape, 1.0/zoom, pyed)
+
+        # intensity values for indexes
+        # @TODO compute average values for low resolution
 
         #import pdb; pdb.set_trace() # BREAKPOINT
         #pyed.setContours(seg)
+
+    def __ordered_values_by_indexes(self, data, inds):
+        """
+        Return values (intensities) by indexes.
+
+        Used for multiscale graph cut.
+        data = [[0 1 1],
+                [0 2 2],
+                [0 2 2]]
+
+        inds = [[0 1 2],
+                [3 4 4],
+                [5 4 4]]
+
+        """
+
 
     def __relabel(self, data):
         """
@@ -321,18 +348,22 @@ class ImageGraphCut:
         resolution (1). Mask is in small resolution.
 
         orig_shape: Original shape of input data.
+        zoom: Usually number greater then 1
         """
 
         inds_small = np.arange(mask.size).reshape(mask.shape)
-        inds_small_in_orig = self.__zoom_to_shape(inds_small, 1.0/zoom,
+        inds_small_in_orig = self.__zoom_to_shape(inds_small, zoom,
                                                   orig_shape, dtype=np.int8)
         inds_orig = np.arange(np.prod(orig_shape)).reshape(orig_shape)
 
-        mask_orig = self.__zoom_to_shape(mask, 1.0/zoom,
-                                                  orig_shape, dtype=np.int8)
+        mask_orig = self.__zoom_to_shape(mask, zoom,
+                                         orig_shape, dtype=np.int8)
 
         inds_orig += np.max(inds_small_in_orig) + 1
-        inds_small_in_orig[mask_orig==True] = inds_orig[mask_orig==True]
+        #print 'indexes'
+        #import py3DSeedEditor as ped
+        #import pdb; pdb.set_trace() # BREAKPOINT
+        inds_small_in_orig[mask_orig == True] = inds_orig[mask_orig == True]
         inds = inds_small_in_orig
         print np.max(inds)
         print np.min(inds)
@@ -343,10 +374,10 @@ class ImageGraphCut:
         #inds_small_in_orig[mask_orig==False] = 0
         #inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
 
-        print 'indexes'
-        import pdb; pdb.set_trace() # BREAKPOINT
+        return inds
 
         pass
+
     def __zoom_to_shape(self, data, zoom, shape, dtype=None):
         """
         Zoom data to specific shape.
@@ -702,7 +733,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
-#                        , segparams = {'type':'multiscale_gc'}
+                        , segparams = {'type':'multiscale_gc'} # multiscale gc
                         )
     igc.interactivity()
 
