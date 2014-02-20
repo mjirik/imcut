@@ -294,12 +294,15 @@ class ImageGraphCut:
         pyed.img = segzz * 100
         msinds = self.__multiscale_indexes(seg, img_orig.shape, zoom, pyed)
         print 'msinds'
-        pd = ped.py3DSeedEditor(msinds)
-        pd.show()
+        #pd = ped.py3DSeedEditor(msinds)
+        #pd.show()
+# @TODO __ms_create_nlinks , use __ordered_values_by_indexes
         import pdb; pdb.set_trace()  # BREAKPOINT
 
         # intensity values for indexes
-        # @TODO compute average values for low resolution
+   # @TODO compute average values for low resolution
+
+        values = self.__ordered_values_by_indexes(img_orig, msinds)
 
         #import pdb; pdb.set_trace() # BREAKPOINT
         #pyed.setContours(seg)
@@ -484,6 +487,10 @@ class ImageGraphCut:
 ##            df0 = self.img[:-1,:] - self.img[]
 ##            diffs.insert(0,
         return filtered
+
+    def __mc_create_tlinks(self, hdata, voxels1, voxels2, hseeds, hvoxels1,
+                           hvoxels2, indexes):
+        pass
 
     def __create_multiscale_tlinks(self):
         pass
