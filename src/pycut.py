@@ -317,8 +317,14 @@ class ImageGraphCut:
                 [3 4 4],
                 [5 4 4]]
 
+        return: [0, 1, 1, 0, 2, 0]
+
         """
-        pass
+        # get unique labels and their first indexes
+        lab, linds = np.unique(inds, return_index=True)
+# compute values by indexes
+        values = data.reshape(-1)[linds]
+        return values
 
     def __relabel(self, data):
         """  Makes relabeling of data if there are unused values.  """

@@ -30,16 +30,25 @@ class PycutTest(unittest.TestCase):
         slab = {'none':0, 'liver':1, 'porta':2, 'lesions':6}
         voxelsize_mm = np.array([1.0,1.0,1.2])
 
-        segm = np.zeros([256,256,80], dtype=np.int16)
+        # there must be some data
+        img = np.zeros([32,32,32], dtype=np.int16)
+        data = np.array([
+            [0, 1, 1],
+            [0, 2, 2],
+            [0, 2, 2]
+        ])
 
-        # liver
-        segm[70:190,40:220,30:60] = slab['liver']
-# port
-        segm[120:130,70:220,40:45] = slab['porta']
-        segm[80:130,100:110,40:45] = slab['porta']
-        segm[120:170,130:135,40:44] = slab['porta']
+        inds = np.array([
+            [0, 1, 2],
+            [3, 4, 4],
+            [5, 4, 4]
+        ])
+        gc = pycut.ImageGraphCut(img)
+        vals = gc._ImageGraphCut__ordered_values_by_indexes(data, inds)
+        expected = np.array([0, 1, 1, 0, 2, 0])
+        self.assertItemsEqual(vals, expected)
 
-        # vytvoření kopie segmentace - před určením lézí
+
 
 if __name__ == "__main__":
     unittest.main()
