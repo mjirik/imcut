@@ -220,13 +220,11 @@ class ImageGraphCut:
         labels = np.unique(seeds)
 # remove first label - 0
         labels = np.delete(labels, 0)
-        print 'labels', labels
 # @TODO smart interpolation for seeds in one block
 #        loseeds = scipy.ndimage.interpolation.zoom(
 #            seeds, zoom, order=0)
         loshape = np.ceil(np.array(seeds.shape) * 1.0 / zoom)
         loseeds = np.zeros(loshape, dtype=np.int8)
-        print 'loseeds.shape ', loseeds.shape
         loseeds = loseeds.astype(np.int8)
         for label in labels:
             a, b, c = np.where(seeds == label)
@@ -256,6 +254,9 @@ class ImageGraphCut:
         print np.unique(loseeds)
         loseeds = self.__seed_zoom(loseeds, zoom)
         print np.unique(loseeds)
+
+        area_weight = 1
+        hard_constraints = True
 
         self.seeds = loseeds
         self.voxels1 = pyed.getSeedsVal(1)
@@ -293,19 +294,67 @@ class ImageGraphCut:
         segzz[:segz.shape[0], :segz.shape[1], :segz.shape[2]] = segz
         pyed.img = segzz * 100
         msinds = self.__multiscale_indexes(seg, img_orig.shape, zoom, pyed)
-        print 'msinds'
+        print 'msinds', msinds.shape
         #pd = ped.py3DSeedEditor(msinds)
         #pd.show()
-# @TODO __ms_create_nlinks , use __ordered_values_by_indexes
-        import pdb; pdb.set_trace()  # BREAKPOINT
 
         # intensity values for indexes
    # @TODO compute average values for low resolution
+        ms_img = img_orig
 
-        values = self.__ordered_values_by_indexes(img_orig, msinds)
 
+# @TODO __ms_create_nlinks , use __ordered_values_by_indexes
         #import pdb; pdb.set_trace() # BREAKPOINT
         #pyed.setContours(seg)
+
+# here are not unique couples of nodes
+        nlinks_not_unique = self.__create_nlinks(ms_img, msinds)
+
+# get unique set
+        nlinks = np.array(
+            [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
+        )
+
+# tlinks - indexes, data_merge
+        ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
+        seeds = pyed.getSeeds()
+        ms_seeds_lin = self.__ordered_values_by_indexes(seeds, msinds)
+
+        unariesalt = self.__create_tlinks(ms_values_lin,
+                                          self.voxels1, self.voxels2,
+                                          ms_seeds_lin,
+                                          area_weight, hard_constraints)
+
+# create potts pairwise
+        #pairwiseAlpha = -10
+        pairwise = -(np.eye(2) - 1)
+        pairwise = (self.segparams['pairwise_alpha'] * pairwise
+                    ).astype(np.int32)
+
+
+        print 'data shape ', img_orig.shape
+        print 'nlinks sh ', nlinks.shape
+        print 'tlinks sh ', unariesalt.shape
+
+    #Same functionality is in self.seg_data()
+        result_graph = pygco.cut_from_graph(
+            nlinks,
+            unariesalt.reshape(-1, 2),
+            pairwise
+        )
+
+# probably not necessary
+#        del nlinks
+#        del unariesalt
+
+        #print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
+# @TODO get back original data
+        #result_labeling = result_graph.reshape(data.shape)
+        result_labeling = result_graph[msinds]
+        import py3DSeedEditor
+        ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
+        ped.show()
+        import pdb; pdb.set_trace()  # BREAKPOINT
 
     def __ordered_values_by_indexes(self, data, inds):
         """
@@ -354,6 +403,10 @@ class ImageGraphCut:
 
         orig_shape: Original shape of input data.
         zoom: Usually number greater then 1
+
+        result = [[0 1 2],
+                  [3 4 4],
+                  [5 4 4]]
         """
 
         inds_small = np.arange(mask.size).reshape(mask.shape)
@@ -488,7 +541,7 @@ class ImageGraphCut:
 ##            diffs.insert(0,
         return filtered
 
-    def __mc_create_tlinks(self, hdata, voxels1, voxels2, hseeds, hvoxels1,
+    def __ms_create_tlinks(self, hdata, voxels1, voxels2, hseeds, hvoxels1,
                            hvoxels2, indexes):
         pass
 
@@ -518,12 +571,7 @@ class ImageGraphCut:
 # ln is computed in likelihood
         tdata1 = (-(mdl.likelihood(data, 1))) * 10
         tdata2 = (-(mdl.likelihood(data, 2))) * 10
-        return tdata1, tdata2
 
-    def __create_tlinks(self, data, voxels1, voxels2, seeds,
-                        area_weight, hard_constraints):
-        tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data, voxels1,
-                                                              voxels2, seeds)
         if self.debug_images:
 ### Show model parameters
             import matplotlib.pyplot as plt
@@ -544,6 +592,12 @@ class ImageGraphCut:
             ax.plot(hstx, mdl.likelihood(hstx, 2))
 
             plt.show()
+        return tdata1, tdata2
+
+    def __create_tlinks(self, data, voxels1, voxels2, seeds,
+                        area_weight, hard_constraints):
+        tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data, voxels1,
+                                                              voxels2, seeds)
 
         if hard_constraints:
             #pdb.set_trace();
@@ -561,11 +615,22 @@ class ImageGraphCut:
                       ).astype(np.int32)
         return unariesalt
 
-    def __create_nlinks(self, data):
-# @TODO copy into __create_graph_function
+    def __create_nlinks(self, data, inds=None):
+        """
+        Compute nlinks grid from data shape information. For boundary penalties
+        are data (intensities) values are used.
+
+        ins: Default is None. Used for multiscale GC. This are indexes of
+        multiscale pixels. Next example shows one superpixel witn index 2.
+        inds = [
+            [1 2 2],
+            [3 2 2],
+            [4 5 6]]
+        """
 # use the gerneral graph algorithm
 # first, we construct the grid graph
-        inds = np.arange(data.size).reshape(data.shape)
+        if inds is None:
+            inds = np.arange(data.size).reshape(data.shape)
         if self.segparams['use_boundary_penalties']:
 #  některém testu  organ semgmentation dosahují unaries -15. což je podiné
 # stačí yhodit print před if a je to idět
@@ -636,6 +701,9 @@ class ImageGraphCut:
 
         nlinks = self.__create_nlinks(data)
 
+        print 'data shape ', data.shape
+        print 'nlinks sh ', nlinks.shape
+        print 'tlinks sh ', unariesalt.shape
 # edges - seznam indexu hran, kteres spolu sousedi
 
 # we flatten the unaries
@@ -749,7 +817,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
-                        , segparams = {'type':'multiscale_gc'}  # multisc gc
+#                        , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
 
