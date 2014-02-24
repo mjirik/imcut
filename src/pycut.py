@@ -199,8 +199,10 @@ class ImageGraphCut:
             self.make_gc()
 
             pyed.setContours(1 - self.segmentation.astype(np.int8))
+
         elif self.segparams['type'] in ('multiscale_gc'):
             self.__multiscale_gc(pyed)
+            pyed.setContours(1 - self.segmentation.astype(np.int8))
 
         try:
             import audiosupport
@@ -284,24 +286,27 @@ class ImageGraphCut:
             #np.ones([3,3,3])
         )
         print seg.shape
-        segz = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
-                                                order=0).astype('int8')
-        #segz [segz > 0.1] = 1
-        #segz.astype('int8')
-        #import pdb; pdb.set_trace() # BREAKPOINT
-# @todo back resize
-        segzz = np.zeros(img_orig.shape, dtype='int8')
-        segzz[:segz.shape[0], :segz.shape[1], :segz.shape[2]] = segz
-        pyed.img = segzz * 100
-        msinds = self.__multiscale_indexes(seg, img_orig.shape, zoom, pyed)
+#        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
+#                                                order=0).astype('int8')
+## @todo back resize
+#        segshape = np.zeros(img_orig.shape, dtype='int8')
+#        segshape[:segzoom.shape[0],
+#                 :segzoom.shape[1],
+#                 :segzoom.shape[2]] = segzoom
+#        if self.debug_images:
+#            pyed.img = segshape * 100
+#            import py3DSeedEditor
+#            ped = py3DSeedEditor.py3DSeedEditor(segshape)
+#            ped.show()
+        msinds = self.__multiscale_indexes(seg, img_orig.shape, zoom)
         print 'msinds', msinds.shape
         #pd = ped.py3DSeedEditor(msinds)
         #pd.show()
+        #import ipdb; ipdb.set_trace() # BREAKPOINT
 
         # intensity values for indexes
    # @TODO compute average values for low resolution
         ms_img = img_orig
-
 
 # @TODO __ms_create_nlinks , use __ordered_values_by_indexes
         #import pdb; pdb.set_trace() # BREAKPOINT
@@ -331,7 +336,6 @@ class ImageGraphCut:
         pairwise = (self.segparams['pairwise_alpha'] * pairwise
                     ).astype(np.int32)
 
-
         print 'data shape ', img_orig.shape
         print 'nlinks sh ', nlinks.shape
         print 'tlinks sh ', unariesalt.shape
@@ -351,10 +355,10 @@ class ImageGraphCut:
 # @TODO get back original data
         #result_labeling = result_graph.reshape(data.shape)
         result_labeling = result_graph[msinds]
-        import py3DSeedEditor
-        ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
-        ped.show()
-        import pdb; pdb.set_trace()  # BREAKPOINT
+        #import py3DSeedEditor
+        #ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
+        #ped.show()
+        self.segmentation = result_labeling
 
     def __ordered_values_by_indexes(self, data, inds):
         """
@@ -395,9 +399,10 @@ class ImageGraphCut:
 
         return data
 
-    def __multiscale_indexes(self, mask, orig_shape, zoom, pyed):
+    def __multiscale_indexes(self, mask, orig_shape, zoom):
         """
         Function computes multiscale indexes of ndarray.
+
         mask: Says where is original resolution (0) and where is small
         resolution (1). Mask is in small resolution.
 
@@ -409,19 +414,22 @@ class ImageGraphCut:
                   [5 4 4]]
         """
 
+        mask_orig = self.__zoom_to_shape(mask, zoom,
+                                         orig_shape, dtype=np.int8)
+
         inds_small = np.arange(mask.size).reshape(mask.shape)
         inds_small_in_orig = self.__zoom_to_shape(inds_small, zoom,
                                                   orig_shape, dtype=np.int8)
         inds_orig = np.arange(np.prod(orig_shape)).reshape(orig_shape)
 
-        mask_orig = self.__zoom_to_shape(mask, zoom,
-                                         orig_shape, dtype=np.int8)
+        print mask_orig
 
+        #inds_orig = inds_orig * mask_orig
         inds_orig += np.max(inds_small_in_orig) + 1
         #print 'indexes'
         #import py3DSeedEditor as ped
         #import pdb; pdb.set_trace() # BREAKPOINT
-        inds_small_in_orig[mask_orig is True] = inds_orig[mask_orig is True]
+        inds_small_in_orig[mask_orig == True] = inds_orig[mask_orig == True]
         inds = inds_small_in_orig
         print np.max(inds)
         print np.min(inds)
@@ -435,6 +443,22 @@ class ImageGraphCut:
         return inds
 
         pass
+
+    def __merge_indexes_by_mask(self, mask, inds1, inds2):
+        """
+        Return array of indexes.
+
+        inds1: Array with numbers starting from 0
+        inds2: Array with numbers starting from 0
+        mask: array of same size as inds1 and inds2 with 0 where should be
+            inds1 and 1 where sould be inds2
+
+        To values of inds2 is added maximal value of inds1.
+
+        """
+        inds1[mask == 1]
+
+
 
     def __zoom_to_shape(self, data, zoom, shape, dtype=None):
         """
@@ -574,24 +598,28 @@ class ImageGraphCut:
 
         if self.debug_images:
 ### Show model parameters
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.imshow(tdata1[5, :, :])
-            print 'max ', np.max(tdata1), 'min ', np.min(tdata1)
+            logger.debug('tdata1 shape ' + str(tdata1.shape))
+            try:
+                import matplotlib.pyplot as plt
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                ax.imshow(tdata1[5, :, :])
+                print 'max ', np.max(tdata1), 'min ', np.min(tdata1)
 
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.imshow(tdata2[5, :, :])
-            print 'max ', np.max(tdata2), 'min ', np.min(tdata2)
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                ax.imshow(tdata2[5, :, :])
+                print 'max ', np.max(tdata2), 'min ', np.min(tdata2)
 
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            hstx = np.linspace(-1000, 1000, 400)
-            ax.plot(hstx, mdl.likelihood(hstx, 1))
-            ax.plot(hstx, mdl.likelihood(hstx, 2))
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                hstx = np.linspace(-1000, 1000, 400)
+                ax.plot(hstx, mdl.likelihood(hstx, 1))
+                ax.plot(hstx, mdl.likelihood(hstx, 2))
 
-            plt.show()
+                plt.show()
+            except:
+                logger.debug('problem with showing debug images')
         return tdata1, tdata2
 
     def __create_tlinks(self, data, voxels1, voxels2, seeds,
@@ -817,7 +845,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
-#                        , segparams = {'type':'multiscale_gc'}  # multisc gc
+                        , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
 
