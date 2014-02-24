@@ -845,7 +845,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
-                        , segparams = {'type':'multiscale_gc'}  # multisc gc
+#                        , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
 
