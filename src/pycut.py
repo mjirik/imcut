@@ -333,6 +333,7 @@ class ImageGraphCut:
         self.segparams['use_boundary_penalties'] = True
         self.segparams['boundary_penalties_weight'] = 1
         self.img = img_orig # not necessary
+        orig_shape = img_orig.shape
         ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
                                                            orig_shape)
 
@@ -882,7 +883,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
-                        , segparams = {'type':'multiscale_gc'}  # multisc gc
+#                        , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
 
