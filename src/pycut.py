@@ -244,6 +244,9 @@ class ImageGraphCut:
         #import ipdb; ipdb.set_trace() # BREAKPOINT
         return loseeds
 
+    def __ms_bpenalties_fcn(self, axis):
+        pass
+
     def __multiscale_gc(self, pyed):
         import py3DSeedEditor as ped
 
@@ -251,7 +254,7 @@ class ImageGraphCut:
         pyqtRemoveInputHook()
         import scipy
         import scipy.ndimage
-        zoom = 8  # 0.125 #self.segparams['scale']
+        zoom = 6  # 0.125 #self.segparams['scale']
         loseeds = pyed.getSeeds()
         print np.unique(loseeds)
         loseeds = self.__seed_zoom(loseeds, zoom)
@@ -312,8 +315,18 @@ class ImageGraphCut:
         #import pdb; pdb.set_trace() # BREAKPOINT
         #pyed.setContours(seg)
 
+# there is need to set correct weights between neighbooring pixels
+# this is not nice hack.
+# @TODO reorganise segparams and create_nlinks function
+       # self.segparams['use_boundary_penalties'] = True
+       # self.segparams['boundary_penalties_weight'] = 1
+
 # here are not unique couples of nodes
-        nlinks_not_unique = self.__create_nlinks(ms_img, msinds)
+        nlinks_not_unique = self.__create_nlinks(
+            ms_img,
+            msinds,
+       #     boundary_penalties_fcn=self.__ms_bpenalties_fcn()
+        )
 
 # get unique set
         nlinks = np.array(
@@ -414,35 +427,32 @@ class ImageGraphCut:
                   [5 4 4]]
         """
 
-        mask_orig = self.__zoom_to_shape(mask, zoom,
-                                         orig_shape, dtype=np.int8)
+        mask_orig = self.__zoom_to_shape(mask, orig_shape, dtype=np.int8)
 
         inds_small = np.arange(mask.size).reshape(mask.shape)
-        inds_small_in_orig = self.__zoom_to_shape(inds_small, zoom,
+        inds_small_in_orig = self.__zoom_to_shape(inds_small,
                                                   orig_shape, dtype=np.int8)
         inds_orig = np.arange(np.prod(orig_shape)).reshape(orig_shape)
-
-        print mask_orig
 
         #inds_orig = inds_orig * mask_orig
         inds_orig += np.max(inds_small_in_orig) + 1
         #print 'indexes'
         #import py3DSeedEditor as ped
         #import pdb; pdb.set_trace() # BREAKPOINT
+
+# '==' is not the same as 'is' for numpy.array
         inds_small_in_orig[mask_orig == True] = inds_orig[mask_orig == True]
         inds = inds_small_in_orig
-        print np.max(inds)
-        print np.min(inds)
+        #print np.max(inds)
+        #print np.min(inds)
         inds = self.__relabel(inds)
-        print np.max(inds)
-        print np.min(inds)
+        logger.debug("Maximal index after relabeling: " + str(np.max(inds)))
+        logger.debug("Minimal index after relabeling: " + str(np.min(inds)))
         #inds_orig[mask_orig==True] = 0
         #inds_small_in_orig[mask_orig==False] = 0
      #inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
 
         return inds
-
-        pass
 
     def __merge_indexes_by_mask(self, mask, inds1, inds2):
         """
@@ -458,17 +468,23 @@ class ImageGraphCut:
         """
         inds1[mask == 1]
 
-
-
-    def __zoom_to_shape(self, data, zoom, shape, dtype=None):
+    def __zoom_to_shape(self, data, shape, dtype=None):
         """
         Zoom data to specific shape.
         """
         import scipy
         import scipy.ndimage
-        datares = scipy.ndimage.interpolation.zoom(data, zoom, order=0)
+        zoomd = np.array(shape) / np.array(data.shape, dtype=np.double)
+        datares = scipy.ndimage.interpolation.zoom(data, zoomd, order=0)
+
+        if datares.shape != shape:
+            logger.warning('Zoom with different output shape')
         dataout = np.zeros(shape, dtype=dtype)
-        dataout[:shape[0], :shape[1], :shape[2]] = datares
+        shpmin = np.minimum(dataout.shape, shape)
+        #import ipdb; ipdb.set_trace() # BREAKPOINT
+
+        dataout[:shpmin[0], :shpmin[1], :shpmin[2]] = datares[
+            :shpmin[0], :shpmin[1], :shpmin[2]]
         return datares
 
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
@@ -565,12 +581,7 @@ class ImageGraphCut:
 ##            diffs.insert(0,
         return filtered
 
-    def __ms_create_tlinks(self, hdata, voxels1, voxels2, hseeds, hvoxels1,
-                           hvoxels2, indexes):
-        pass
 
-    def __create_multiscale_tlinks(self):
-        pass
 
     def __similarity_for_tlinks_obj_bgr(self, data, voxels1, voxels2,
                                         seeds, otherfeatures=None):
@@ -643,7 +654,7 @@ class ImageGraphCut:
                       ).astype(np.int32)
         return unariesalt
 
-    def __create_nlinks(self, data, inds=None):
+    def __create_nlinks(self, data, inds=None, boundary_penalties_fcn=None):
         """
         Compute nlinks grid from data shape information. For boundary penalties
         are data (intensities) values are used.
@@ -654,19 +665,25 @@ class ImageGraphCut:
             [1 2 2],
             [3 2 2],
             [4 5 6]]
+
+        boundary_penalties_fcn: is function with one argument - axis. It can
+            it can be used for setting penalty weights between neighbooring
+            pixels.
+
         """
 # use the gerneral graph algorithm
 # first, we construct the grid graph
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
         if self.segparams['use_boundary_penalties']:
-#  některém testu  organ semgmentation dosahují unaries -15. což je podiné
-# stačí yhodit print před if a je to idět
-            print "unaries %.3g , %.3g" % (
-                np.max(unariesalt), np.min(unariesalt))
             bpw = self.segparams['boundary_penalties_weight']
             sigma = self.segparams['boundary_penalties_sigma']
-            bpa = self.boundary_penalties_array(axis=2, sigma=sigma)
+# set boundary penalties function
+# Default are penalties based on intensity differences
+            if boundary_penalties_fcn is None:
+                boundary_penalties_fcn = lambda ax: self.boundary_penalties_array(axis=ax, sigma=sigma)
+
+            bpa = boundary_penalties_fcn(2)
             #id1=inds[:, :, :-1].ravel()
             edgx = np.c_[
                 inds[:, :, :-1].ravel(),
@@ -675,7 +692,7 @@ class ImageGraphCut:
                 bpw * bpa[:, :, 1:].ravel()
             ]
 
-            bpa = self.boundary_penalties_array(axis=1, sigma=sigma)
+            bpa = boundary_penalties_fcn(1)
             #id1 =inds[:, 1:, :].ravel()
             edgy = np.c_[
                 inds[:, :-1, :].ravel(),
@@ -684,7 +701,7 @@ class ImageGraphCut:
                 bpw * bpa[:, 1:, :].ravel()
             ]
 
-            bpa = self.boundary_penalties_array(axis=0, sigma=sigma)
+            bpa = boundary_penalties_fcn(0)
             #id1 = inds[1:, :, :].ravel()
             edgz = np.c_[
                 inds[:-1, :, :].ravel(),
@@ -717,6 +734,10 @@ class ImageGraphCut:
 
         unariesalt = self.__create_tlinks(data, voxels1, voxels2, seeds,
                                           area_weight, hard_constraints)
+#  některém testu  organ semgmentation dosahují unaries -15. což je podiné
+# stačí vyhodit print před if a je to vidět
+        logger.debug("unaries %.3g , %.3g" % (
+            np.max(unariesalt), np.min(unariesalt)))
 # create potts pairwise
         #pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
@@ -726,6 +747,7 @@ class ImageGraphCut:
         #print pairwise
 
         self.iparams = {}
+
 
         nlinks = self.__create_nlinks(data)
 
@@ -845,7 +867,7 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
-#                        , segparams = {'type':'multiscale_gc'}  # multisc gc
+                        , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
 
