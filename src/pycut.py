@@ -244,8 +244,20 @@ class ImageGraphCut:
         #import ipdb; ipdb.set_trace() # BREAKPOINT
         return loseeds
 
-    def __ms_bpenalties_fcn(self, axis):
-        pass
+    def __ms_npenalty_fcn(self, axis, mask, ms_zoom, orig_shape):
+        """
+        Neighboorhood penalty between small pixels should be smaller then in
+        bigger tiles. This is the way how to set it.
+
+        """
+        #import scipy.ndimage.filters as scf
+
+        #for axis in range(0,dim):
+        #filtered = scf.prewitt(self.img, axis=axis)
+        maskz = self.__zoom_to_shape(mask, orig_shape)
+        maskz = 1 - maskz.astype(np.int8)
+        maskz = (maskz * (ms_zoom - 1)) + 1
+        return maskz
 
     def __multiscale_gc(self, pyed):
         import py3DSeedEditor as ped
@@ -254,10 +266,10 @@ class ImageGraphCut:
         pyqtRemoveInputHook()
         import scipy
         import scipy.ndimage
-        zoom = 6  # 0.125 #self.segparams['scale']
+        ms_zoom = 8  # 0.125 #self.segparams['scale']
         loseeds = pyed.getSeeds()
         print np.unique(loseeds)
-        loseeds = self.__seed_zoom(loseeds, zoom)
+        loseeds = self.__seed_zoom(loseeds, ms_zoom)
         print np.unique(loseeds)
 
         area_weight = 1
@@ -269,7 +281,7 @@ class ImageGraphCut:
 
         img_orig = self.img
 
-        self.img = scipy.ndimage.interpolation.zoom(img_orig, 1.0 / zoom,
+        self.img = scipy.ndimage.interpolation.zoom(img_orig, 1.0 / ms_zoom,
                                                     order=0)
 
         self.make_gc()
@@ -301,7 +313,7 @@ class ImageGraphCut:
 #            import py3DSeedEditor
 #            ped = py3DSeedEditor.py3DSeedEditor(segshape)
 #            ped.show()
-        msinds = self.__multiscale_indexes(seg, img_orig.shape, zoom)
+        msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         print 'msinds', msinds.shape
         #pd = ped.py3DSeedEditor(msinds)
         #pd.show()
@@ -318,14 +330,17 @@ class ImageGraphCut:
 # there is need to set correct weights between neighbooring pixels
 # this is not nice hack.
 # @TODO reorganise segparams and create_nlinks function
-       # self.segparams['use_boundary_penalties'] = True
-       # self.segparams['boundary_penalties_weight'] = 1
+        self.segparams['use_boundary_penalties'] = True
+        self.segparams['boundary_penalties_weight'] = 1
+        self.img = img_orig # not necessary
+        ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
+                                                           orig_shape)
 
 # here are not unique couples of nodes
         nlinks_not_unique = self.__create_nlinks(
             ms_img,
             msinds,
-       #     boundary_penalties_fcn=self.__ms_bpenalties_fcn()
+            boundary_penalties_fcn=ms_npenalty_fcn
         )
 
 # get unique set
