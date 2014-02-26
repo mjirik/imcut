@@ -155,7 +155,8 @@ class ImageGraphCut:
             'pairwise_alpha': 20,
             'use_boundary_penalties': False,
             'boundary_penalties_sigma': 200,
-            'boundary_penalties_weight': 30
+            'boundary_penalties_weight': 30,
+            'use_old_similarity': True  # New similarity not implemented @TODO
         }
         self.segparams.update(segparams)
 
@@ -252,6 +253,7 @@ class ImageGraphCut:
         """
         #import scipy.ndimage.filters as scf
 
+        ms_zoom = ms_zoom * 30
         #for axis in range(0,dim):
         #filtered = scf.prewitt(self.img, axis=axis)
         maskz = self.__zoom_to_shape(mask, orig_shape)
@@ -654,6 +656,8 @@ class ImageGraphCut:
         tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data, voxels1,
                                                               voxels2, seeds)
 
+        print 'tdata1 min %f , max %f' %(tdata1.min(), tdata1.max())
+        print 'tdata2 min %f , max %f' %(tdata2.min(), tdata2.max())
         if hard_constraints:
             #pdb.set_trace();
             if (type(seeds) == 'bool'):
@@ -668,6 +672,7 @@ class ImageGraphCut:
                            np.dstack([tdata1.reshape(-1, 1),
                                       tdata2.reshape(-1, 1)]).copy("C"))
                       ).astype(np.int32)
+
         return unariesalt
 
     def __create_nlinks(self, data, inds=None, boundary_penalties_fcn=None):
@@ -692,6 +697,7 @@ class ImageGraphCut:
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
         if self.segparams['use_boundary_penalties']:
+            print 'use_boundary_penalties'
             bpw = self.segparams['boundary_penalties_weight']
             sigma = self.segparams['boundary_penalties_sigma']
 # set boundary penalties function
