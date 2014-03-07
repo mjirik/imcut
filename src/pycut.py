@@ -70,7 +70,9 @@ class Model:
             self.mdl[cl].fit(clx)
 
         elif self.modelparams['type'] == 'kernel':
-            from sklearn.neighbors.kde import KernelDensity
+# Not working (probably) in old versions of scikits
+            #from sklearn.neighbors.kde import KernelDensity
+            from sklearn.neighbors import KernelDensity
             kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
             self.mdl[cl] = KernelDensity(**kernelmodelparams).fit(clx)
         elif self.modelparams['type'] == 'gaussian_kde':
@@ -643,8 +645,14 @@ class ImageGraphCut:
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
                 hstx = np.linspace(-1000, 1000, 400)
-                ax.plot(hstx, mdl.likelihood(hstx, 1))
-                ax.plot(hstx, mdl.likelihood(hstx, 2))
+                ax.plot(hstx, np.exp(mdl.likelihood(hstx, 1)))
+                ax.plot(hstx, np.exp(mdl.likelihood(hstx, 2)))
+
+# histogram
+                fig = plt.figure()
+                plt.hist([voxels1, voxels2], 30)
+
+                #plt.hist(voxels2)
 
                 plt.show()
             except:
@@ -889,6 +897,8 @@ def main():
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
 #                        , modelparams={'type':'gaussian_kde', 'params':[]}
+#                        , modelparams={'type':'kernel', 'params':[]} # not in  old scipy
+#                        , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # 3 components
 #                        , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
