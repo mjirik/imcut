@@ -78,10 +78,12 @@ class Model:
         elif self.modelparams['type'] == 'gaussian_kde':
            # print clx
             import scipy.stats
-           # from PyQt4.QtCore import pyqtRemoveInputHook
-           # pyqtRemoveInputHook()
-           # import ipdb; ipdb.set_trace() # BREAKPOINT
-            self.mdl[cl] = scipy.stats.gaussian_kde(clx)
+            #from PyQt4.QtCore import pyqtRemoveInputHook
+            #pyqtRemoveInputHook()
+            #import ipdb; ipdb.set_trace() # BREAKPOINT
+
+            # gaussian_kde works only with floating point types
+            self.mdl[cl] = scipy.stats.gaussian_kde(clx.astype(np.float))
         else:
             raise NameError("Unknown model type")
 
@@ -896,7 +898,7 @@ def main():
 
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images
-#                        , modelparams={'type':'gaussian_kde', 'params':[]}
+                        , modelparams={'type':'gaussian_kde', 'params':[]}
 #                        , modelparams={'type':'kernel', 'params':[]} # not in  old scipy
 #                        , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # 3 components
 #                        , segparams = {'type':'multiscale_gc'}  # multisc gc
