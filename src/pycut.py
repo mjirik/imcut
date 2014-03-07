@@ -181,6 +181,8 @@ class ImageGraphCut:
         else:
             self.voxel_volume = None
 
+        self.interactivity_counter = 0
+
     def interactivity_loop(self, pyed):
 # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď jedničku,
 # pravé dvojku. Pravým však zpravidla označujeme pozadí a tak nám vyjde
@@ -214,6 +216,8 @@ class ImageGraphCut:
             audiosupport.beep()
         except:
             print("cannot open audiosupport")
+
+        self.interactivity_counter += 1
 
     def __seed_zoom(self, seeds, zoom):
         """
@@ -904,6 +908,8 @@ def main():
 #                        , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
+
+    logger.debug('interactivity counter: ' + str(igc.interactivity_counter))
 
     logger.debug(igc.segmentation.shape)
 
