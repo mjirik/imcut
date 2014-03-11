@@ -670,8 +670,8 @@ class ImageGraphCut:
         tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data, voxels1,
                                                               voxels2, seeds)
 
-        print 'tdata1 min %f , max %f' %(tdata1.min(), tdata1.max())
-        print 'tdata2 min %f , max %f' %(tdata2.min(), tdata2.max())
+        logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
+        logger.debug('tdata2 min %f , max %f' % (tdata2.min(), tdata2.max()))
         if hard_constraints:
             #pdb.set_trace();
             if (type(seeds) == 'bool'):
@@ -787,9 +787,9 @@ class ImageGraphCut:
 
         nlinks = self.__create_nlinks(data)
 
-        print 'data shape ', data.shape
-        print 'nlinks sh ', nlinks.shape
-        print 'tlinks sh ', unariesalt.shape
+        #print 'data shape ', data.shape
+        #print 'nlinks sh ', nlinks.shape
+        #print 'tlinks sh ', unariesalt.shape
 # edges - seznam indexu hran, kteres spolu sousedi
 
 # we flatten the unaries
