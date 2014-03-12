@@ -218,6 +218,8 @@ class ImageGraphCut:
             print("cannot open audiosupport")
 
         self.interactivity_counter += 1
+        logger.debug('interactivity counter: ' +
+                     str(self.interactivity_counter))
 
     def __seed_zoom(self, seeds, zoom):
         """
@@ -270,7 +272,7 @@ class ImageGraphCut:
         return maskz
 
     def __multiscale_gc(self, pyed):
-        import py3DSeedEditor as ped
+        #import py3DSeedEditor as ped
 
         from PyQt4.QtCore import pyqtRemoveInputHook
         pyqtRemoveInputHook()
@@ -342,7 +344,7 @@ class ImageGraphCut:
 # @TODO reorganise segparams and create_nlinks function
         self.segparams['use_boundary_penalties'] = True
         self.segparams['boundary_penalties_weight'] = 1
-        self.img = img_orig # not necessary
+        self.img = img_orig  # not necessary
         orig_shape = img_orig.shape
         ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
                                                            orig_shape)
@@ -466,8 +468,8 @@ class ImageGraphCut:
         #import py3DSeedEditor as ped
         #import pdb; pdb.set_trace() # BREAKPOINT
 
-# '==' is not the same as 'is' for numpy.array
-        inds_small_in_orig[mask_orig == True] = inds_orig[mask_orig == True]
+#  '==' is not the same as 'is' for numpy.array
+        inds_small_in_orig[mask_orig == True] = inds_orig[mask_orig == True]  # noqa
         inds = inds_small_in_orig
         #print np.max(inds)
         #print np.min(inds)
@@ -607,8 +609,6 @@ class ImageGraphCut:
 ##            diffs.insert(0,
         return filtered
 
-
-
     def __similarity_for_tlinks_obj_bgr(self, data, voxels1, voxels2,
                                         seeds, otherfeatures=None):
         """
@@ -717,7 +717,8 @@ class ImageGraphCut:
 # set boundary penalties function
 # Default are penalties based on intensity differences
             if boundary_penalties_fcn is None:
-                boundary_penalties_fcn = lambda ax: self.boundary_penalties_array(axis=ax, sigma=sigma)
+                boundary_penalties_fcn = lambda ax: \
+                    self.boundary_penalties_array(axis=ax, sigma=sigma)
 
             bpa = boundary_penalties_fcn(2)
             #id1=inds[:, :, :-1].ravel()
@@ -783,7 +784,6 @@ class ImageGraphCut:
         #print pairwise
 
         self.iparams = {}
-
 
         nlinks = self.__create_nlinks(data)
 
@@ -901,15 +901,15 @@ def main():
         dataraw['voxelsize_mm'] = dataraw['voxelsize_mm'][0]
 
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
-                        debug_images=debug_images
-                        , modelparams={'type':'gaussian_kde', 'params':[]}
-#                        , modelparams={'type':'kernel', 'params':[]} # not in  old scipy
-#                        , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # 3 components
-#                        , segparams = {'type':'multiscale_gc'}  # multisc gc
+                        debug_images=debug_images  # noqa
+                        #, modelparams={'type': 'gaussian_kde', 'params': []}
+                        #, modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
+                        , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
+                        # , segparams = {'type':'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
 
-    logger.debug('interactivity counter: ' + str(igc.interactivity_counter))
+    logger.debug('igc interactivity countr: ' + str(igc.interactivity_counter))
 
     logger.debug(igc.segmentation.shape)
 
