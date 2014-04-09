@@ -515,6 +515,7 @@ class QTSeedEditor(QDialog):
         for icon, label in aux:
             combo_dmask.addItem(icon, label)
 
+
         self.slice_box.setMaskPoints(self.mask_points_tab[combo_dmask.currentIndex()])
 
         self.status_bar = QStatusBar()
@@ -535,6 +536,12 @@ class QTSeedEditor(QDialog):
             self.volume_label = QLabel('Volume:\n  unknown')
             appmenu.append(self.volume_label)
 
+            # Set middle pencil as default (M. Jirik)
+            combo_dmask.setCurrentIndex(1)
+            self.slice_box.setMaskPoints(
+                self.mask_points_tab[combo_dmask.currentIndex()])
+            #  -----mjirik---end------
+
         if mode == 'seed' or mode == 'crop'\
                 or mode == 'mask' or mode == 'draw':
             btn_del = QPushButton("Delete Seeds", self)
@@ -549,6 +556,7 @@ class QTSeedEditor(QDialog):
             self.changeContourMode(combo_contour_options[combo_contour.currentIndex()])
             vopts.append(QLabel('Selection mode:'))
             vopts.append(combo_contour)
+
 
         if mode == 'mask':
             btn_recalc_mask = QPushButton("Recalculate mask", self)
