@@ -25,15 +25,20 @@ import sklearn.mixture
 
 # version comparison
 from pkg_resources import parse_version
+import scipy.ndimage
 
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
     #new versions
     defaultmodelparams = {'type': 'gmmsame',
-                          'params': {'covariance_type': 'full'}}
+                          'params': {'covariance_type': 'full'},
+                          'fv_type': 'intensity'
+                          }
 else:
     defaultmodelparams = {'type': 'gmmsame',
-                          'params': {'cvtype': 'full'}}
+                          'params': {'cvtype': 'full'},
+                          'fv_type': 'intensity'
+                          }
 
 
 class Model:
@@ -49,13 +54,65 @@ class Model:
     is implemented as 'gaussian_kde'. General kernel estimation ('kernel')
     is from scipy version 0.14 and it is not tested.
     """
-    def __init__(self, nObjects=2, modelparams=defaultmodelparams):
+    def __init__(self, nObjects=2, modelparams={}):
 
         self.mdl = {}
-        self.modelparams = modelparams
+        self.modelparams = defaultmodelparams.copy()
+        self.modelparams.update(modelparams)
+
+    def trainFromImageAndSeeds(self, data, seeds, cl):
+        """
+        This method allows computes feature vector and train model.
+        """
+        fv = self.createFV(data, seeds, cl)
+        self.train(fv, cl)
+
+    def createFV(self, data, seeds=None, cl=None):
+        """
+        Input data is 3d image
+        """
+        fv_type = self.modelparams['fv_type']
+        if fv_type is 'intensity':
+            if seeds is not None:
+                fv = data[seeds == cl]
+            else:
+                print data.shape
+                fv = data
+                fv = fv.reshape(-1, 1)
+                print data.shape
+        elif fv_type is 'fv001':
+# intensity in pixel, gaussian blur intensity
+            data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
+            data2 = data2 - data
+            if seeds is not None:
+
+                fv1 = data[seeds == cl].reshape(-1, 1)
+                fv2 = data2[seeds == cl].reshape(-1, 1)
+            else:
+                fv1 = data.reshape(-1, 1)
+                fv2 = data2.reshape(-1, 1)
+            fv = np.hstack((fv1, fv2))
+            fv = fv.reshape(-1, 2)
+            logger.debug(str(fv[:10, :]))
+
+            #from PyQt4.QtCore import pyqtRemoveInputHook
+            #pyqtRemoveInputHook()
+            #import ipdb; ipdb.set_trace() # BREAKPOINT
+
+            #print fv1.shape
+            #print fv2.shape
+            #print fv.shape
+
+        else:
+            logger.error("Unknown feature vector type: " +
+                         self.modelparams['fv_type'])
+        return fv
 
     def train(self, clx, cl):
         """ Train clas number cl with data clx.
+
+        Use trainFromImageAndSeeds() function if you want to use 3D image data
+        as an input.
 
         clx: data, 2d matrix
         cl: label, integer
@@ -63,6 +120,10 @@ class Model:
 
         if self.modelparams['type'] == 'gmmsame':
             if len(clx.shape) == 1:
+                logger.warning('reshaping in train will be removed. Use \
+                                \ntrainFromImageAndSeeds() function')
+
+                print 'Warning deprecated feature in train() function'
      #  je to jen jednorozměrný vektor, tak je potřeba to převést na 2d matici
                 clx = clx.reshape(-1, 1)
             gmmparams = self.modelparams['params']
@@ -89,36 +150,44 @@ class Model:
 
         #pdb.set_trace();
 
-    def likelihood(self, x, cl, onedimfv=True):
+    def likelihoodFromImage(self, data, cl):
+        sha = data.shape
+
+        likel = self.likelihood(self.createFV(data), cl)
+        return likel.reshape(sha)
+
+    def likelihood(self, x, cl):
         """
         X = numpy.random.random([2,3,4])
         # we have data 2x3 with fature vector with 4 fatures
+
+        Use likelihoodFromImage() function for 3d image input
         m.likelihood(X,0)
         """
 
-        sha = x.shape
-        if onedimfv:
-            xr = x.reshape(-1, 1)
-            outsha = sha
-        else:
-            xr = x.reshape(-1, sha[-1])
-            outsha = sha[:-1]
-            #from PyQt4.QtCore import pyqtRemoveInputHook
-            #pyqtRemoveInputHook()
-            #import ipdb; ipdb.set_trace() # BREAKPOINT
+        #sha = x.shape
+        #xr = x.reshape(-1, sha[-1])
+        #outsha = sha[:-1]
+        #from PyQt4.QtCore import pyqtRemoveInputHook
+        #pyqtRemoveInputHook()
+        #import ipdb; ipdb.set_trace() # BREAKPOINT
         if self.modelparams['type'] == 'gmmsame':
 
-            px = self.mdl[cl].score(xr)
+            px = self.mdl[cl].score(x)
 
 #todo ošetřit více dimenzionální fv
-            px = px.reshape(outsha)
+            #px = px.reshape(outsha)
         elif self.modelparams['type'] == 'kernel':
-            px = self.mdl[cl].score_samples(xr)
+            px = self.mdl[cl].score_samples(x)
         elif self.modelparams['type'] == 'gaussian_kde':
             # print x
 # np.log because it is likelihood
-            px = np.log(self.mdl[cl](xr.reshape(-1)))
-            px = px.reshape(outsha)
+# @TODO Zde je patrně problém s reshape
+            # old
+            #px = np.log(self.mdl[cl](x.reshape(-1)))
+            # new
+            px = np.log(self.mdl[cl](x))
+            #px = px.reshape(outsha)
             #from PyQt4.QtCore import pyqtRemoveInputHook
             #pyqtRemoveInputHook()
             #import ipdb; ipdb.set_trace() # BREAKPOINT
@@ -142,7 +211,7 @@ class ImageGraphCut:
     """
 
     def __init__(self, img,
-                 modelparams=defaultmodelparams,
+                 modelparams={},
                  segparams={},
                  voxelsize=None,
                  debug_images=False,
@@ -168,7 +237,8 @@ class ImageGraphCut:
         self.tdata = {}
         self.segmentation = None
         self.imgshape = img.shape
-        self.modelparams = modelparams
+        self.modelparams = defaultmodelparams.copy()
+        self.modelparams.update(modelparams)
         #self.segparams = segparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
         self.debug_images = debug_images
@@ -619,8 +689,10 @@ class ImageGraphCut:
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
         mdl = Model(modelparams=self.modelparams)
-        mdl.train(voxels1, 1)
-        mdl.train(voxels2, 2)
+        mdl.trainFromImageAndSeeds(data, seeds, 1)
+        mdl.trainFromImageAndSeeds(data, seeds, 2)
+        #mdl.train(voxels1, 1)
+        #mdl.train(voxels2, 2)
         #pdb.set_trace();
         #tdata = {}
 # as we convert to int, we need to multipy to get sensible values
@@ -630,8 +702,8 @@ class ImageGraphCut:
 # R(bck) = -ln( Pr (Ip | B) )
 # Boykov2001b
 # ln is computed in likelihood
-        tdata1 = (-(mdl.likelihood(data, 1))) * 10
-        tdata2 = (-(mdl.likelihood(data, 2))) * 10
+        tdata1 = (-(mdl.likelihoodFromImage(data, 1))) * 10
+        tdata2 = (-(mdl.likelihoodFromImage(data, 2))) * 10
 
         if self.debug_images:
 ### Show model parameters
@@ -651,8 +723,8 @@ class ImageGraphCut:
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
                 hstx = np.linspace(-1000, 1000, 400)
-                ax.plot(hstx, np.exp(mdl.likelihood(hstx, 1)))
-                ax.plot(hstx, np.exp(mdl.likelihood(hstx, 2)))
+                ax.plot(hstx, np.exp(mdl.likelihoodFromImage(hstx, 1)))
+                ax.plot(hstx, np.exp(mdl.likelihoodFromImage(hstx, 2)))
 
 # histogram
                 fig = plt.figure()
@@ -906,6 +978,7 @@ def main():
                         #, modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
                         , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
                         #, segparams={'type': 'multiscale_gc'}  # multisc gc
+                        #, modelparams={'fv_type': 'fv001'}
                         )
     igc.interactivity()
 
