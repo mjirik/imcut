@@ -905,7 +905,7 @@ def main():
                         #, modelparams={'type': 'gaussian_kde', 'params': []}
                         #, modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
                         , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
-                        # , segparams = {'type':'multiscale_gc'}  # multisc gc
+                        #, segparams={'type': 'multiscale_gc'}  # multisc gc
                         )
     igc.interactivity()
 
