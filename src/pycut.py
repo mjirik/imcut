@@ -72,15 +72,16 @@ class Model:
         Input data is 3d image
         """
         fv_type = self.modelparams['fv_type']
-        if fv_type is 'intensity':
+        logger.debug("fv_type" + fv_type)
+        if fv_type == 'intensity':
             if seeds is not None:
                 fv = data[seeds == cl]
+                fv = fv.reshape(-1, 1)
             else:
-                print data.shape
                 fv = data
                 fv = fv.reshape(-1, 1)
-                print data.shape
-        elif fv_type is 'fv001':
+            print fv.shape
+        elif fv_type == 'fv001':
 # intensity in pixel, gaussian blur intensity
             data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
             data2 = data2 - data
@@ -145,6 +146,12 @@ class Model:
 
             # gaussian_kde works only with floating point types
             self.mdl[cl] = scipy.stats.gaussian_kde(clx.astype(np.float))
+        elif self.modelparams['type'] == 'dpgmm':
+            print 'clx.shape ', clx.shape
+            print 'cl ', cl
+            gmmparams = self.modelparams['params']
+            self.mdl[cl] = sklearn.mixture.DPGMM(**gmmparams)
+            self.mdl[cl].fit(clx)
         else:
             raise NameError("Unknown model type")
 
@@ -191,6 +198,8 @@ class Model:
             #from PyQt4.QtCore import pyqtRemoveInputHook
             #pyqtRemoveInputHook()
             #import ipdb; ipdb.set_trace() # BREAKPOINT
+        elif self.modelparams['type'] == 'dpgmm':
+            px = self.mdl[cl].score(x)
         return px
 
 
