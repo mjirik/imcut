@@ -119,6 +119,12 @@ class Model:
         cl: label, integer
         """
 
+        logger.debug('clx ' + str(clx[:10, :]))
+        logger.debug('clx type' + str(clx.dtype))
+        name = 'clx' + str(cl) + '.npy'
+        print name
+        np.save(name, clx)
+
         if self.modelparams['type'] == 'gmmsame':
             if len(clx.shape) == 1:
                 logger.warning('reshaping in train will be removed. Use \
@@ -147,11 +153,16 @@ class Model:
             # gaussian_kde works only with floating point types
             self.mdl[cl] = scipy.stats.gaussian_kde(clx.astype(np.float))
         elif self.modelparams['type'] == 'dpgmm':
-            print 'clx.shape ', clx.shape
-            print 'cl ', cl
+            #print 'clx.shape ', clx.shape
+            #print 'cl ', cl
             gmmparams = self.modelparams['params']
             self.mdl[cl] = sklearn.mixture.DPGMM(**gmmparams)
-            self.mdl[cl].fit(clx)
+# todo here is a hack
+# dpgmm z nějakého důvodu nefunguje pro naše data
+# vždy natrénuje jednu složku v blízkosti nuly
+# patrně to bude mít něco společného s parametrem alpha
+# přenásobí-li se to malým číslem, zázračně to chodí
+            self.mdl[cl].fit(clx * 0.001)
         else:
             raise NameError("Unknown model type")
 
@@ -199,7 +210,12 @@ class Model:
             #pyqtRemoveInputHook()
             #import ipdb; ipdb.set_trace() # BREAKPOINT
         elif self.modelparams['type'] == 'dpgmm':
-            px = self.mdl[cl].score(x)
+# todo here is a hack
+# dpgmm z nějakého důvodu nefunguje pro naše data
+# vždy natrénuje jednu složku v blízkosti nuly
+# patrně to bude mít něco společného s parametrem alpha
+# přenásobí-li se to malým číslem, zázračně to chodí
+            px = self.mdl[cl].score(x * 0.01)
         return px
 
 
@@ -985,9 +1001,10 @@ def main():
                         debug_images=debug_images  # noqa
                         #, modelparams={'type': 'gaussian_kde', 'params': []}
                         #, modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
-                        , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
+                        #, modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
                         #, segparams={'type': 'multiscale_gc'}  # multisc gc
                         #, modelparams={'fv_type': 'fv001'}
+                        , modelparams={'type':'dpgmm', 'params':{'cvtype':'full', 'n_components':5, 'alpha':10}} # noqa 3 components
                         )
     igc.interactivity()
 
