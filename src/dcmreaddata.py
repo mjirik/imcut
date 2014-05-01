@@ -153,13 +153,19 @@ class DicomReader():
                         overlay[i_overlay][-i - 1, :, :] = data2d
 
                     except:
-                        #print "nefunguje", i_overlay
+                        # exception is exceptetd. We are trying numbers 0-50
+                        #logger.warning('Problem with overlay image number ' +
+                        #               str(i_overlay))
                         pass
 
             else:
                 for i_overlay in overlay.keys():
+                    try:
                         data2d = self.decode_overlay_slice(data, i_overlay)
                         overlay[i_overlay][-i - 1, :, :] = data2d
+                    except:
+                        logger.warning('Problem with overlay number ' +
+                                       str(i_overlay))
 
         return overlay
 
