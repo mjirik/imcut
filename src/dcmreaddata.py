@@ -92,8 +92,8 @@ class DicomReader():
                     if (qt_app is not None) or gui:
                         if qt_app is None:
 # @TODO  there is problem with type of qappliaction
-                            import PyQt4
-                            from PyQt4.QtGui import QApplication
+                            #import PyQt4
+                            #from PyQt4.QtGui import QApplication
                             #qt_app = QApplication(sys.argv)
                             #qt_app = PyQt4.QtGui.QWidget(sys.argv)
                             print qt_app
@@ -471,7 +471,8 @@ class DicomReader():
 
                 files.append(metadataline)
 
-            except Exception as e:
+            #except Exception as e:
+            except:
                 if head != self.dicomdir_filename:
                     print 'Dicom read problem with file ' + filepath
 
@@ -558,8 +559,8 @@ help = {
     'out_file': 'store the output matrix to the file',
     "degrad": "degradation of input data. For no degradation use 1",
     'debug': 'Print debug info',
-    'zoom': 'Resize input data wit defined zoom. Use zoom 0.5 to obtain half voxels. \
-Various zoom can be used for each axis: -z [1,0.5,2.5]'
+    'zoom': 'Resize input data wit defined zoom. Use zoom 0.5 to obtain half\
+voxels. Various zoom can be used for each axis: -z [1,0.5,2.5]'
 }
 
 if __name__ == "__main__":
@@ -576,7 +577,7 @@ if __name__ == "__main__":
     parser.add_option('-z', '--zoom', action='store',
                       dest='zoom', default='1',
                       help=help['zoom'])
-    parser.add_option('-d','--debug', action='store_true',
+    parser.add_option('-d', '--debug', action='store_true',
                       dest='debug',
                       help=help['debug'])
     (options, args) = parser.parse_args()
@@ -606,7 +607,8 @@ if __name__ == "__main__":
         #zoom = float(options.zoom)
         #import pdb; pdb.set_trace()
         data3d = scipy.ndimage.zoom(data3d, zoom=zoom)
-        metadata['voxelsize_mm'] = list(np.array(metadata['voxelsize_mm']) / zoom)
+        metadata['voxelsize_mm'] = list(np.array(metadata['voxelsize_mm']) /
+                                        zoom)
 
     degrad = int(options.degrad)
 
