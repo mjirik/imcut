@@ -254,6 +254,7 @@ class ImageGraphCut:
             'use_boundary_penalties': False,
             'boundary_penalties_sigma': 200,
             'boundary_penalties_weight': 30,
+            'return_only_object_with_seeds': False,
             'use_old_similarity': True  # New similarity not implemented @TODO
         }
         self.segparams.update(segparams)
@@ -472,9 +473,9 @@ class ImageGraphCut:
         pairwise = (self.segparams['pairwise_alpha'] * pairwise
                     ).astype(np.int32)
 
-        print 'data shape ', img_orig.shape
-        print 'nlinks sh ', nlinks.shape
-        print 'tlinks sh ', unariesalt.shape
+        #print 'data shape ', img_orig.shape
+        #print 'nlinks sh ', nlinks.shape
+        #print 'tlinks sh ', unariesalt.shape
 
     #Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
@@ -656,6 +657,23 @@ class ImageGraphCut:
         res_segm = self.set_data(self.img,
                                  self.voxels1, self.voxels2,
                                  seeds=self.seeds)
+
+        if self.segparams['return_only_object_with_seeds']:
+            try:
+# because of negative problem is as 1 segmented background and as 0 is
+# segmented foreground
+                import thresholding_functions
+                newData = thresholding_functions.getPriorityObjects(
+                    (1 - res_segm),
+                    nObj=-1,
+                    seeds=(self.seeds == 1).nonzero(),
+                    debug=False
+                )
+                res_segm = 1 - newData
+            except:
+                import traceback
+                logger.warning('Cannot import thresholding_funcions')
+                traceback.print_exc()
 
         self.segmentation = res_segm
 
