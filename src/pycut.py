@@ -80,7 +80,7 @@ class Model:
             else:
                 fv = data
                 fv = fv.reshape(-1, 1)
-            print fv.shape
+            #print fv.shape
         elif fv_type == 'fv001':
 # intensity in pixel, gaussian blur intensity
             data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
