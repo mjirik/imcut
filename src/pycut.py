@@ -121,9 +121,9 @@ class Model:
 
         logger.debug('clx ' + str(clx[:10, :]))
         logger.debug('clx type' + str(clx.dtype))
-        name = 'clx' + str(cl) + '.npy'
-        print name
-        np.save(name, clx)
+        #name = 'clx' + str(cl) + '.npy'
+        #print name
+        #np.save(name, clx)
 
         if self.modelparams['type'] == 'gmmsame':
             if len(clx.shape) == 1:
@@ -376,9 +376,9 @@ class ImageGraphCut:
         import scipy.ndimage
         ms_zoom = 8  # 0.125 #self.segparams['scale']
         loseeds = pyed.getSeeds()
-        print np.unique(loseeds)
+        print "msc " + np.unique(loseeds)
         loseeds = self.__seed_zoom(loseeds, ms_zoom)
-        print np.unique(loseeds)
+        print "msc " + np.unique(loseeds)
 
         area_weight = 1
         hard_constraints = True
