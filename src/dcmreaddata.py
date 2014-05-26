@@ -197,14 +197,17 @@ class DicomReader():
             overlay_slice = np.reshape(decoded_linear, [rows, cols])
             return overlay_slice
 
-    def get_3Ddata(self):
+    def get_3Ddata(self, start=0, stop=None, step=1):
         """
         Function make 3D data from dicom file slices
         """
         data3d = []
         dcmlist = self.dcmlist
 
-        for i in range(len(dcmlist)):
+        if stop is None:
+            stop = len(dcmlist)
+
+        for i in xrange(start, stop, step):
             onefile = dcmlist[i]
             logger.info(onefile)
             data = dicom.read_file(onefile)
