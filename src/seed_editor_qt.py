@@ -742,7 +742,7 @@ class QTSeedEditor(QDialog):
         lb = np.min(img)
         self.img_min_val = lb
         ub = np.max(img)
-        dul = ub - lb
+        dul = np.double(ub) - np.double(lb)
         self.cw_range = {'c': [lb, ub], 'w': [1, dul]}
         self.slider_cw['c'].setRange(lb, ub)
         self.slider_cw['w'].setRange(1, dul)
