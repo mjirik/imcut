@@ -117,6 +117,8 @@ class Model:
 
         clx: data, 2d matrix
         cl: label, integer
+
+        label: gmmsame, gaussian_kde, dpgmm, stored
         """
 
         logger.debug('clx ' + str(clx[:10, :]))
@@ -163,6 +165,13 @@ class Model:
 # patrně to bude mít něco společného s parametrem alpha
 # přenásobí-li se to malým číslem, zázračně to chodí
             self.mdl[cl].fit(clx * 0.001)
+        elif self.modelparams['type'] == 'stored':
+            # Classifer is trained before segmentation and stored to pickle
+            import pickle
+            mdl_file = self.modelparams['mdl_file']
+
+            self.mdl = pickle.load(open(mdl_file, "rb"))
+
         else:
             raise NameError("Unknown model type")
 
@@ -216,6 +225,8 @@ class Model:
 # patrně to bude mít něco společného s parametrem alpha
 # přenásobí-li se to malým číslem, zázračně to chodí
             px = self.mdl[cl].score(x * 0.01)
+        elif self.modelparams['type'] == 'stored':
+            px = self.mdl[cl].score(x)
         return px
 
 
