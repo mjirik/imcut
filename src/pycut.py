@@ -168,7 +168,8 @@ class Model:
         elif self.modelparams['type'] == 'stored':
             # Classifer is trained before segmentation and stored to pickle
             import pickle
-            mdl_file = self.modelparams['mdl_file']
+            print "stored"
+            mdl_file = self.modelparams['params']['mdl_file']
 
             self.mdl = pickle.load(open(mdl_file, "rb"))
 
@@ -176,6 +177,13 @@ class Model:
             raise NameError("Unknown model type")
 
         #pdb.set_trace();
+
+    def save(self, filename):
+        """
+        Save model to pickle file
+        """
+        import pickle
+        pickle.dump(self.mdl, open(filename, "wb"))
 
     def likelihoodFromImage(self, data, cl):
         sha = data.shape
