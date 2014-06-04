@@ -8,7 +8,7 @@ Example:
 $ pycat -f head.mat -o brain.mat
 """
 
-#import unittest
+# import unittest
 from optparse import OptionParser
 import sys
 import logging
@@ -18,7 +18,7 @@ from scipy.io import loadmat
 import numpy as np
 
 import pygco
-#from pygco import cut_from_graph
+# from pygco import cut_from_graph
 
 import sklearn
 import sklearn.mixture
@@ -29,12 +29,16 @@ import scipy.ndimage
 
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
-    #new versions
+    # new versions
+    gmm__cvtype = 'covariance_type'
+    gmm__cvtype_bad = 'cvtype'
     defaultmodelparams = {'type': 'gmmsame',
                           'params': {'covariance_type': 'full'},
                           'fv_type': 'intensity'
                           }
 else:
+    gmm__cvtype = 'cvtype'
+    gmm__cvtype_bad = 'covariance_type'
     defaultmodelparams = {'type': 'gmmsame',
                           'params': {'cvtype': 'full'},
                           'fv_type': 'intensity'
@@ -55,6 +59,12 @@ class Model:
     is from scipy version 0.14 and it is not tested.
     """
     def __init__(self, nObjects=2, modelparams={}):
+
+        # fix change of cvtype and covariancetype
+        print modelparams
+        if gmm__cvtype_bad in modelparams['params']:
+            value = modelparams['params'].pop(gmm__cvtype_bad)
+            modelparams['params'][gmm__cvtype] = value
 
         self.mdl = {}
         self.modelparams = defaultmodelparams.copy()
