@@ -61,8 +61,9 @@ class Model:
     def __init__(self, nObjects=2, modelparams={}):
 
         # fix change of cvtype and covariancetype
-        print modelparams
-        if gmm__cvtype_bad in modelparams['params']:
+        #print modelparams
+        if 'params' in modelparams.keys() and\
+        gmm__cvtype_bad in modelparams['params']:
             value = modelparams['params'].pop(gmm__cvtype_bad)
             modelparams['params'][gmm__cvtype] = value
 
@@ -153,7 +154,8 @@ class Model:
 # Not working (probably) in old versions of scikits
             #from sklearn.neighbors.kde import KernelDensity
             from sklearn.neighbors import KernelDensity
-            kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
+            #kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
+            kernelmodelparams = self.modelparams['params']
             self.mdl[cl] = KernelDensity(**kernelmodelparams).fit(clx)
         elif self.modelparams['type'] == 'gaussian_kde':
            # print clx
