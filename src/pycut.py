@@ -189,6 +189,8 @@ class Model:
             raise NameError("Unknown model type")
 
         #pdb.set_trace();
+# TODO remove saving
+        self.save('classif.p')
 
     def save(self, filename):
         """
