@@ -26,16 +26,30 @@ from PyQt4.QtGui import QImage, QDialog,\
 GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
                            dtype=np.uint8)
 
-SEEDS_COLORTABLE = np.array([[255, 255, 255, 0],
-                             [0, 255, 0, 255],
+SEEDS_COLORTABLE = np.array([[0, 255, 0, 255],
                              [0, 0, 255, 255]], dtype=np.uint8)
 
-CONTOURS_COLORTABLE = np.array([[255, 255, 255, 0],
-                                [255, 0, 0, 64]], dtype=np.uint8)
+CONTOURS_COLORS = {
+    1: [255, 0, 0],
+    10: [255, 255, 0],
+    11: [0, 255, 0],
+    12: [0, 255, 255],
+    13: [0, 0, 255],
+}
 
-CONTOURLINES_COLORTABLE = np.array([[255, 255, 255, 0],
-                                    [255, 0, 0, 16],
-                                    [255, 0, 0, 255]], dtype=np.uint8)
+CONTOURS_COLORTABLE = np.zeros((256,4), dtype=np.uint8)
+CONTOURS_COLORTABLE[:,:3] = 255
+CONTOURLINES_COLORTABLE = np.zeros((256,2,4), dtype=np.uint8)
+CONTOURLINES_COLORTABLE[:,:,:3] = 255
+
+for ii, jj in CONTOURS_COLORS.iteritems():
+    key = ii - 1
+    CONTOURS_COLORTABLE[key,:3] = jj
+    CONTOURS_COLORTABLE[key,3] = 64
+    CONTOURLINES_COLORTABLE[key,0,:3] = jj
+    CONTOURLINES_COLORTABLE[key,0,3] = 16
+    CONTOURLINES_COLORTABLE[key,1,:3] = jj
+    CONTOURLINES_COLORTABLE[key,1,3] = 255
 
 VIEW_TABLE = {'axial': (2,1,0),
               'sagittal': (1,0,2),
@@ -217,7 +231,22 @@ class SliceBox(QLabel):
 
         self.update()
 
-    def get_contours(self, sl):
+    def get_contours(self, img, sl):
+        idxs = sl.nonzero()[0]
+        keys = np.unique(sl[idxs])
+        for ii in keys:
+            if ii == 0:
+                continue
+            aux = np.zeros_like(sl)
+            idxsi = np.where(sl == ii)[0]
+            aux[idxsi] = 1
+            cnt = self.gen_contours(aux)
+
+            self.composeRgba(img, cnt,
+                             CONTOURLINES_COLORTABLE[ii - 1,...])
+
+
+    def gen_contours(self, sl):
         sls = sl.reshape(self.slice_size, order='F')
         cnt = sls.copy()
         chunk = np.zeros((cnt.shape[1] + 2,), dtype=np.int8)
@@ -248,7 +277,7 @@ class SliceBox(QLabel):
         idxs = fg.nonzero()[0]
 
         if idxs.shape[0] > 0:
-            fg_rgb = cmap[fg[idxs]]
+            fg_rgb = cmap[fg[idxs] - 1]
 
             af = fg_rgb[...,3].astype(np.uint32)
             rgbf = fg_rgb[...,:3].astype(np.uint32)
@@ -259,7 +288,7 @@ class SliceBox(QLabel):
 
     def overRgba(self, bg, fg, cmap):
         idxs = fg.nonzero()[0]
-        bg[idxs] = cmap[fg[idxs]]
+        bg[idxs] = cmap[fg[idxs] - 1]
 
     def updateSlice(self):
 
@@ -274,9 +303,7 @@ class SliceBox(QLabel):
                     self.composeRgba(img, self.seeds,
                                      self.seeds_colortable)
                 elif self.contour_mode == 'contours':
-                    cnt = self.get_contours(self.seeds)
-                    self.composeRgba(img, cnt,
-                                     CONTOURLINES_COLORTABLE)
+                    self.get_contours(img, self.seeds)
 
             else:
                 self.overRgba(img, self.seeds,
@@ -288,9 +315,7 @@ class SliceBox(QLabel):
                                  CONTOURS_COLORTABLE)
 
             elif self.contour_mode == 'contours':
-                cnt = self.get_contours(self.contours)
-                self.composeRgba(img, cnt,
-                                 CONTOURLINES_COLORTABLE)
+                self.get_contours(img, self.contours)
 
         image = QImage(img.flatten(),
                      self.slice_size[0], self.slice_size[1],
