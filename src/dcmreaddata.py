@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#  /usr/bin/python
 # -*- coding: utf-8 -*-
 
 """
@@ -63,6 +63,23 @@ def obj_to_file(obj, filename='annotation.yaml', filetype='yaml'):
     f.close
 
 
+def is_dicom_dir(datapath):
+    """
+    Check if in dir is one or more dicom file. We use two methods.
+    First is based on dcm extension detection. Second tries open files
+    with dicom module.
+    """
+
+    for f in os.listdir(datapath):
+        if f.endswith(".dcm"):
+            return True
+        try:
+            dicom.read_file(f)
+            return True
+        except:
+            pass
+
+
 class DicomReader():
     """
     Example:
@@ -91,15 +108,16 @@ class DicomReader():
                 if self.series_number is None:
                     if (qt_app is not None) or gui:
                         if qt_app is None:
-# @TODO  there is problem with type of qappliaction
-                            #import PyQt4
-                            #from PyQt4.QtGui import QApplication
-                            #qt_app = QApplication(sys.argv)
-                            #qt_app = PyQt4.QtGui.QWidget(sys.argv)
+
+                            # @TODO  there is problem with type of qappliaction
+                            # mport PyQt4
+                            # rom PyQt4.QtGui import QApplication
+                            # t_app = QApplication(sys.argv)
+                            # t_app = PyQt4.QtGui.QWidget(sys.argv)
                             print qt_app
 
                         from PyQt4.QtGui import QInputDialog
-                        #sbins = ', '.join([str(ii) for ii in bins])
+                        # bins = ', '.join([str(ii) for ii in bins])
                         sbins = [str(ii) for ii in bins]
                         snstring, ok = \
                             QInputDialog.getItem(qt_app,
@@ -141,12 +159,13 @@ class DicomReader():
             data = dicom.read_file(onefile)
 
             if len(overlay) == 0:
-# first there is created dictionary with avalible overlay indexes
+                # first there is created dictionary with
+                # avalible overlay indexes
                 for i_overlay in range(0, 50):
                     try:
                         # overlay index
                         data2d = self.decode_overlay_slice(data, i_overlay)
-                        #import pdb; pdb.set_trace()
+                        # mport pdb; pdb.set_trace()
                         shp2 = data2d.shape
                         overlay[i_overlay] = np.zeros([len(dcmlist), shp2[0],
                                                       shp2[1]], dtype=np.int8)
@@ -154,7 +173,7 @@ class DicomReader():
 
                     except:
                         # exception is exceptetd. We are trying numbers 0-50
-                        #logger.warning('Problem with overlay image number ' +
+                        # ogger.warning('Problem with overlay image number ' +
                         #               str(i_overlay))
                         pass
 
@@ -193,7 +212,7 @@ class DicomReader():
                     byte_as_int = ord(overlay_raw[i])
                     decoded_linear[i * n_bits + k] = (byte_as_int >> k) & 0b1
 
-            #overlay = np.array(pol)
+            # verlay = np.array(pol)
             overlay_slice = np.reshape(decoded_linear, [rows, cols])
             return overlay_slice
 
@@ -212,7 +231,7 @@ class DicomReader():
             logger.info(onefile)
             data = dicom.read_file(onefile)
             data2d = data.pixel_array
-            #import pdb; pdb.set_trace()
+            # mport pdb; pdb.set_trace()
 
             if len(data3d) == 0:
                 shp2 = data2d.shape
@@ -299,7 +318,7 @@ class DicomReader():
 
         metadata['dcmfilelist'] = self.dcmlist
 
-        #import pdb; pdb.set_trace()
+        # mport pdb; pdb.set_trace()
         return metadata
 
     def dcmdirstats(self):
@@ -321,17 +340,17 @@ class DicomReader():
             logger.debug('Dicom tag SeriesNumber not found')
             series_info = {0: {'Count': 0}}
             return series_info
-            #return [0],[0]
+            # eturn [0],[0]
 
         bins = np.unique(dcmdirseries)
         binslist = bins.tolist()
 #  kvůli správným intervalům mezi biny je nutno jeden přidat na konce
         mxb = np.max(bins) + 1
         binslist.append(mxb)
-        #binslist.insert(0,-1)
+        # inslist.insert(0,-1)
         counts, binsvyhodit = np.histogram(dcmdirseries, bins=binslist)
 
-        #pdb.set_trace();
+        # db.set_trace();
 
         # sestavení informace o velikosti série a slovníku
 
@@ -373,7 +392,7 @@ class DicomReader():
 
                 strl = strl + ')'
                 strinfo = strinfo + strl + '\n'
-                #print strl
+                # rint strl
 
         return strinfo
 
@@ -444,7 +463,7 @@ class DicomReader():
             dcmdir = dcmdirplus['filesinfo']
             if (writedicomdirfile) and len(dcmdir) > 0:
                 obj_to_file(dcmdirplus, dicomdirfile, ftype)
-                #obj_to_file(dcmdir, dcmdiryamlpath )
+                # bj_to_file(dcmdir, dcmdiryamlpath )
 
         dcmdir = dcmdirplus['filesinfo']
         return dcmdir
@@ -466,15 +485,15 @@ class DicomReader():
                                 'SliceLocation': float(dcmdata.SliceLocation),
                                 }
 
-                #try:
+                # ry:
                 #    metadataline ['ImageComment'] = dcmdata.ImageComments
                 #    metadataline ['Modality'] = dcmdata.Modality
-                #except:
+                # xcept:
                 #    print 'Problem with ImageComments and Modality tags'
 
                 files.append(metadataline)
 
-            #except Exception as e:
+            # xcept Exception as e:
             except:
                 if head != self.dicomdir_filename:
                     print 'Dicom read problem with file ' + filepath
@@ -545,7 +564,7 @@ def get_dcmdir_qt(app=False, directory=''):
             options=QFileDialog.ShowDirsOnly,
             directory=directory
         )
-        #app.exec_()
+        # pp.exec_()
         app.exit(0)
     if len(dcmdir) > 0:
 
@@ -607,8 +626,8 @@ if __name__ == "__main__":
     if options.zoom != 1:
         import scipy
         import scipy.ndimage
-        #zoom = float(options.zoom)
-        #import pdb; pdb.set_trace()
+        # oom = float(options.zoom)
+        # mport pdb; pdb.set_trace()
         data3d = scipy.ndimage.zoom(data3d, zoom=zoom)
         metadata['voxelsize_mm'] = list(np.array(metadata['voxelsize_mm']) /
                                         zoom)
