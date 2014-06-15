@@ -66,18 +66,31 @@ def obj_to_file(obj, filename='annotation.yaml', filetype='yaml'):
 def is_dicom_dir(datapath):
     """
     Check if in dir is one or more dicom file. We use two methods.
-    First is based on dcm extension detection. Second tries open files
-    with dicom module.
+    First is based on dcm extension detection.
     """
+    # Second tries open files
+    # with dicom module.
 
+    retval = False
+    #print "dcmreaddata-------", datapath
     for f in os.listdir(datapath):
-        if f.endswith(".dcm"):
+        if f.endswith((".dcm", ".DCM")):
+            retval = True
             return True
+# @todo not working and I dont know why
         try:
             dicom.read_file(f)
-            return True
+
+            retval = True
         except:
+            import traceback
+            traceback.print_exc
             pass
+
+        if retval:
+            return True
+            print f
+    return False
 
 
 class DicomReader():
