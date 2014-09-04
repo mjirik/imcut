@@ -27,6 +27,9 @@ New BSD License, see the LICENSE file.
 
 Install
 -------
+
+    pip install pyseg_base
+
 See INSTALL file for more information
 
 Run
@@ -48,11 +51,11 @@ Make graph_cut:
 Use is as a library:
 
     import numpy as np
-    import src
+    import pyseg_base as psb
     
-    data = np.random.rand(30,30,30)
+    data = np.random.rand(30, 30, 30)
     data[10:20, 5:15, 3:13] += 1
-    data=data*30
-    data=data.astype(np.int16)
-    igc = src.ImageGraphCut(data, voxelsize=[1,1,1])
+    data = data * 30
+    data = data.astype(np.int16)
+    igc = psb.ImageGraphCut(data, voxelsize=[1, 1, 1])
     igc.interactivity()
