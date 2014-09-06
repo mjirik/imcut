@@ -3,12 +3,12 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 setup(
-    name='pyseg_base',
+    name='pysegbase',
     description='Graph Cut based 3D segmentation with editor',
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='1.0.3',
+    version='1.0.4',
     url='https://github.com/mjirik/pyseg_base',
     author='Miroslav Jirik and Vladimir Lukes',
     author_email='miroslav.jirik@gmail.com',
