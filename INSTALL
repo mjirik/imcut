@@ -59,6 +59,10 @@ Mac:
 
 Install PYSEG_BASE:
 
+  pip install pysegbase
+
+  or:
+
   git clone https://github.com/mjirik/pyseg_base.git
 
 

@@ -37,15 +37,15 @@ Run
 
 Create output.mat file:
     
-    python src/dcmreaddata.py -i directoryWithDicomFiles --degrad 4
+    python pysegbase/dcmreaddata.py -i directoryWithDicomFiles --degrad 4
     
 See data:
 
-    python src/seed_editor_qt.py -f output.mat
+    python pysegbase/seed_editor_qt.py -f output.mat
     
 Make graph_cut:
 
-    python src/pycut.py -f output.mat
+    python pysegbase/pycut.py -f output.mat
 
 
 Use is as a library:
