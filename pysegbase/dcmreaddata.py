@@ -239,6 +239,10 @@ class DicomReader():
         if stop is None:
             stop = len(dcmlist)
 
+        raw_max = None
+        raw_min = None
+        slope = None
+        inter = None
         for i in xrange(start, stop, step):
             onefile = dcmlist[i]
             logger.info(onefile)
@@ -250,21 +254,35 @@ class DicomReader():
                 shp2 = data2d.shape
                 data3d = np.zeros([len(dcmlist), shp2[0], shp2[1]],
                                   dtype=np.int16)
+                mx = np.max(data2d)
+                mn = np.min(data2d)
+                if (raw_max is None) or (raw_max < mx):
+                    raw_max = mx
+                if (raw_min is None) or (raw_min < mx):
+                    raw_min = mn
 
             try:
-                new_data2d = (np.float(data.RescaleSlope) * data2d)\
-                    + np.float(data.RescaleIntercept)
+                slope = data.RescaleSlope
+                inter = data.RescaleIntercept
+                if slope == 1 and inter == 0:
+                    print "automatic Rescale with slope 0.5"
+                    slope = 0.5
+                    inter = 0  # -16535
+                new_data2d = (np.float(slope) * data2d)\
+                    + np.float(inter)
 
             except:
                 logger.warning(
                     'problem with RescaleSlope and RescaleIntercept'
                 )
+                print 'problem with RescaleSlope and RescaleIntercept'
             # first readed slide is at the end
 
             data3d[-i - 1, :, :] = new_data2d
 
             logger.debug("Data size: " + str(data3d.nbytes)
                          + ', shape: ' + str(shp2) + 'x' + str(len(dcmlist)))
+
 
         return data3d
 
