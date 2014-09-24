@@ -72,7 +72,6 @@ def is_dicom_dir(datapath):
     # with dicom module.
 
     retval = False
-    #print "dcmreaddata-------", datapath
     for f in os.listdir(datapath):
         if f.endswith((".dcm", ".DCM")):
             retval = True
@@ -243,6 +242,8 @@ class DicomReader():
         raw_min = None
         slope = None
         inter = None
+
+        printRescaleWarning = False
         for i in xrange(start, stop, step):
             onefile = dcmlist[i]
             logger.info(onefile)
@@ -265,7 +266,8 @@ class DicomReader():
                 slope = data.RescaleSlope
                 inter = data.RescaleIntercept
                 if slope == 1 and inter == 0:
-                    print "automatic Rescale with slope 0.5"
+                    printRescaleWarning = True
+                    logger.War
                     slope = 0.5
                     inter = 0  # -16535
                 new_data2d = (np.float(slope) * data2d)\
@@ -282,7 +284,9 @@ class DicomReader():
 
             logger.debug("Data size: " + str(data3d.nbytes)
                          + ', shape: ' + str(shp2) + 'x' + str(len(dcmlist)))
-
+        if printRescaleWarning:
+            print "Automatic Rescale with slope 0.5"
+            logger.warning("Automatic Rescale with slope 0.5")
 
         return data3d
 
