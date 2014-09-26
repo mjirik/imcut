@@ -267,7 +267,6 @@ class DicomReader():
                 inter = data.RescaleIntercept
                 if slope == 1 and inter == 0:
                     printRescaleWarning = True
-                    logger.War
                     slope = 0.5
                     inter = 0  # -16535
                 new_data2d = (np.float(slope) * data2d)\
@@ -278,6 +277,8 @@ class DicomReader():
                     'problem with RescaleSlope and RescaleIntercept'
                 )
                 print 'problem with RescaleSlope and RescaleIntercept'
+                traceback.print_exc()
+                print '----------'
             # first readed slide is at the end
 
             data3d[-i - 1, :, :] = new_data2d
