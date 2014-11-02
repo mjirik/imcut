@@ -46,6 +46,7 @@ else:
 
 
 class Model:
+
     """ Model for image intensity. Last dimension represent feature vector.
     m = Model()
     m.train(cla, clb)
@@ -58,12 +59,13 @@ class Model:
     is implemented as 'gaussian_kde'. General kernel estimation ('kernel')
     is from scipy version 0.14 and it is not tested.
     """
+
     def __init__(self, nObjects=2, modelparams={}):
 
         # fix change of cvtype and covariancetype
-        #print modelparams
+        # print modelparams
         if 'params' in modelparams.keys() and\
-        gmm__cvtype_bad in modelparams['params']:
+                gmm__cvtype_bad in modelparams['params']:
             value = modelparams['params'].pop(gmm__cvtype_bad)
             modelparams['params'][gmm__cvtype] = value
 
@@ -91,9 +93,9 @@ class Model:
             else:
                 fv = data
                 fv = fv.reshape(-1, 1)
-            #print fv.shape
+            # print fv.shape
         elif fv_type == 'fv001':
-# intensity in pixel, gaussian blur intensity
+            # intensity in pixel, gaussian blur intensity
             data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
             data2 = data2 - data
             if seeds is not None:
@@ -107,13 +109,13 @@ class Model:
             fv = fv.reshape(-1, 2)
             logger.debug(str(fv[:10, :]))
 
-            #from PyQt4.QtCore import pyqtRemoveInputHook
-            #pyqtRemoveInputHook()
-            #import ipdb; ipdb.set_trace() # BREAKPOINT
+            # from PyQt4.QtCore import pyqtRemoveInputHook
+            # pyqtRemoveInputHook()
+            # import ipdb; ipdb.set_trace() # BREAKPOINT
 
-            #print fv1.shape
-            #print fv2.shape
-            #print fv.shape
+            # print fv1.shape
+            # print fv2.shape
+            # print fv.shape
 
         else:
             logger.error("Unknown feature vector type: " +
@@ -134,9 +136,9 @@ class Model:
 
         logger.debug('clx ' + str(clx[:10, :]))
         logger.debug('clx type' + str(clx.dtype))
-        #name = 'clx' + str(cl) + '.npy'
-        #print name
-        #np.save(name, clx)
+        # name = 'clx' + str(cl) + '.npy'
+        # print name
+        # np.save(name, clx)
 
         if self.modelparams['type'] == 'gmmsame':
             if len(clx.shape) == 1:
@@ -144,31 +146,32 @@ class Model:
                                 \ntrainFromImageAndSeeds() function')
 
                 print 'Warning deprecated feature in train() function'
-     #  je to jen jednorozměrný vektor, tak je potřeba to převést na 2d matici
+                #  je to jen jednorozměrný vektor, tak je potřeba to
+                # převést na 2d matici
                 clx = clx.reshape(-1, 1)
             gmmparams = self.modelparams['params']
             self.mdl[cl] = sklearn.mixture.GMM(**gmmparams)
             self.mdl[cl].fit(clx)
 
         elif self.modelparams['type'] == 'kernel':
-# Not working (probably) in old versions of scikits
-            #from sklearn.neighbors.kde import KernelDensity
+            # Not working (probably) in old versions of scikits
+            # from sklearn.neighbors.kde import KernelDensity
             from sklearn.neighbors import KernelDensity
-            #kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
+            # kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
             kernelmodelparams = self.modelparams['params']
             self.mdl[cl] = KernelDensity(**kernelmodelparams).fit(clx)
         elif self.modelparams['type'] == 'gaussian_kde':
-           # print clx
+            # print clx
             import scipy.stats
-            #from PyQt4.QtCore import pyqtRemoveInputHook
-            #pyqtRemoveInputHook()
-            #import ipdb; ipdb.set_trace() # BREAKPOINT
+            # from PyQt4.QtCore import pyqtRemoveInputHook
+            # pyqtRemoveInputHook()
+            # import ipdb; ipdb.set_trace() # BREAKPOINT
 
             # gaussian_kde works only with floating point types
             self.mdl[cl] = scipy.stats.gaussian_kde(clx.astype(np.float))
         elif self.modelparams['type'] == 'dpgmm':
-            #print 'clx.shape ', clx.shape
-            #print 'cl ', cl
+            # print 'clx.shape ', clx.shape
+            # print 'cl ', cl
             gmmparams = self.modelparams['params']
             self.mdl[cl] = sklearn.mixture.DPGMM(**gmmparams)
 # todo here is a hack
@@ -188,7 +191,7 @@ class Model:
         else:
             raise NameError("Unknown model type")
 
-        #pdb.set_trace();
+        # pdb.set_trace();
 # TODO remove saving
         self.save('classif.p')
 
@@ -214,38 +217,38 @@ class Model:
         m.likelihood(X,0)
         """
 
-        #sha = x.shape
-        #xr = x.reshape(-1, sha[-1])
-        #outsha = sha[:-1]
-        #from PyQt4.QtCore import pyqtRemoveInputHook
-        #pyqtRemoveInputHook()
-        #import ipdb; ipdb.set_trace() # BREAKPOINT
+        # sha = x.shape
+        # xr = x.reshape(-1, sha[-1])
+        # outsha = sha[:-1]
+        # from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        # import ipdb; ipdb.set_trace() # BREAKPOINT
         if self.modelparams['type'] == 'gmmsame':
 
             px = self.mdl[cl].score(x)
 
-#todo ošetřit více dimenzionální fv
-            #px = px.reshape(outsha)
+# todo ošetřit více dimenzionální fv
+            # px = px.reshape(outsha)
         elif self.modelparams['type'] == 'kernel':
             px = self.mdl[cl].score_samples(x)
         elif self.modelparams['type'] == 'gaussian_kde':
             # print x
-# np.log because it is likelihood
-# @TODO Zde je patrně problém s reshape
+            # np.log because it is likelihood
+            # @TODO Zde je patrně problém s reshape
             # old
-            #px = np.log(self.mdl[cl](x.reshape(-1)))
+            # px = np.log(self.mdl[cl](x.reshape(-1)))
             # new
             px = np.log(self.mdl[cl](x))
-            #px = px.reshape(outsha)
-            #from PyQt4.QtCore import pyqtRemoveInputHook
-            #pyqtRemoveInputHook()
-            #import ipdb; ipdb.set_trace() # BREAKPOINT
+            # px = px.reshape(outsha)
+            # from PyQt4.QtCore import pyqtRemoveInputHook
+            # pyqtRemoveInputHook()
+            # import ipdb; ipdb.set_trace() # BREAKPOINT
         elif self.modelparams['type'] == 'dpgmm':
-# todo here is a hack
-# dpgmm z nějakého důvodu nefunguje pro naše data
-# vždy natrénuje jednu složku v blízkosti nuly
-# patrně to bude mít něco společného s parametrem alpha
-# přenásobí-li se to malým číslem, zázračně to chodí
+            # todo here is a hack
+            # dpgmm z nějakého důvodu nefunguje pro naše data
+            # vždy natrénuje jednu složku v blízkosti nuly
+            # patrně to bude mít něco společného s parametrem alpha
+            # přenásobí-li se to malým číslem, zázračně to chodí
             px = self.mdl[cl].score(x * 0.01)
         elif self.modelparams['type'] == 'stored':
             px = self.mdl[cl].score(x)
@@ -253,6 +256,7 @@ class Model:
 
 
 class ImageGraphCut:
+
     """
     Interactive Graph Cut.
 
@@ -280,7 +284,7 @@ class ImageGraphCut:
                      " debug_images: " + str(debug_images))
 
 # default values                              use_boundary_penalties
-        #self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
+        # self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
         self.segparams = {
             'type': 'graphcut',
             'pairwise_alpha': 20,
@@ -298,7 +302,7 @@ class ImageGraphCut:
         self.imgshape = img.shape
         self.modelparams = defaultmodelparams.copy()
         self.modelparams.update(modelparams)
-        #self.segparams = segparams
+        # self.segparams = segparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
         self.debug_images = debug_images
         self.volume_unit = volume_unit
@@ -313,18 +317,18 @@ class ImageGraphCut:
         self.interactivity_counter = 0
 
     def interactivity_loop(self, pyed):
-# @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď jedničku,
-# pravé dvojku. Pravým však zpravidla označujeme pozadí a tak nám vyjde
-# popředí jako nula a pozadí jako jednička.
-# Tím také dopadne jinak interaktivní a neinteraktivní varianta.
-        #import sys
-        #print "logger ", logging.getLogger().getEffectiveLevel()
-        #from guppy import hpy
-        #h = hpy()
-        #print h.heap()
-        #import pdb
+        # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
+        # jedničku, pravé dvojku. Pravým však zpravidla označujeme pozadí a tak
+        # nám vyjde popředí jako nula a pozadí jako jednička.
+        # Tím také dopadne jinak interaktivní a neinteraktivní varianta.
+        # import sys
+        # print "logger ", logging.getLogger().getEffectiveLevel()
+        # from guppy import hpy
+        # h = hpy()
+        # print h.heap()
+        # import pdb
 
-        #logger.debug("obj gc   " + str(sys.getsizeof(self)))
+        # logger.debug("obj gc   " + str(sys.getsizeof(self)))
 
         if self.segparams['type'] in ('graphcut'):
 
@@ -357,7 +361,7 @@ class ImageGraphCut:
         then zero. If there is only one small voxel in larger volume with zeros
         it is selected.
         """
-        #import scipy
+        # import scipy
         # loseeds=seeds
         labels = np.unique(seeds)
 # remove first label - 0
@@ -373,15 +377,15 @@ class ImageGraphCut:
             loa = np.round(a / zoom)
             lob = np.round(b / zoom)
             loc = np.round(c / zoom)
-            #loseeds = np.zeros(loshape)
+            # loseeds = np.zeros(loshape)
 
             loseeds[loa, lob, loc] = label
 
-       # import py3DSeedEditor
-       # ped = py3DSeedEditor.py3DSeedEditor(loseeds)
-       # ped.show()
+        # import py3DSeedEditor
+        # ped = py3DSeedEditor.py3DSeedEditor(loseeds)
+        # ped.show()
 
-        #import ipdb; ipdb.set_trace() # BREAKPOINT
+        # import ipdb; ipdb.set_trace() # BREAKPOINT
         return loseeds
 
     def __ms_npenalty_fcn(self, axis, mask, ms_zoom, orig_shape):
@@ -390,18 +394,18 @@ class ImageGraphCut:
         bigger tiles. This is the way how to set it.
 
         """
-        #import scipy.ndimage.filters as scf
+        # import scipy.ndimage.filters as scf
 
         ms_zoom = ms_zoom * 30
-        #for axis in range(0,dim):
-        #filtered = scf.prewitt(self.img, axis=axis)
+        # for axis in range(0,dim):
+        # filtered = scf.prewitt(self.img, axis=axis)
         maskz = self.__zoom_to_shape(mask, orig_shape)
         maskz = 1 - maskz.astype(np.int8)
         maskz = (maskz * (ms_zoom - 1)) + 1
         return maskz
 
     def __multiscale_gc(self, pyed):
-        #import py3DSeedEditor as ped
+        # import py3DSeedEditor as ped
 
         from PyQt4.QtCore import pyqtRemoveInputHook
         pyqtRemoveInputHook()
@@ -409,9 +413,8 @@ class ImageGraphCut:
         import scipy.ndimage
         ms_zoom = 8  # 0.125 #self.segparams['scale']
         loseeds = pyed.getSeeds()
-        print "msc " + np.unique(loseeds)
+        logger.debug("msc " + str(np.unique(loseeds)))
         loseeds = self.__seed_zoom(loseeds, ms_zoom)
-        print "msc " + np.unique(loseeds)
 
         area_weight = 1
         hard_constraints = True
@@ -426,25 +429,24 @@ class ImageGraphCut:
                                                     order=0)
 
         self.make_gc()
-        print 'segmentation'
-        print np.max(self.segmentation)
-        print np.min(self.segmentation)
+        logger.debug('segmentation')
+        logger.debug(str(np.max(self.segmentation)))
+        logger.debug(str(np.min(self.segmentation)))
         seg = 1 - self.segmentation.astype(np.int8)
 
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
-        print np.max(segl)
-        print np.min(segl)
+        logger.debug(str(np.max(segl)))
+        logger.debug(str(np.min(segl)))
         segl[segl != 0] = 1
-        print np.max(segl)
-        print np.min(segl)
+        logger.debug(str(np.max(segl)))
+        logger.debug(str(np.min(segl)))
         seg = scipy.ndimage.morphology.binary_dilation(
             seg
-            #np.ones([3,3,3])
+            # np.ones([3,3,3])
         )
-        print seg.shape
 #        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
 #                                                order=0).astype('int8')
-## @todo back resize
+# @todo back resize
 #        segshape = np.zeros(img_orig.shape, dtype='int8')
 #        segshape[:segzoom.shape[0],
 #                 :segzoom.shape[1],
@@ -456,21 +458,21 @@ class ImageGraphCut:
 #            ped.show()
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         print 'msinds', msinds.shape
-        #pd = ped.py3DSeedEditor(msinds)
-        #pd.show()
-        #import ipdb; ipdb.set_trace() # BREAKPOINT
+        # pd = ped.py3DSeedEditor(msinds)
+        # pd.show()
+        # import ipdb; ipdb.set_trace() # BREAKPOINT
 
         # intensity values for indexes
-   # @TODO compute average values for low resolution
+        # @TODO compute average values for low resolution
         ms_img = img_orig
 
-# @TODO __ms_create_nlinks , use __ordered_values_by_indexes
-        #import pdb; pdb.set_trace() # BREAKPOINT
-        #pyed.setContours(seg)
+        # @TODO __ms_create_nlinks , use __ordered_values_by_indexes
+        # import pdb; pdb.set_trace() # BREAKPOINT
+        # pyed.setContours(seg)
 
-# there is need to set correct weights between neighbooring pixels
-# this is not nice hack.
-# @TODO reorganise segparams and create_nlinks function
+        # there is need to set correct weights between neighbooring pixels
+        # this is not nice hack.
+        # @TODO reorganise segparams and create_nlinks function
         self.segparams['use_boundary_penalties'] = True
         self.segparams['boundary_penalties_weight'] = 1
         self.img = img_orig  # not necessary
@@ -501,16 +503,16 @@ class ImageGraphCut:
                                           area_weight, hard_constraints)
 
 # create potts pairwise
-        #pairwiseAlpha = -10
+        # pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
         pairwise = (self.segparams['pairwise_alpha'] * pairwise
                     ).astype(np.int32)
 
-        #print 'data shape ', img_orig.shape
-        #print 'nlinks sh ', nlinks.shape
-        #print 'tlinks sh ', unariesalt.shape
+        # print 'data shape ', img_orig.shape
+        # print 'nlinks sh ', nlinks.shape
+        # print 'tlinks sh ', unariesalt.shape
 
-    #Same functionality is in self.seg_data()
+    # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
@@ -521,13 +523,13 @@ class ImageGraphCut:
 #        del nlinks
 #        del unariesalt
 
-        #print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
-# @TODO get back original data
-        #result_labeling = result_graph.reshape(data.shape)
+        # print "unaries %.3g , %.3g" % (np.max(unariesalt),np.min(unariesalt))
+        # @TODO get back original data
+        # result_labeling = result_graph.reshape(data.shape)
         result_labeling = result_graph[msinds]
-        #import py3DSeedEditor
-        #ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
-        #ped.show()
+        # import py3DSeedEditor
+        # ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
+        # ped.show()
         self.segmentation = result_labeling
 
     def __ordered_values_by_indexes(self, data, inds):
@@ -565,7 +567,7 @@ class ImageGraphCut:
 
         # one another solution probably slower
         # arr = data
-  # data = (np.digitize(arr.reshape(-1,),np.unique(arr))-1).reshape(arr.shape)
+# data = (np.digitize(arr.reshape(-1,),np.unique(arr))-1).reshape(arr.shape)
 
         return data
 
@@ -591,23 +593,23 @@ class ImageGraphCut:
                                                   orig_shape, dtype=np.int8)
         inds_orig = np.arange(np.prod(orig_shape)).reshape(orig_shape)
 
-        #inds_orig = inds_orig * mask_orig
+        # inds_orig = inds_orig * mask_orig
         inds_orig += np.max(inds_small_in_orig) + 1
-        #print 'indexes'
-        #import py3DSeedEditor as ped
-        #import pdb; pdb.set_trace() # BREAKPOINT
+        # print 'indexes'
+        # import py3DSeedEditor as ped
+        # import pdb; pdb.set_trace() # BREAKPOINT
 
 #  '==' is not the same as 'is' for numpy.array
         inds_small_in_orig[mask_orig == True] = inds_orig[mask_orig == True]  # noqa
         inds = inds_small_in_orig
-        #print np.max(inds)
-        #print np.min(inds)
+        # print np.max(inds)
+        # print np.min(inds)
         inds = self.__relabel(inds)
         logger.debug("Maximal index after relabeling: " + str(np.max(inds)))
         logger.debug("Minimal index after relabeling: " + str(np.min(inds)))
-        #inds_orig[mask_orig==True] = 0
-        #inds_small_in_orig[mask_orig==False] = 0
-     #inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
+        # inds_orig[mask_orig==True] = 0
+        # inds_small_in_orig[mask_orig==False] = 0
+# inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
 
         return inds
 
@@ -638,7 +640,7 @@ class ImageGraphCut:
             logger.warning('Zoom with different output shape')
         dataout = np.zeros(shape, dtype=dtype)
         shpmin = np.minimum(dataout.shape, shape)
-        #import ipdb; ipdb.set_trace() # BREAKPOINT
+        # import ipdb; ipdb.set_trace() # BREAKPOINT
 
         dataout[:shpmin[0], :shpmin[1], :shpmin[2]] = datares[
             :shpmin[0], :shpmin[1], :shpmin[2]]
@@ -693,8 +695,8 @@ class ImageGraphCut:
 
         if self.segparams['return_only_object_with_seeds']:
             try:
-# because of negative problem is as 1 segmented background and as 0 is
-# segmented foreground
+                # because of negative problem is as 1 segmented background and
+                # as 0 is segmented foreground
                 import thresholding_functions
                 newData = thresholding_functions.getPriorityObjects(
                     (1 - res_segm),
@@ -722,7 +724,7 @@ class ImageGraphCut:
 
         import scipy.ndimage.filters as scf
 
-        #for axis in range(0,dim):
+        # for axis in range(0,dim):
         filtered = scf.prewitt(self.img, axis=axis)
         if sigma is None:
             sigma2 = np.var(self.img)
@@ -731,28 +733,28 @@ class ImageGraphCut:
 
         filtered = np.exp(-np.power(filtered, 2) / (256 * sigma2))
 
-        #srovnán hodnot tak, aby to vycházelo mezi 0 a 100
-        #cc = 10
-        #filtered = ((filtered - 1)*cc) + 10
+        # srovnán hodnot tak, aby to vycházelo mezi 0 a 100
+        # cc = 10
+        # filtered = ((filtered - 1)*cc) + 10
         print 'ax %.1g max %.3g min %.3g  avg %.3g' % (
             axis,
             np.max(filtered), np.min(filtered), np.mean(filtered))
 #
-## @TODO Check why forumla with exp is not stable
-## Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
-## aby to slušně vycházelo, takže jsem si jí upravil
-## Originální vzorec je
-## Bpq = exp( - (Ip - Iq)^2 / (2 * \sigma^2) ) * 1 / dist(p,q)
+# @TODO Check why forumla with exp is not stable
+# Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
+# aby to slušně vycházelo, takže jsem si jí upravil
+# Originální vzorec je
+# Bpq = exp( - (Ip - Iq)^2 / (2 * \sigma^2) ) * 1 / dist(p,q)
 #        filtered = (-np.power(filtered,2)/(16*sigma))
-## Přičítám tu 256 což je empiricky zjištěná hodnota - aby to dobře vyšlo
-## nedávám to do exponenciely, protože je to numericky nestabilní
-#        filtered = filtered + 255 # - np.min(filtered2) + 1e-30
-## Ještě by tady měl a následovat exponenciela, ale s ní je to numericky
-## nestabilní. Netuším proč.
-#        #if dim >= 1:
-## odecitame od sebe tentyz obrazek
-##            df0 = self.img[:-1,:] - self.img[]
-##            diffs.insert(0,
+# Přičítám tu 256 což je empiricky zjištěná hodnota - aby to dobře vyšlo
+# nedávám to do exponenciely, protože je to numericky nestabilní
+# filtered = filtered + 255 # - np.min(filtered2) + 1e-30
+# Ještě by tady měl a následovat exponenciela, ale s ní je to numericky
+# nestabilní. Netuším proč.
+# if dim >= 1:
+# odecitame od sebe tentyz obrazek
+# df0 = self.img[:-1,:] - self.img[]
+# diffs.insert(0,
         return filtered
 
     def __similarity_for_tlinks_obj_bgr(self, data, voxels1, voxels2,
@@ -767,10 +769,10 @@ class ImageGraphCut:
         mdl = Model(modelparams=self.modelparams)
         mdl.trainFromImageAndSeeds(data, seeds, 1)
         mdl.trainFromImageAndSeeds(data, seeds, 2)
-        #mdl.train(voxels1, 1)
-        #mdl.train(voxels2, 2)
-        #pdb.set_trace();
-        #tdata = {}
+        # mdl.train(voxels1, 1)
+        # mdl.train(voxels2, 2)
+        # pdb.set_trace();
+        # tdata = {}
 # as we convert to int, we need to multipy to get sensible values
 
 # There is a need to have small vaues for good fit
@@ -782,7 +784,7 @@ class ImageGraphCut:
         tdata2 = (-(mdl.likelihoodFromImage(data, 2))) * 10
 
         if self.debug_images:
-### Show model parameters
+            # Show model parameters
             logger.debug('tdata1 shape ' + str(tdata1.shape))
             try:
                 import matplotlib.pyplot as plt
@@ -806,7 +808,7 @@ class ImageGraphCut:
                 fig = plt.figure()
                 plt.hist([voxels1, voxels2], 30)
 
-                #plt.hist(voxels2)
+                # plt.hist(voxels2)
 
                 plt.show()
             except:
@@ -821,7 +823,7 @@ class ImageGraphCut:
         logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
         logger.debug('tdata2 min %f , max %f' % (tdata2.min(), tdata2.max()))
         if hard_constraints:
-            #pdb.set_trace();
+            # pdb.set_trace();
             if (type(seeds) == 'bool'):
                 raise Exception(
                     'Seeds variable  not set',
@@ -869,29 +871,29 @@ class ImageGraphCut:
                     self.boundary_penalties_array(axis=ax, sigma=sigma)
 
             bpa = boundary_penalties_fcn(2)
-            #id1=inds[:, :, :-1].ravel()
+            # id1=inds[:, :, :-1].ravel()
             edgx = np.c_[
                 inds[:, :, :-1].ravel(),
                 inds[:, :, 1:].ravel(),
-                #cc * np.ones(id1.shape)]
+                # cc * np.ones(id1.shape)]
                 bpw * bpa[:, :, 1:].ravel()
             ]
 
             bpa = boundary_penalties_fcn(1)
-            #id1 =inds[:, 1:, :].ravel()
+            # id1 =inds[:, 1:, :].ravel()
             edgy = np.c_[
                 inds[:, :-1, :].ravel(),
                 inds[:, 1:, :].ravel(),
-                #cc * np.ones(id1.shape)]
+                # cc * np.ones(id1.shape)]
                 bpw * bpa[:, 1:, :].ravel()
             ]
 
             bpa = boundary_penalties_fcn(0)
-            #id1 = inds[1:, :, :].ravel()
+            # id1 = inds[1:, :, :].ravel()
             edgz = np.c_[
                 inds[:-1, :, :].ravel(),
                 inds[1:, :, :].ravel(),
-                #cc * np.ones(id1.shape)]
+                # cc * np.ones(id1.shape)]
                 bpw * bpa[1:, :, :].ravel()
             ]
         else:
@@ -900,7 +902,7 @@ class ImageGraphCut:
             edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
             edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
 
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
 # edges - seznam indexu hran, kteres spolu sousedi
         return edges
@@ -913,9 +915,9 @@ class ImageGraphCut:
         Setting of data.
         You need set seeds if you want use hard_constraints.
         """
-        #from PyQt4.QtCore import pyqtRemoveInputHook
-        #pyqtRemoveInputHook()
-        #import pdb; pdb.set_trace() # BREAKPOINT
+        # from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        # import pdb; pdb.set_trace() # BREAKPOINT
 
         unariesalt = self.__create_tlinks(data, voxels1, voxels2, seeds,
                                           area_weight, hard_constraints)
@@ -924,24 +926,25 @@ class ImageGraphCut:
         logger.debug("unaries %.3g , %.3g" % (
             np.max(unariesalt), np.min(unariesalt)))
 # create potts pairwise
-        #pairwiseAlpha = -10
+        # pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
         pairwise = (self.segparams['pairwise_alpha'] * pairwise
                     ).astype(np.int32)
-        #pairwise = np.array([[0,30],[30,0]]).astype(np.int32)
-        #print pairwise
+        # pairwise = np.array([[0,30],[30,0]]).astype(np.int32)
+        # print pairwise
 
         self.iparams = {}
 
         nlinks = self.__create_nlinks(data)
 
-        #print 'data shape ', data.shape
-        #print 'nlinks sh ', nlinks.shape
-        #print 'tlinks sh ', unariesalt.shape
+        # print 'data shape ', data.shape
+        # print 'nlinks sh ', nlinks.shape
+        # print 'tlinks sh ', unariesalt.shape
 # edges - seznam indexu hran, kteres spolu sousedi
 
 # we flatten the unaries
-       #result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2), pairwise)
+        # result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2),
+        # pairwise)
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
@@ -952,7 +955,8 @@ class ImageGraphCut:
 #        del nlinks
 #        del unariesalt
 
-        #print "unaries %.3g , %.3g" % (np.max(unariesalt), np.min(unariesalt))
+        # print "unaries %.3g , %.3g" % (np.max(unariesalt),
+        # np.min(unariesalt))
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
@@ -965,28 +969,28 @@ class ImageGraphCut:
 #         data_shp = [16,16,16]
 #         data = generate_data(data_shp)
 #         seeds = np.zeros(data_shp)
-# # setting background seeds
+# setting background seeds
 #         seeds[:,0,0] = 1
 #         seeds[6,8:-5,2] = 2
-#     #x[4:-4, 6:-2, 1:-6] = -1
+# x[4:-4, 6:-2, 1:-6] = -1
 
 #         igc = ImageGraphCut(data)
-#         #igc.interactivity()
-# # instead of interacitivity just set seeeds
+# igc.interactivity()
+# instead of interacitivity just set seeeds
 #         igc.noninteractivity(seeds)
 
-# # instead of showing just test results
-#         #igc.show_segmentation()
+# instead of showing just test results
+# igc.show_segmentation()
 #         segmentation = igc.segmentation
-#         # Testin some pixels for result
+# Testin some pixels for result
 #         self.assertTrue(segmentation[0, 0, -1] == 0)
 #         self.assertTrue(segmentation[7, 9, 3] == 1)
 #         self.assertTrue(np.sum(segmentation) > 10)
-#         #pdb.set_trace()
-#         #self.assertTrue(True)
+# pdb.set_trace()
+# self.assertTrue(True)
 
 
-#         #logger.debug(igc.segmentation.shape)
+# logger.debug(igc.segmentation.shape)
 
 usage = '%prog [options]\n' + __doc__.rstrip()
 help = {
@@ -995,7 +999,7 @@ help = {
     'debug': 'debug mode',
     'test': 'run unit test',
 }
-#@profile
+# @profile
 
 
 def main():
@@ -1027,8 +1031,8 @@ def main():
     if options.debug:
         logger.setLevel(logging.DEBUG)
         debug_images = True
-        #print DEBUG
-        #DEBUG = True
+        # print DEBUG
+        # DEBUG = True
 
     # if options.tests:
     #     sys.argv[1:]=[]
@@ -1040,22 +1044,22 @@ def main():
     else:
         dataraw = loadmat(options.in_filename,
                           variable_names=['data', 'voxelsize_mm'])
-    #import pdb; pdb.set_trace() # BREAKPOINT
+    # import pdb; pdb.set_trace() # BREAKPOINT
 
     logger.debug('\nvoxelsize_mm ' + dataraw['voxelsize_mm'].__str__())
 
     if sys.platform == 'win32':
-# hack, on windows is voxelsize read as 2D array like [[1, 0.5, 0.5]]
+        # hack, on windows is voxelsize read as 2D array like [[1, 0.5, 0.5]]
         dataraw['voxelsize_mm'] = dataraw['voxelsize_mm'][0]
 
     igc = ImageGraphCut(dataraw['data'], voxelsize=dataraw['voxelsize_mm'],
                         debug_images=debug_images  # noqa
-                        #, modelparams={'type': 'gaussian_kde', 'params': []}
-                        #, modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
-                        #, modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
-                        #, segparams={'type': 'multiscale_gc'}  # multisc gc
-                        #, modelparams={'fv_type': 'fv001'}
-                        , modelparams={'type':'dpgmm', 'params':{'cvtype':'full', 'n_components':5, 'alpha':10}} # noqa 3 components
+                        # , modelparams={'type': 'gaussian_kde', 'params': []}
+                        # , modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
+                        # , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
+                        # , segparams={'type': 'multiscale_gc'}  # multisc gc
+                        # , modelparams={'fv_type': 'fv001'}
+                        , modelparams={'type': 'dpgmm', 'params': {'cvtype': 'full', 'n_components': 5, 'alpha': 10}}  # noqa 3 components
                         )
     igc.interactivity()
 
