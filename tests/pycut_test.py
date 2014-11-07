@@ -11,7 +11,7 @@ import unittest
 
 import numpy as np
 
-import pycut
+from pysegbase import pycut
 
 
 class PycutTest(unittest.TestCase):
