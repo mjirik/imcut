@@ -688,6 +688,9 @@ class ImageGraphCut:
         self.voxels1 = self.img[self.seeds == 1]
         self.voxels2 = self.img[self.seeds == 2]
 
+    def run(self):
+        self.make_gc()
+
     def make_gc(self):
         res_segm = self.set_data(self.img,
                                  self.voxels1, self.voxels2,
