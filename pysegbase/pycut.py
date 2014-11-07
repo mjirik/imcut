@@ -700,8 +700,9 @@ class ImageGraphCut:
             try:
                 # because of negative problem is as 1 segmented background and
                 # as 0 is segmented foreground
-                import thresholding_functions
-                newData = thresholding_functions.getPriorityObjects(
+                # import thresholding_functions
+                # newData = thresholding_functions.getPriorityObjects(
+                getPriorityObjects(
                     (1 - res_segm),
                     nObj=-1,
                     seeds=(self.seeds == 1).nonzero(),
@@ -964,6 +965,145 @@ class ImageGraphCut:
 
         return result_labeling
 
+def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
+    """
+
+    Vraceni N nejvetsich objektu.
+        input:
+            data - data, ve kterych chceme zachovat pouze nejvetsi objekty
+            nObj - pocet nejvetsich objektu k vraceni
+            seeds - dvourozmerne pole s umistenim pixelu, ktere chce uzivatel
+                vratit (odpovidaji matici "data")
+
+        returns:
+            data s nejvetsimi objekty
+
+    """
+
+    # Oznaceni dat.
+    # labels - oznacena data.
+    # length - pocet rozdilnych oznaceni.
+    dataLabels, length = scipy.ndimage.label(data)
+
+    logger.info('Olabelovano oblasti: ' + str(length))
+
+    if debug:
+        logger.debug('data labels: ' + str(dataLabels))
+
+    # Uzivatel si nevybral specificke objekty.
+    if (seeds == None):
+
+        logger.info('Vraceni bez seedu')
+        logger.debug('Objekty: ' + str(nObj))
+
+        # Zjisteni nejvetsich objektu.
+        arrayLabelsSum, arrayLabels = areaIndexes(dataLabels, length)
+        # Serazeni labelu podle velikosti oznacenych dat (prvku / ploch).
+        arrayLabelsSum, arrayLabels = selectSort(arrayLabelsSum, arrayLabels)
+
+        returning = None
+        label = 0
+        stop = nObj - 1
+
+        # Budeme postupne prochazet arrayLabels a postupne pridavat jednu
+        # oblast za druhou (od te nejvetsi - mimo nuloveho pozadi) dokud
+        # nebudeme mit dany pocet objektu (nObj).
+        while label <= stop:
+
+            if label >= len(arrayLabels):
+                break
+
+            if arrayLabels[label] != 0:
+                if returning == None:
+                    # "Prvni" iterace
+                    returning = data * (dataLabels == arrayLabels[label])
+                else:
+                    # Jakakoli dalsi iterace
+                    returning = returning + data * \
+                        (dataLabels == arrayLabels[label])
+            else:
+                # Musime prodlouzit hledany interval, protoze jsme narazili na
+                # nulove pozadi.
+                stop = stop + 1
+
+            label = label + 1
+
+            if debug:
+                logger.debug(str(label - 1) + ': ' + str(returning))
+
+        if returning == None:
+            logger.info(
+                'Zadna validni olabelovana data! (DEBUG: returning == None)')
+
+        return returning
+
+    # Uzivatel si vybral specificke objekty (seeds != None).
+    else:
+
+        logger.info('Vraceni se seedy')
+
+        # Zalozeni pole pro ulozeni seedu
+        arrSeed = []
+        # Zjisteni poctu seedu.
+        stop = seeds[0].size
+        tmpSeed = 0
+        dim = numpy.ndim(dataLabels)
+        for index in range(0, stop):
+            # Tady se ukladaji labely na mistech, ve kterych kliknul uzivatel.
+            if dim == 3:
+                # 3D data.
+                tmpSeed = dataLabels[
+                    seeds[0][index], seeds[1][index], seeds[2][index]]
+            elif dim == 2:
+                # 2D data.
+                tmpSeed = dataLabels[seeds[0][index], seeds[1][index]]
+
+            # Tady opet pocitam s tim, ze oznaceni nulou pripada cerne oblasti
+            # (pozadi).
+            if tmpSeed != 0:
+                # Pokud se nejedna o pozadi (cernou oblast), tak se novy seed
+                # ulozi do pole "arrSeed"
+                arrSeed.append(tmpSeed)
+
+        # Pokud existuji vhodne labely, vytvori se nova data k vraceni.
+        # Pokud ne, vrati se "None" typ. { Deprecated: Pokud ne, vrati se cela
+        # nafiltrovana data, ktera do funkce prisla (nedojde k vraceni
+        # specifickych objektu). }
+        if len(arrSeed) > 0:
+
+            # Zbaveni se duplikatu.
+            arrSeed = list(set(arrSeed))
+            if debug:
+                logger.debug('seed list:' + str(arrSeed))
+
+            logger.info(
+                'Ruznych prioritnich objektu k vraceni: ' +
+                str(len(arrSeed))
+            )
+
+            # Vytvoreni vystupu - postupne pricitani dat prislunych specif.
+            # labelu.
+            returning = None
+            for index in range(0, len(arrSeed)):
+
+                if returning == None:
+                    returning = data * (dataLabels == arrSeed[index])
+                else:
+                    returning = returning + data * \
+                        (dataLabels == arrSeed[index])
+
+                if debug:
+                    logger.debug((str(index)) + ':' + str(returning))
+
+            return returning
+
+        else:
+
+            logger.info(
+                'Zadna validni data k vraceni - zadne prioritni objekty ' +
+                'nenalezeny (DEBUG: function getPriorityObjects:' +
+                str(len(arrSeed) == 0))
+            return None
 # class Tests(unittest.TestCase):
 #     def setUp(self):
 #         pass
