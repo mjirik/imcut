@@ -76,6 +76,8 @@ class Model:
     def trainFromImageAndSeeds(self, data, seeds, cl):
         """
         This method allows computes feature vector and train model.
+
+        :cl: scalar index number of class
         """
         fv = self.createFV(data, seeds, cl)
         self.train(fv, cl)
