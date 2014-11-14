@@ -347,7 +347,7 @@ class ImageGraphCut:
             pyed.setContours(1 - self.segmentation.astype(np.int8))
 
         try:
-            import audiosupport
+            from lisa import audiosupport
             audiosupport.beep()
         except:
             print("cannot open audiosupport")
@@ -702,7 +702,7 @@ class ImageGraphCut:
             try:
                 # because of negative problem is as 1 segmented background and
                 # as 0 is segmented foreground
-                import thresholding_functions
+                from lisa import thresholding_functions
                 newData = thresholding_functions.getPriorityObjects(
                     (1 - res_segm),
                     nObj=-1,
