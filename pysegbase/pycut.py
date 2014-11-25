@@ -1180,7 +1180,7 @@ def main():
                         help=help['debug'])
     parser.add_argument('-di', '--debug-interactivity', action='store_true',
                         help=help['debug_interactivity'])
-    parser.add_argument('-f', '--filename', action='store',
+    parser.add_argument('-i', '--input-file', action='store',
                         default=None,
                         help=help['in_file'])
     parser.add_argument('-t', '--tests', action='store_true',
@@ -1205,11 +1205,11 @@ def main():
     #     sys.argv[1:]=[]
     #     unittest.main()
 
-    if options.in_filename is None:
+    if options.input_file is None:
         raise IOError('No input data!')
 
     else:
-        dataraw = loadmat(options.in_filename,
+        dataraw = loadmat(options.input_file,
                           variable_names=['data', 'voxelsize_mm'])
     # import pdb; pdb.set_trace() # BREAKPOINT
 

@@ -45,7 +45,7 @@ See data:
     
 Make graph_cut:
 
-    python pysegbase/pycut.py -f output.mat
+    python pysegbase/pycut.py -i output.mat
 
 
 Use is as a library:
