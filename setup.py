@@ -11,7 +11,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='1.0.10',
+    version='1.0.11',
     url='https://github.com/mjirik/pyseg_base',
     author='Miroslav Jirik and Vladimir Lukes',
     author_email='miroslav.jirik@gmail.com',
