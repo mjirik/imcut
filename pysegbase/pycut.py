@@ -77,6 +77,8 @@ class Model:
     def trainFromImageAndSeeds(self, data, seeds, cl):
         """
         This method allows computes feature vector and train model.
+
+        :cl: scalar index number of class
         """
         fv = self.createFV(data, seeds, cl)
         self.train(fv, cl)
@@ -342,7 +344,7 @@ class ImageGraphCut:
             pyed.setContours(1 - self.segmentation.astype(np.int8))
 
         try:
-            import audiosupport
+            from lisa import audiosupport
             audiosupport.beep()
         except:
             print("cannot open audiosupport")
