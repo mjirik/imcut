@@ -743,7 +743,7 @@ class QTSeedEditor(QDialog):
         else:
             self.contours_aview = self.contours.transpose(self.act_transposition)
 
-        self.voxel_size = np.array(voxelSize)
+        self.voxel_size = np.squeeze(np.asarray(voxelSize))
         self.voxel_scale = self.voxel_size / float(np.min(self.voxel_size))
         self.voxel_volume = np.prod(voxelSize)
 
