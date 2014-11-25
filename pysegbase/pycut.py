@@ -9,7 +9,8 @@ $ pycat -f head.mat -o brain.mat
 """
 
 # import unittest
-from optparse import OptionParser
+# from optparse import OptionParser
+import argparse
 import sys
 import logging
 logger = logging.getLogger(__name__)
@@ -111,7 +112,6 @@ class Model:
 
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
-            # import ipdb; ipdb.set_trace() # BREAKPOINT
 
             # print fv1.shape
             # print fv2.shape
@@ -165,7 +165,6 @@ class Model:
             import scipy.stats
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
-            # import ipdb; ipdb.set_trace() # BREAKPOINT
 
             # gaussian_kde works only with floating point types
             self.mdl[cl] = scipy.stats.gaussian_kde(clx.astype(np.float))
@@ -222,7 +221,6 @@ class Model:
         # outsha = sha[:-1]
         # from PyQt4.QtCore import pyqtRemoveInputHook
         # pyqtRemoveInputHook()
-        # import ipdb; ipdb.set_trace() # BREAKPOINT
         if self.modelparams['type'] == 'gmmsame':
 
             px = self.mdl[cl].score(x)
@@ -242,7 +240,6 @@ class Model:
             # px = px.reshape(outsha)
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
-            # import ipdb; ipdb.set_trace() # BREAKPOINT
         elif self.modelparams['type'] == 'dpgmm':
             # todo here is a hack
             # dpgmm z nějakého důvodu nefunguje pro naše data
@@ -385,7 +382,6 @@ class ImageGraphCut:
         # ped = py3DSeedEditor.py3DSeedEditor(loseeds)
         # ped.show()
 
-        # import ipdb; ipdb.set_trace() # BREAKPOINT
         return loseeds
 
     def __ms_npenalty_fcn(self, axis, mask, ms_zoom, orig_shape):
@@ -405,12 +401,20 @@ class ImageGraphCut:
         return maskz
 
     def __multiscale_gc(self, pyed):
+        """
+        In first step is performed normal GC. 
+        Second step construct finer grid on edges of segmentation from first
+        step.  
+        """
+        deb = True
         # import py3DSeedEditor as ped
+
 
         from PyQt4.QtCore import pyqtRemoveInputHook
         pyqtRemoveInputHook()
         import scipy
         import scipy.ndimage
+# step 1:  low res GC
         ms_zoom = 8  # 0.125 #self.segparams['scale']
         loseeds = pyed.getSeeds()
         logger.debug("msc " + str(np.unique(loseeds)))
@@ -432,8 +436,10 @@ class ImageGraphCut:
         logger.debug('segmentation')
         logger.debug(str(np.max(self.segmentation)))
         logger.debug(str(np.min(self.segmentation)))
-        seg = 1 - self.segmentation.astype(np.int8)
 
+        seg = 1 - self.segmentation.astype(np.int8)
+        # in seg is now stored low resolution segmentation
+# step 2: discontinuity localization 
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
         logger.debug(str(np.max(segl)))
         logger.debug(str(np.min(segl)))
@@ -456,11 +462,13 @@ class ImageGraphCut:
 #            import py3DSeedEditor
 #            ped = py3DSeedEditor.py3DSeedEditor(segshape)
 #            ped.show()
+# step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
-        print 'msinds', msinds.shape
-        # pd = ped.py3DSeedEditor(msinds)
-        # pd.show()
-        # import ipdb; ipdb.set_trace() # BREAKPOINT
+        logger.debug('msinds ' + str(msinds.shape))
+        if deb:
+            import sed3
+            pd = sed3.sed3(msinds) # ), contour=seg)
+            pd.show()
 
         # intensity values for indexes
         # @TODO compute average values for low resolution
@@ -495,7 +503,13 @@ class ImageGraphCut:
 # tlinks - indexes, data_merge
         ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
         seeds = pyed.getSeeds()
+        # if deb:
+        #     import sed3
+        #     se = sed3.sed3(seeds)
+        #     se.show()
         ms_seeds_lin = self.__ordered_values_by_indexes(seeds, msinds)
+        logger.debug("unique seeds " + str(np.unique(seeds)))
+        logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
 
         unariesalt = self.__create_tlinks(ms_values_lin,
                                           self.voxels1, self.voxels2,
@@ -640,7 +654,6 @@ class ImageGraphCut:
             logger.warning('Zoom with different output shape')
         dataout = np.zeros(shape, dtype=dtype)
         shpmin = np.minimum(dataout.shape, shape)
-        # import ipdb; ipdb.set_trace() # BREAKPOINT
 
         dataout[:shpmin[0], :shpmin[1], :shpmin[2]] = datares[
             :shpmin[0], :shpmin[1], :shpmin[2]]
@@ -770,6 +783,7 @@ class ImageGraphCut:
 
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
+
         mdl = Model(modelparams=self.modelparams)
         mdl.trainFromImageAndSeeds(data, seeds, 1)
         mdl.trainFromImageAndSeeds(data, seeds, 2)
@@ -1140,6 +1154,7 @@ help = {
     'in_file': 'input *.mat file with "data" field',
     'out_file': 'store the output matrix to the file',
     'debug': 'debug mode',
+    'debug_interactivity': "turn on interactive debug mode",
     'test': 'run unit test',
 }
 # @profile
@@ -1156,26 +1171,35 @@ def main():
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-    parser = OptionParser(description='Organ segmentation')
-    parser.add_option('-d', '--debug', action='store_true',
-                      dest='debug', help=help['debug'])
-    parser.add_option('-f', '--filename', action='store',
-                      dest='in_filename', default=None,
-                      help=help['in_file'])
-    parser.add_option('-t', '--tests', action='store_true',
-                      dest='unit_test', help=help['test'])
-    parser.add_option('-o', '--outputfile', action='store',
-                      dest='out_filename', default='output.mat',
-                      help=help['out_file'])
-    (options, args) = parser.parse_args()
+    # parser = OptionParser(description='Organ segmentation')
+
+    parser = argparse.ArgumentParser(
+        description=__doc__
+    )
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help=help['debug'])
+    parser.add_argument('-di', '--debug-interactivity', action='store_true',
+                        help=help['debug_interactivity'])
+    parser.add_argument('-f', '--filename', action='store',
+                        default=None,
+                        help=help['in_file'])
+    parser.add_argument('-t', '--tests', action='store_true',
+                        help=help['test'])
+    parser.add_argument('-o', '--outputfile', action='store',
+                        dest='out_filename', default='output.mat',
+                        help=help['out_file'])
+    # (options, args) = parser.parse_args()
+    options = parser.parse_args()
 
     debug_images = False
 
     if options.debug:
         logger.setLevel(logging.DEBUG)
-        debug_images = True
         # print DEBUG
         # DEBUG = True
+
+    if options.debug_interactivity:
+        debug_images = True
 
     # if options.tests:
     #     sys.argv[1:]=[]
@@ -1200,9 +1224,9 @@ def main():
                         # , modelparams={'type': 'gaussian_kde', 'params': []}
                         # , modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
                         # , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
-                        # , segparams={'type': 'multiscale_gc'}  # multisc gc
+                        , segparams={'type': 'multiscale_gc'}  # multisc gc
                         # , modelparams={'fv_type': 'fv001'}
-                        , modelparams={'type': 'dpgmm', 'params': {'cvtype': 'full', 'n_components': 5, 'alpha': 10}}  # noqa 3 components
+                        # , modelparams={'type': 'dpgmm', 'params': {'cvtype': 'full', 'n_components': 5, 'alpha': 10}}  # noqa 3 components
                         )
     igc.interactivity()
 
