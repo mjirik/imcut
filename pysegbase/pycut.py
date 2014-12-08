@@ -717,7 +717,7 @@ class ImageGraphCut:
                 # as 0 is segmented foreground
                 # import thresholding_functions
                 # newData = thresholding_functions.getPriorityObjects(
-                getPriorityObjects(
+                newData = getPriorityObjects(
                     (1 - res_segm),
                     nObj=-1,
                     seeds=(self.seeds == 1).nonzero(),
