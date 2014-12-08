@@ -404,9 +404,9 @@ class ImageGraphCut:
 
     def __multiscale_gc(self, pyed):
         """
-        In first step is performed normal GC. 
+        In first step is performed normal GC.
         Second step construct finer grid on edges of segmentation from first
-        step.  
+        step.
         """
         deb = True
         # import py3DSeedEditor as ped
@@ -441,7 +441,7 @@ class ImageGraphCut:
 
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
-# step 2: discontinuity localization 
+# step 2: discontinuity localization
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
         logger.debug(str(np.max(segl)))
         logger.debug(str(np.min(segl)))
@@ -1063,7 +1063,7 @@ def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
         # Zjisteni poctu seedu.
         stop = seeds[0].size
         tmpSeed = 0
-        dim = numpy.ndim(dataLabels)
+        dim = np.ndim(dataLabels)
         for index in range(0, stop):
             # Tady se ukladaji labely na mistech, ve kterych kliknul uzivatel.
             if dim == 3:
