@@ -1,6 +1,7 @@
 # upload to pipy server:
 #     python setup.py register sdist upload
-
+# Update with pip
+#     pip install -U --no-deps --user pysegbase
 from setuptools import setup, find_packages  # Always prefer setuptools over distutils
 from os import path
 
