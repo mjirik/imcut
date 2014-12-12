@@ -756,7 +756,7 @@ class QTSeedEditor(QDialog):
         # How to return: 
         #       editorDialog.exec_() 
         #       masked_data = editorDialog.masked
-        self.masked = np.zeros(self.img.shape, np.int8)
+        self.masked = np.ones(self.img.shape, np.int8)
 
         self.voxel_size = np.squeeze(np.asarray(voxelSize))
         self.voxel_scale = self.voxel_size / float(np.min(self.voxel_size))
@@ -854,8 +854,7 @@ class QTSeedEditor(QDialog):
                 self.selectSlice(self.actual_slice)
 
     def maskRegion(self):
-        self.masked[self.contours == 2] += 1
-        self.masked[self.masked > 1] = 1
+        self.masked[self.contours == 0] = 0
         
         self.img[self.contours != 2] = self.img_min_val
         self.contours.fill(0)
