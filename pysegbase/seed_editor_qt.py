@@ -135,6 +135,7 @@ class SliceBox(QLabel):
 
         self.seeds = None
         self.contours = None
+        self.contours_old = None
         self.mask_points = None
         self.erase_region_button = None
         self.erase_fun = None
@@ -588,13 +589,32 @@ class QTSeedEditor(QDialog):
         if mode == 'mask':
             btn_recalc_mask = QPushButton("Recalculate mask", self)
             btn_recalc_mask.clicked.connect(self.updateMaskRegion_btn)
+            btn_all = QPushButton("Select all", self)
+            btn_all.clicked.connect(self.maskSelectAll)
+            btn_reset = QPushButton("Reset selection", self)
+            btn_reset.clicked.connect(self.resetSelection)
+            btn_reset_seads = QPushButton("Reset seads", self)
+            btn_reset_seads.clicked.connect(self.resetSeads)
+            btn_add = QPushButton("Add selection", self)
+            btn_add.clicked.connect(self.maskAddSelection)
+            btn_rem = QPushButton("Remove selection", self)
+            btn_rem.clicked.connect(self.maskRemoveSelection)
             btn_mask = QPushButton("Mask region", self)
             btn_mask.clicked.connect(self.maskRegion)
             appmenu.append(QLabel('<b>Mask mode</b><br><br><br>' +
                                   'Select the region to mask<br>' +
                                   'using the left mouse button<br><br>'))
+            appmenu.append(self.get_line('h'))
             appmenu.append(btn_recalc_mask)
+            appmenu.append(btn_all)
+            appmenu.append(btn_reset)
+            appmenu.append(btn_reset_seads)
+            appmenu.append(self.get_line('h'))
+            appmenu.append(btn_add)
+            appmenu.append(btn_rem)
+            appmenu.append(self.get_line('h'))
             appmenu.append(btn_mask)
+            appmenu.append(self.get_line('h'))
             self.mask_qhull = None
 
         if mode == 'crop':
@@ -739,9 +759,15 @@ class QTSeedEditor(QDialog):
         self.contours = contours
         if self.contours is None:
             self.contours_aview = None
-
         else:
             self.contours_aview = self.contours.transpose(self.act_transposition)
+
+        # masked data - has information about which data were removed
+        # 1 == enabled, 0 == deleted
+        # How to return: 
+        #       editorDialog.exec_() 
+        #       masked_data = editorDialog.masked
+        self.masked = np.ones(self.img.shape, np.int8)
 
         self.voxel_size = np.squeeze(np.asarray(voxelSize))
         self.voxel_scale = self.voxel_size / float(np.min(self.voxel_size))
@@ -829,17 +855,76 @@ class QTSeedEditor(QDialog):
                 simplex = hull.find_simplex(grid)
                 fill = grid[simplex >=0,:]
                 fill = (fill[:,0], fill[:,1], fill[:,2])
-                self.contours = np.zeros(self.img.shape, np.int8)
+                if self.contours is None or self.contours_old is None:
+                    self.contours = np.zeros(self.img.shape, np.int8)
+                    self.contours_old = self.contours.copy()
+                else:
+                    self.contours[self.contours != 2] = 0
                 self.contours[fill] = 1
                 self.contours_aview = self.contours.transpose(self.act_transposition)
 
                 self.selectSlice(self.actual_slice)
 
     def maskRegion(self):
-        nzs = self.contours.nonzero()
-        self.img[nzs] = self.img_min_val
+        self.masked[self.contours == 0] = 0
+        
+        self.img[self.contours != 2] = self.img_min_val
         self.contours.fill(0)
+        self.contours_old = self.contours.copy()
         self.seeds.fill(0)
+        self.selectSlice(self.actual_slice)
+        
+    def maskAddSelection(self):
+        self.updateMaskRegion()
+        if self.contours is None:
+            return
+        
+        self.contours[self.contours == 1] = 2
+        self.contours_old = self.contours.copy()
+        self.seeds.fill(0)
+        self.selectSlice(self.actual_slice)
+        
+    def maskRemoveSelection(self):
+        self.updateMaskRegion()
+        if self.contours is None:
+            return
+            
+        self.contours[self.contours == 1] = 0
+        self.contours_old = self.contours.copy()
+        self.seeds.fill(0)
+        self.selectSlice(self.actual_slice)
+        
+    def maskSelectAll(self):
+        self.updateMaskRegion()
+
+        self.seeds[0][0][0] = 1
+        self.seeds[0][0][-1] = 1
+        self.seeds[0][-1][0] = 1
+        self.seeds[0][-1][-1] = 1
+        self.seeds[-1][0][0] = 1
+        self.seeds[-1][0][-1] = 1
+        self.seeds[-1][-1][0] = 1
+        self.seeds[-1][-1][-1] = 1
+        
+        self.updateMaskRegion()
+        self.selectSlice(self.actual_slice)
+        
+    def resetSelection(self):
+        self.updateMaskRegion()
+        if self.contours is None:
+            return
+            
+        self.contours.fill(0)
+        self.contours_old = self.contours.copy()
+        self.seeds.fill(0)
+        self.selectSlice(self.actual_slice)
+        
+    def resetSeads(self):
+        self.seeds.fill(0)
+        if self.contours is not None:
+            self.contours = self.contours_old.copy()
+            self.contours_aview = self.contours.transpose(self.act_transposition)
+        self.updateMaskRegion()
         self.selectSlice(self.actual_slice)
 
     def updateCropBounds(self):
