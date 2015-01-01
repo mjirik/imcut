@@ -17,15 +17,15 @@ from pysegbase import pycut
 class PycutTest(unittest.TestCase):
 
     # @TODO znovu zprovoznit test
-    #@unittest.skip("Cekame, az to Tomas opravi")
+    # @unittest.skip("Cekame, az to Tomas opravi")
 
     def test_multiscale_indexes(self):
         # there must be some data
         img = np.zeros([32, 32, 32], dtype=np.int16)
         gc = pycut.ImageGraphCut(img)
 
-        #mask = np.zeros([1, 4, 4], dtype=np.int16)
-        #mask[0,1:3,2:] = 1
+        # mask = np.zeros([1, 4, 4], dtype=np.int16)
+        # mask[0,1:3,2:] = 1
         mask = np.zeros([1, 3, 3], dtype=np.int16)
         mask[0, 1:, 1] = 1
         orig_shape = [2, 6, 6]
@@ -46,10 +46,8 @@ class PycutTest(unittest.TestCase):
                             [5, 5, 19, 20, 6, 6],
                             [5, 5, 21, 22, 6, 6]]]
 
-
         self.assertItemsEqual(inds.reshape(-1),
                               np.array(expected_result).reshape(-1))
-
 
     def test_ordered_values_by_indexes(self):
         """
@@ -72,6 +70,31 @@ class PycutTest(unittest.TestCase):
         gc = pycut.ImageGraphCut(img)
         vals = gc._ImageGraphCut__ordered_values_by_indexes(data, inds)
         expected = np.array([0, 1, 1, 0, 2, 0])
+        self.assertItemsEqual(vals, expected)
+
+    def test_ordered_values_by_indexes_with_different_values(self):
+        """
+        test of pycut.__ordered_values_by_indexes
+        in input data are non-consistent data
+        Function should take maximal value
+        """
+
+        # there must be some data
+        img = np.zeros([32, 32, 32], dtype=np.int16)
+        data = np.array([
+            [0, 1, 1],
+            [0, 2, 2],
+            [0, 3, 2]
+        ])
+
+        inds = np.array([
+            [0, 1, 2],
+            [3, 4, 4],
+            [5, 4, 4]
+        ])
+        gc = pycut.ImageGraphCut(img)
+        vals = gc._ImageGraphCut__ordered_values_by_indexes(data, inds)
+        expected = np.array([0, 1, 1, 0, 3, 0])
         self.assertItemsEqual(vals, expected)
 
 
