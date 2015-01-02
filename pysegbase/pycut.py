@@ -409,15 +409,24 @@ class ImageGraphCut:
         Second step construct finer grid on edges of segmentation from first
         step.
         """
-        deb = True
+        deb = False
         # import py3DSeedEditor as ped
 
         from PyQt4.QtCore import pyqtRemoveInputHook
         pyqtRemoveInputHook()
         import scipy
         import scipy.ndimage
+# default parameters
+        sparams = {
+            'boundary_dilatation_distance': 2,
+            'block_size': 6,
+            'use_boundary_penalties': True,
+            'boundary_penalties_weight': 1
+        }
+        self.segparams.update(sparams)
+
 # step 1:  low res GC
-        ms_zoom = 8  # 0.125 #self.segparams['scale']
+        ms_zoom = 4  # 0.125 #self.segparams['scale']
         loseeds = pyed.getSeeds()
         logger.debug("msc " + str(np.unique(loseeds)))
         loseeds = self.__seed_zoom(loseeds, ms_zoom)
@@ -448,10 +457,21 @@ class ImageGraphCut:
         segl[segl != 0] = 1
         logger.debug(str(np.max(segl)))
         logger.debug(str(np.min(segl)))
+        # scipy.ndimage.morphology.distance_transform_edt
+        boundary_dilatation_distance = self.segparams[
+            'boundary_dilatation_distance']
         seg = scipy.ndimage.morphology.binary_dilation(
-            seg
-            # np.ones([3,3,3])
+            seg,
+            np.ones([
+                (boundary_dilatation_distance * 2) + 1,
+                (boundary_dilatation_distance * 2) + 1,
+                (boundary_dilatation_distance * 2) + 1
+            ])
         )
+        if deb:
+            import sed3
+            pd = sed3.sed3(seg)  # ), contour=seg)
+            pd.show()
 #        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
 #                                                order=0).astype('int8')
 # @todo back resize
@@ -467,10 +487,10 @@ class ImageGraphCut:
 # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         logger.debug('msinds ' + str(msinds.shape))
-        if deb:
-            import sed3
-            pd = sed3.sed3(msinds)  # ), contour=seg)
-            pd.show()
+        # if deb:
+        #     import sed3
+        #     pd = sed3.sed3(msinds)  # ), contour=seg)
+        #     pd.show()
 
         # intensity values for indexes
         # @TODO compute average values for low resolution
@@ -483,8 +503,6 @@ class ImageGraphCut:
         # there is need to set correct weights between neighbooring pixels
         # this is not nice hack.
         # @TODO reorganise segparams and create_nlinks function
-        self.segparams['use_boundary_penalties'] = True
-        self.segparams['boundary_penalties_weight'] = 1
         self.img = img_orig  # not necessary
         orig_shape = img_orig.shape
         ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
