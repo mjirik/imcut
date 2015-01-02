@@ -423,7 +423,8 @@ class ImageGraphCut:
             'use_boundary_penalties': True,
             'boundary_penalties_weight': 1
         }
-        self.segparams.update(sparams)
+        sparams.update(self.segparams)
+        self.segparams = sparams
 
 # step 1:  low res GC
         ms_zoom = 4  # 0.125 #self.segparams['scale']
