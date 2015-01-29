@@ -534,8 +534,8 @@ class QTSeedEditor(QDialog):
         combo_view.addItems(combo_view_options)
 
         # buttons
-        btn_quit = QPushButton("Return", self)
-        btn_quit.clicked.connect(self.quit)
+        self.btn_quit = QPushButton("Return", self)
+        self.btn_quit.clicked.connect(self.quit)
 
         combo_dmask = QComboBox(self)
         combo_dmask.activated.connect(self.changeMask)
@@ -764,8 +764,8 @@ class QTSeedEditor(QDialog):
 
         # masked data - has information about which data were removed
         # 1 == enabled, 0 == deleted
-        # How to return: 
-        #       editorDialog.exec_() 
+        # How to return:
+        #       editorDialog.exec_()
         #       masked_data = editorDialog.masked
         self.masked = np.ones(self.img.shape, np.int8)
 
@@ -867,33 +867,33 @@ class QTSeedEditor(QDialog):
 
     def maskRegion(self):
         self.masked[self.contours == 0] = 0
-        
+
         self.img[self.contours != 2] = self.img_min_val
         self.contours.fill(0)
         self.contours_old = self.contours.copy()
         self.seeds.fill(0)
         self.selectSlice(self.actual_slice)
-        
+
     def maskAddSelection(self):
         self.updateMaskRegion()
         if self.contours is None:
             return
-        
+
         self.contours[self.contours == 1] = 2
         self.contours_old = self.contours.copy()
         self.seeds.fill(0)
         self.selectSlice(self.actual_slice)
-        
+
     def maskRemoveSelection(self):
         self.updateMaskRegion()
         if self.contours is None:
             return
-            
+
         self.contours[self.contours == 1] = 0
         self.contours_old = self.contours.copy()
         self.seeds.fill(0)
         self.selectSlice(self.actual_slice)
-        
+
     def maskSelectAll(self):
         self.updateMaskRegion()
 
@@ -905,20 +905,20 @@ class QTSeedEditor(QDialog):
         self.seeds[-1][0][-1] = 1
         self.seeds[-1][-1][0] = 1
         self.seeds[-1][-1][-1] = 1
-        
+
         self.updateMaskRegion()
         self.selectSlice(self.actual_slice)
-        
+
     def resetSelection(self):
         self.updateMaskRegion()
         if self.contours is None:
             return
-            
+
         self.contours.fill(0)
         self.contours_old = self.contours.copy()
         self.seeds.fill(0)
         self.selectSlice(self.actual_slice)
-        
+
     def resetSeads(self):
         self.seeds.fill(0)
         if self.contours is not None:
