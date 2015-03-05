@@ -94,4 +94,4 @@ More complex example without interactivity
     plt.show()
 
 
-
+![example_img](https://raw.githubusercontent.com/mjirik/pyseg_base/master/imgs/example_result.png)
