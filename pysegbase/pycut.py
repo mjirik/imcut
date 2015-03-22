@@ -475,16 +475,6 @@ class ImageGraphCut:
             pd.show()
 #        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
 #                                                order=0).astype('int8')
-# @todo back resize
-#        segshape = np.zeros(img_orig.shape, dtype='int8')
-#        segshape[:segzoom.shape[0],
-#                 :segzoom.shape[1],
-#                 :segzoom.shape[2]] = segzoom
-#        if self.debug_images:
-#            pyed.img = segshape * 100
-#            import py3DSeedEditor
-#            ped = py3DSeedEditor.py3DSeedEditor(segshape)
-#            ped.show()
 # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         logger.debug('msinds ' + str(msinds.shape))
@@ -944,7 +934,7 @@ class ImageGraphCut:
             edgx = np.c_[
                 inds[:, :, :-1].ravel(),
                 inds[:, :, 1:].ravel(),
-                # cc * np.ones(id1.shape)]
+                # cc * np.ones(id1.shape)
                 bpw * bpa[:, :, 1:].ravel()
             ]
 
