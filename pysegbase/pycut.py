@@ -457,9 +457,10 @@ class ImageGraphCut:
 
         self.make_gc()
         logger.debug(
-            'segmentation - max: %d min: %d' %
-            np.max(self.segmentation),
-            np.min(self.segmentation),
+            'segmentation - max: %d min: %d' % (
+                np.max(self.segmentation),
+                np.min(self.segmentation)
+            )
         )
 
         seg = 1 - self.segmentation.astype(np.int8)
