@@ -45,7 +45,7 @@ else:
                           'fv_type': 'intensity'
                           }
 
-methods = ['graphcut, multiscale_gc']
+methods = ['graphcut', 'multiscale_graphcut']
 
 
 class Model:
@@ -420,6 +420,7 @@ class ImageGraphCut:
         pyqtRemoveInputHook()
         import scipy
         import scipy.ndimage
+        logger.debug('performing multiscale_gc')
 # default parameters
         sparams = {
             'boundary_dilatation_distance': 2,
@@ -427,6 +428,7 @@ class ImageGraphCut:
             'use_boundary_penalties': True,
             'boundary_penalties_weight': 1
         }
+
         sparams.update(self.segparams)
         self.segparams = sparams
 
@@ -761,8 +763,10 @@ class ImageGraphCut:
     def run(self):
         if self.segparams['method'] in ('graphcut', 'GC'):
             self.make_gc()
-        elif self.segparams['method'] in ('multiscale_gc'):
+        elif self.segparams['method'] in ('multiscale_graphcut'):
             self.__multiscale_gc()
+        else:
+            logger.error('Unknown method: ' + self.segparams['method'])
 
     def make_gc(self):
         res_segm = self.set_data(self.img,
@@ -1288,7 +1292,7 @@ def main():
                         # , modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
                         # , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
                         # , segparams={'type': 'multiscale_gc'}  # multisc gc
-                        , segparams={'method': 'multiscale_gc'}  # multisc gc
+                        , segparams={'method': 'multiscale_graphcut'}  # multisc gc
                         # , modelparams={'fv_type': 'fv001'}
                         # , modelparams={'type': 'dpgmm', 'params': {'cvtype': 'full', 'n_components': 5, 'alpha': 10}}  # noqa 3 components
                         )
