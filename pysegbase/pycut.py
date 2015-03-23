@@ -334,15 +334,17 @@ class ImageGraphCut:
 
         if self.segparams['method'] in ('graphcut'):
 
-            self.seeds = pyed.getSeeds()
-            self.voxels1 = pyed.getSeedsVal(1)
-            self.voxels2 = pyed.getSeedsVal(2)
+            self.set_seeds(pyed.getSeeds())
+            # self.seeds = pyed.getSeeds()
+            # self.voxels1 = pyed.getSeedsVal(1)
+            # self.voxels2 = pyed.getSeedsVal(2)
 
             self.make_gc()
 
             pyed.setContours(1 - self.segmentation.astype(np.int8))
 
         elif self.segparams['method'] in ('multiscale_gc'):
+            self.set_seeds(pyed.getSeeds())
             self.__multiscale_gc(pyed)
             pyed.setContours(1 - self.segmentation.astype(np.int8))
         else:
@@ -407,7 +409,7 @@ class ImageGraphCut:
         maskz = (maskz * (ms_zoom - 1)) + 1
         return maskz
 
-    def __multiscale_gc(self, pyed):
+    def __multiscale_gc(self):  # , pyed):
         """
         In first step is performed normal GC.
         Second step construct finer grid on edges of segmentation from first
@@ -433,17 +435,20 @@ class ImageGraphCut:
         self.segparams = sparams
 
 # step 1:  low res GC
+        hiseeds = self.seeds
         ms_zoom = 4  # 0.125 #self.segparams['scale']
-        loseeds = pyed.getSeeds()
-        logger.debug("msc " + str(np.unique(loseeds)))
-        loseeds = self.__seed_zoom(loseeds, ms_zoom)
+        # loseeds = pyed.getSeeds()
+        # logger.debug("msc " + str(np.unique(hiseeds)))
+        loseeds = self.__seed_zoom(hiseeds, ms_zoom)
 
         area_weight = 1
         hard_constraints = True
 
         self.seeds = loseeds
-        self.voxels1 = pyed.getSeedsVal(1)
-        self.voxels2 = pyed.getSeedsVal(2)
+        self.voxels1 = self.img[self.seeds == 1]
+        self.voxels2 = self.img[self.seeds == 2]
+        # self.voxels1 = pyed.getSeedsVal(1)
+        # self.voxels2 = pyed.getSeedsVal(2)
 
         img_orig = self.img
 
@@ -495,7 +500,7 @@ class ImageGraphCut:
 #            ped.show()
 # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
-        logger.debug('msinds ' + str(msinds.shape))
+        logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
         #     import sed3
         #     pd = sed3.sed3(msinds)  # ), contour=seg)
@@ -531,7 +536,8 @@ class ImageGraphCut:
 
 # tlinks - indexes, data_merge
         ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
-        seeds = pyed.getSeeds()
+        seeds = hiseeds
+        # seeds = pyed.getSeeds()
         # if deb:
         #     import sed3
         #     se = sed3.sed3(seeds)
