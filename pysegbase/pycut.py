@@ -89,7 +89,7 @@ class Model:
         Input data is 3d image
         """
         fv_type = self.modelparams['fv_type']
-        logger.debug("fv_type" + fv_type)
+        logger.debug("fv_type " + fv_type)
         if fv_type == 'intensity':
             if seeds is not None:
                 fv = data[seeds == cl]
@@ -445,9 +445,11 @@ class ImageGraphCut:
                                                     order=0)
 
         self.make_gc()
-        logger.debug('segmentation')
-        logger.debug(str(np.max(self.segmentation)))
-        logger.debug(str(np.min(self.segmentation)))
+        logger.debug(
+            'segmentation - max: %d min: %d' %
+            np.max(self.segmentation),
+            np.min(self.segmentation),
+        )
 
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
