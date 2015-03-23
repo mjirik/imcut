@@ -804,9 +804,10 @@ class ImageGraphCut:
         # srovnán hodnot tak, aby to vycházelo mezi 0 a 100
         # cc = 10
         # filtered = ((filtered - 1)*cc) + 10
-        print 'ax %.1g max %.3g min %.3g  avg %.3g' % (
-            axis,
-            np.max(filtered), np.min(filtered), np.mean(filtered))
+        logger.debug(
+            'ax %.1g max %.3g min %.3g  avg %.3g' % (
+                axis, np.max(filtered), np.min(filtered), np.mean(filtered))
+        )
 #
 # @TODO Check why forumla with exp is not stable
 # Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
@@ -930,7 +931,8 @@ class ImageGraphCut:
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
         if self.segparams['use_boundary_penalties']:
-            print 'use_boundary_penalties'
+            # print 'use_boundary_penalties'
+            logger.debug('use_boundary_penalties')
             bpw = self.segparams['boundary_penalties_weight']
             sigma = self.segparams['boundary_penalties_sigma']
 # set boundary penalties function
