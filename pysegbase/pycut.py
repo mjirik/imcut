@@ -45,6 +45,8 @@ else:
                           'fv_type': 'intensity'
                           }
 
+methods = ['graphcut, multiscale_gc']
+
 
 class Model:
 
@@ -76,7 +78,7 @@ class Model:
 
     def trainFromImageAndSeeds(self, data, seeds, cl):
         """
-        This method allows computes feature vector and train model.
+        This Method allows computes feature vector and train model.
 
         :cl: scalar index number of class
         """
