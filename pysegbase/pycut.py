@@ -330,7 +330,7 @@ class ImageGraphCut:
 
         # logger.debug("obj gc   " + str(sys.getsizeof(self)))
 
-        if self.segparams['type'] in ('graphcut'):
+        if self.segparams['method'] in ('graphcut'):
 
             self.seeds = pyed.getSeeds()
             self.voxels1 = pyed.getSeedsVal(1)
@@ -340,9 +340,11 @@ class ImageGraphCut:
 
             pyed.setContours(1 - self.segmentation.astype(np.int8))
 
-        elif self.segparams['type'] in ('multiscale_gc'):
+        elif self.segparams['method'] in ('multiscale_gc'):
             self.__multiscale_gc(pyed)
             pyed.setContours(1 - self.segmentation.astype(np.int8))
+        else:
+            logger.error('Unknown segmentation method')
 
         try:
             from lisa import audiosupport
@@ -755,7 +757,10 @@ class ImageGraphCut:
         self.voxels2 = self.img[self.seeds == 2]
 
     def run(self):
-        self.make_gc()
+        if self.segparams['method'] in ('graphcut', 'GC'):
+            self.make_gc()
+        elif self.segparams['method'] in ('multiscale_gc'):
+            self.__multiscale_gc()
 
     def make_gc(self):
         res_segm = self.set_data(self.img,
@@ -1280,7 +1285,8 @@ def main():
                         # , modelparams={'type': 'gaussian_kde', 'params': []}
                         # , modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
                         # , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
-                        , segparams={'type': 'multiscale_gc'}  # multisc gc
+                        # , segparams={'type': 'multiscale_gc'}  # multisc gc
+                        , segparams={'method': 'multiscale_gc'}  # multisc gc
                         # , modelparams={'fv_type': 'fv001'}
                         # , modelparams={'type': 'dpgmm', 'params': {'cvtype': 'full', 'n_components': 5, 'alpha': 10}}  # noqa 3 components
                         )
