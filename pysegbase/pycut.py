@@ -345,7 +345,8 @@ class ImageGraphCut:
 
         elif self.segparams['method'] in ('multiscale_gc', 'multiscale_graphcut'):
             self.set_seeds(pyed.getSeeds())
-            self.__multiscale_gc(pyed)
+            # self.__multiscale_gc(pyed)
+            self.__multiscale_gc()
             pyed.setContours(1 - self.segmentation.astype(np.int8))
         else:
             logger.error('Unknown segmentation method')
