@@ -343,7 +343,7 @@ class ImageGraphCut:
 
             pyed.setContours(1 - self.segmentation.astype(np.int8))
 
-        elif self.segparams['method'] in ('multiscale_gc'):
+        elif self.segparams['method'] in ('multiscale_gc', 'multiscale_graphcut'):
             self.set_seeds(pyed.getSeeds())
             self.__multiscale_gc(pyed)
             pyed.setContours(1 - self.segmentation.astype(np.int8))
