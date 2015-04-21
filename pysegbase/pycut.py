@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 from scipy.io import loadmat
 import numpy as np
+import copy
 
 import pygco
 # from pygco import cut_from_graph
@@ -396,13 +397,19 @@ class ImageGraphCut:
 
     def __ms_npenalty_fcn(self, axis, mask, ms_zoom, orig_shape):
         """
+        :param axis:
+        :param mask: 3d ndarray with ones where is finner resolution
+
         Neighboorhood penalty between small pixels should be smaller then in
         bigger tiles. This is the way how to set it.
 
         """
         # import scipy.ndimage.filters as scf
+        # TODO remove TILE_ZOOM_CONSTANT
+        TILE_ZOOM_CONSTANT = self.segparams['block_size']
+        # TILE_ZOOM_CONSTANT = 30
 
-        ms_zoom = ms_zoom * 30
+        ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
         # for axis in range(0,dim):
         # filtered = scf.prewitt(self.img, axis=axis)
         maskz = self.__zoom_to_shape(mask, orig_shape)
@@ -415,6 +422,7 @@ class ImageGraphCut:
         In first step is performed normal GC.
         Second step construct finer grid on edges of segmentation from first
         step.
+        There is no option for use without `use_boundary_penalties`
         """
         deb = False
         # import py3DSeedEditor as ped
@@ -425,15 +433,19 @@ class ImageGraphCut:
         import scipy.ndimage
         logger.debug('performing multiscale_gc')
 # default parameters
-        sparams = {
+        sparams_lo = {
             'boundary_dilatation_distance': 2,
             'block_size': 6,
             'use_boundary_penalties': True,
             'boundary_penalties_weight': 1
         }
 
-        sparams.update(self.segparams)
-        self.segparams = sparams
+        sparams_lo.update(self.segparams)
+        sparams_hi = copy.copy(sparams_lo)
+        sparams_lo['boundary_penalties_weight'] = (
+                sparams_lo['boundary_penalties_weight'] * 
+                sparams_lo['block_size'])
+        self.segparams = sparams_lo
 
 # step 1:  low res GC
         hiseeds = self.seeds
@@ -545,8 +557,8 @@ class ImageGraphCut:
         #     se = sed3.sed3(seeds)
         #     se.show()
         ms_seeds_lin = self.__ordered_values_by_indexes(seeds, msinds)
-        logger.debug("unique seeds " + str(np.unique(seeds)))
-        logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
+        # logger.debug("unique seeds " + str(np.unique(seeds)))
+        # logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
 
         unariesalt = self.__create_tlinks(ms_values_lin,
                                           self.voxels1, self.voxels2,
