@@ -406,7 +406,7 @@ class ImageGraphCut:
         """
         # import scipy.ndimage.filters as scf
         # TODO remove TILE_ZOOM_CONSTANT
-        TILE_ZOOM_CONSTANT = self.segparams['block_size']
+        TILE_ZOOM_CONSTANT = self.segparams['block_size']**2
         # TILE_ZOOM_CONSTANT = 30
 
         ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
