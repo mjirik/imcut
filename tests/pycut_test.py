@@ -19,6 +19,48 @@ class PycutTest(unittest.TestCase):
     # @TODO znovu zprovoznit test
     # @unittest.skip("Cekame, az to Tomas opravi")
 
+    def make_data(self):
+        seeds = np.zeros([32, 32, 32], dtype=np.int8)
+        seeds[12, 10:13, 10] = 1
+        seeds[20, 18:21, 12] = 1
+        img = np.ones([32, 32, 32])
+        img = img - seeds
+
+        seeds[3:15, 2:6, 27:29] = 2
+        import scipy
+        img = scipy.ndimage.morphology.distance_transform_edt(img)
+        segm = img < 7
+        img = (100 * segm + 100 * np.random.random(img.shape)).astype(np.uint8)
+        return img, segm, seeds
+
+    def test_ms_seg(self):
+
+        img, seg, seeds = self.make_data()
+        segparams = {
+                # 'method':'graphcut',
+                'method':'multiscale_graphcut',
+                'use_boundary_penalties': False
+                }
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
+        import sed3
+        ed = sed3.sed3(gc.segmentation==0)
+        ed.show()
+
+
+    def test_segmentation(self):
+        img, seg, seeds = self.make_data()
+        gc = pycut.ImageGraphCut(img)
+        gc.set_seeds(seeds)
+        gc.run()
+        self.assertLess(
+                np.sum(
+                    (gc.segmentation == 0).astype(np.int8) - 
+                    seg.astype(np.int8))
+                , 5)
+        
+
     def test_multiscale_indexes(self):
         # there must be some data
         img = np.zeros([32, 32, 32], dtype=np.int16)

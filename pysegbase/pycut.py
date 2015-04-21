@@ -289,7 +289,7 @@ class ImageGraphCut:
 # default values                              use_boundary_penalties
         # self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
         self.segparams = {
-            'type': 'graphcut',
+            'method': 'graphcut',
             'pairwise_alpha': 20,
             'use_boundary_penalties': False,
             'boundary_penalties_sigma': 200,
@@ -408,6 +408,8 @@ class ImageGraphCut:
         # TODO remove TILE_ZOOM_CONSTANT
         TILE_ZOOM_CONSTANT = self.segparams['block_size']**2
         # TILE_ZOOM_CONSTANT = 30
+        
+        import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
         ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
         # for axis in range(0,dim):
@@ -479,6 +481,7 @@ class ImageGraphCut:
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
 # step 2: discontinuity localization
+        # self.segparams = sparams_hi
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
         logger.debug(str(np.max(segl)))
         logger.debug(str(np.min(segl)))
@@ -762,6 +765,7 @@ class ImageGraphCut:
         """
         Function for manual seed setting. Sets variable seeds and prepares
         voxels for density model.
+        :param seeds: ndarray (0 - nothing, 1 - object, 2 - background)
         """
         if self.img.shape != seeds.shape:
             raise Exception("Seeds must be same size as input image")
