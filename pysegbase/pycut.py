@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 from scipy.io import loadmat
 import numpy as np
+import copy
 
 import pygco
 # from pygco import cut_from_graph
@@ -44,6 +45,8 @@ else:
                           'params': {'cvtype': 'full'},
                           'fv_type': 'intensity'
                           }
+
+methods = ['graphcut', 'multiscale_graphcut']
 
 
 class Model:
@@ -76,7 +79,7 @@ class Model:
 
     def trainFromImageAndSeeds(self, data, seeds, cl):
         """
-        This method allows computes feature vector and train model.
+        This Method allows computes feature vector and train model.
 
         :cl: scalar index number of class
         """
@@ -89,7 +92,7 @@ class Model:
         Input data is 3d image
         """
         fv_type = self.modelparams['fv_type']
-        logger.debug("fv_type" + fv_type)
+        logger.debug("fv_type " + fv_type)
         if fv_type == 'intensity':
             if seeds is not None:
                 fv = data[seeds == cl]
@@ -330,19 +333,24 @@ class ImageGraphCut:
 
         # logger.debug("obj gc   " + str(sys.getsizeof(self)))
 
-        if self.segparams['type'] in ('graphcut'):
+        if self.segparams['method'] in ('graphcut'):
 
-            self.seeds = pyed.getSeeds()
-            self.voxels1 = pyed.getSeedsVal(1)
-            self.voxels2 = pyed.getSeedsVal(2)
+            self.set_seeds(pyed.getSeeds())
+            # self.seeds = pyed.getSeeds()
+            # self.voxels1 = pyed.getSeedsVal(1)
+            # self.voxels2 = pyed.getSeedsVal(2)
 
             self.make_gc()
 
             pyed.setContours(1 - self.segmentation.astype(np.int8))
 
-        elif self.segparams['type'] in ('multiscale_gc'):
-            self.__multiscale_gc(pyed)
+        elif self.segparams['method'] in ('multiscale_gc', 'multiscale_graphcut'):
+            self.set_seeds(pyed.getSeeds())
+            # self.__multiscale_gc(pyed)
+            self.__multiscale_gc()
             pyed.setContours(1 - self.segmentation.astype(np.int8))
+        else:
+            logger.error('Unknown segmentation method')
 
         try:
             from lisa import audiosupport
@@ -389,13 +397,19 @@ class ImageGraphCut:
 
     def __ms_npenalty_fcn(self, axis, mask, ms_zoom, orig_shape):
         """
+        :param axis:
+        :param mask: 3d ndarray with ones where is finner resolution
+
         Neighboorhood penalty between small pixels should be smaller then in
         bigger tiles. This is the way how to set it.
 
         """
         # import scipy.ndimage.filters as scf
+        # TODO remove TILE_ZOOM_CONSTANT
+        TILE_ZOOM_CONSTANT = self.segparams['block_size']**2
+        # TILE_ZOOM_CONSTANT = 30
 
-        ms_zoom = ms_zoom * 30
+        ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
         # for axis in range(0,dim):
         # filtered = scf.prewitt(self.img, axis=axis)
         maskz = self.__zoom_to_shape(mask, orig_shape)
@@ -403,11 +417,12 @@ class ImageGraphCut:
         maskz = (maskz * (ms_zoom - 1)) + 1
         return maskz
 
-    def __multiscale_gc(self, pyed):
+    def __multiscale_gc(self):  # , pyed):
         """
         In first step is performed normal GC.
         Second step construct finer grid on edges of segmentation from first
         step.
+        There is no option for use without `use_boundary_penalties`
         """
         deb = False
         # import py3DSeedEditor as ped
@@ -416,28 +431,37 @@ class ImageGraphCut:
         pyqtRemoveInputHook()
         import scipy
         import scipy.ndimage
+        logger.debug('performing multiscale_gc')
 # default parameters
-        sparams = {
+        sparams_lo = {
             'boundary_dilatation_distance': 2,
             'block_size': 6,
             'use_boundary_penalties': True,
             'boundary_penalties_weight': 1
         }
-        sparams.update(self.segparams)
-        self.segparams = sparams
+
+        sparams_lo.update(self.segparams)
+        sparams_hi = copy.copy(sparams_lo)
+        sparams_lo['boundary_penalties_weight'] = (
+                sparams_lo['boundary_penalties_weight'] * 
+                sparams_lo['block_size'])
+        self.segparams = sparams_lo
 
 # step 1:  low res GC
+        hiseeds = self.seeds
         ms_zoom = 4  # 0.125 #self.segparams['scale']
-        loseeds = pyed.getSeeds()
-        logger.debug("msc " + str(np.unique(loseeds)))
-        loseeds = self.__seed_zoom(loseeds, ms_zoom)
+        # loseeds = pyed.getSeeds()
+        # logger.debug("msc " + str(np.unique(hiseeds)))
+        loseeds = self.__seed_zoom(hiseeds, ms_zoom)
 
         area_weight = 1
         hard_constraints = True
 
         self.seeds = loseeds
-        self.voxels1 = pyed.getSeedsVal(1)
-        self.voxels2 = pyed.getSeedsVal(2)
+        self.voxels1 = self.img[self.seeds == 1]
+        self.voxels2 = self.img[self.seeds == 2]
+        # self.voxels1 = pyed.getSeedsVal(1)
+        # self.voxels2 = pyed.getSeedsVal(2)
 
         img_orig = self.img
 
@@ -445,9 +469,12 @@ class ImageGraphCut:
                                                     order=0)
 
         self.make_gc()
-        logger.debug('segmentation')
-        logger.debug(str(np.max(self.segmentation)))
-        logger.debug(str(np.min(self.segmentation)))
+        logger.debug(
+            'segmentation - max: %d min: %d' % (
+                np.max(self.segmentation),
+                np.min(self.segmentation)
+            )
+        )
 
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
@@ -477,7 +504,7 @@ class ImageGraphCut:
 #                                                order=0).astype('int8')
 # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
-        logger.debug('msinds ' + str(msinds.shape))
+        logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
         #     import sed3
         #     pd = sed3.sed3(msinds)  # ), contour=seg)
@@ -513,14 +540,15 @@ class ImageGraphCut:
 
 # tlinks - indexes, data_merge
         ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
-        seeds = pyed.getSeeds()
+        seeds = hiseeds
+        # seeds = pyed.getSeeds()
         # if deb:
         #     import sed3
         #     se = sed3.sed3(seeds)
         #     se.show()
         ms_seeds_lin = self.__ordered_values_by_indexes(seeds, msinds)
-        logger.debug("unique seeds " + str(np.unique(seeds)))
-        logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
+        # logger.debug("unique seeds " + str(np.unique(seeds)))
+        # logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
 
         unariesalt = self.__create_tlinks(ms_values_lin,
                                           self.voxels1, self.voxels2,
@@ -743,7 +771,12 @@ class ImageGraphCut:
         self.voxels2 = self.img[self.seeds == 2]
 
     def run(self):
-        self.make_gc()
+        if self.segparams['method'] in ('graphcut', 'GC'):
+            self.make_gc()
+        elif self.segparams['method'] in ('multiscale_graphcut'):
+            self.__multiscale_gc()
+        else:
+            logger.error('Unknown method: ' + self.segparams['method'])
 
     def make_gc(self):
         res_segm = self.set_data(self.img,
@@ -794,9 +827,10 @@ class ImageGraphCut:
         # srovnán hodnot tak, aby to vycházelo mezi 0 a 100
         # cc = 10
         # filtered = ((filtered - 1)*cc) + 10
-        print 'ax %.1g max %.3g min %.3g  avg %.3g' % (
-            axis,
-            np.max(filtered), np.min(filtered), np.mean(filtered))
+        logger.debug(
+            'ax %.1g max %.3g min %.3g  avg %.3g' % (
+                axis, np.max(filtered), np.min(filtered), np.mean(filtered))
+        )
 #
 # @TODO Check why forumla with exp is not stable
 # Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
@@ -920,7 +954,8 @@ class ImageGraphCut:
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
         if self.segparams['use_boundary_penalties']:
-            print 'use_boundary_penalties'
+            # print 'use_boundary_penalties'
+            logger.debug('use_boundary_penalties')
             bpw = self.segparams['boundary_penalties_weight']
             sigma = self.segparams['boundary_penalties_sigma']
 # set boundary penalties function
@@ -1266,7 +1301,8 @@ def main():
                         # , modelparams={'type': 'gaussian_kde', 'params': []}
                         # , modelparams={'type':'kernel', 'params':[]}  #noqa not in  old scipy
                         # , modelparams={'type':'gmmsame', 'params':{'cvtype':'full', 'n_components':3}} # noqa 3 components
-                        , segparams={'type': 'multiscale_gc'}  # multisc gc
+                        # , segparams={'type': 'multiscale_gc'}  # multisc gc
+                        , segparams={'method': 'multiscale_graphcut'}  # multisc gc
                         # , modelparams={'fv_type': 'fv001'}
                         # , modelparams={'type': 'dpgmm', 'params': {'cvtype': 'full', 'n_components': 5, 'alpha': 10}}  # noqa 3 components
                         )

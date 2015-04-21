@@ -686,7 +686,7 @@ class QTSeedEditor(QDialog):
                 vbox_app.addWidget(ii)
 
         vbox_app.addStretch(1)
-        vbox_app.addWidget(btn_quit)
+        vbox_app.addWidget(self.btn_quit)
 
         hbox.addLayout(vbox_left)
         hbox.addWidget(self.get_line('v'))
