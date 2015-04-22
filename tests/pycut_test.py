@@ -20,36 +20,50 @@ class PycutTest(unittest.TestCase):
     # @TODO znovu zprovoznit test
     # @unittest.skip("Cekame, az to Tomas opravi")
 
-    def make_data(self):
-        seeds = np.zeros([32, 32, 32], dtype=np.int8)
-        seeds[12, 10:13, 10] = 1
-        seeds[20, 18:21, 12] = 1
-        img = np.ones([32, 32, 32])
+    def make_data(self, sz=32, offset=0):
+        seeds = np.zeros([sz, sz, sz], dtype=np.int8)
+        seeds[offset + 12, offset + 10:offset + 13, offset + 10] = 1
+        seeds[offset + 20, offset + 18:offset + 21, offset + 12] = 1
+        img = np.ones([sz, sz, sz])
         img = img - seeds
 
-        seeds[3:15, 2:6, 27:29] = 2
+        seeds[
+            offset + 3:offset + 15, 
+            offset + 2:offset + 6, 
+            offset + 27:offset + 29] = 2
         img = scipy.ndimage.morphology.distance_transform_edt(img)
         segm = img < 7
-        img = (100 * segm + 100 * np.random.random(img.shape)).astype(np.uint8)
+        img = (100 * segm + 80 * np.random.random(img.shape)).astype(np.uint8)
         return img, segm, seeds
 
     def test_ms_seg(self):
+        """
+        Test multiscale segmentation
+        """
 
-        img, seg, seeds = self.make_data()
+        img, seg, seeds = self.make_data(64, 20)
         segparams = {
-                'method':'graphcut',
-               # 'method':'multiscale_graphcut',
+                # 'method':'graphcut',
+                'method':'multiscale_graphcut',
                 'use_boundary_penalties': False,
-                'boundary_dilatation_distance': 1,
-                'boundary_penalties_weight': 1
+                'boundary_dilatation_distance': 2,
+                'boundary_penalties_weight': 1,
+                'block_size': 8
                 }
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
         gc.run()
-        import sed3
-        ed = sed3.sed3(gc.segmentation==0)
-        ed.show()
+        # import sed3
+        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        # ed.show()
 
+        self.assertLess(
+                np.sum(
+                    np.abs(
+                        (gc.segmentation == 0).astype(np.int8) - 
+                        seg.astype(np.int8))
+                    )
+                , 500)
 
     def test_segmentation(self):
         img, seg, seeds = self.make_data()
@@ -58,9 +72,11 @@ class PycutTest(unittest.TestCase):
         gc.run()
         self.assertLess(
                 np.sum(
-                    (gc.segmentation == 0).astype(np.int8) - 
-                    seg.astype(np.int8))
-                , 5)
+                    np.abs(
+                        (gc.segmentation == 0).astype(np.int8) - 
+                        seg.astype(np.int8))
+                    )
+                , 30)
         
 
     def test_multiscale_indexes(self):

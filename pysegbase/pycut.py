@@ -395,6 +395,9 @@ class ImageGraphCut:
 
         return loseeds
 
+    def __uniform_npenalty_fcn(self, orig_shape):
+        return np.ones(orig_shape, dtype=np.int8)
+
     def __ms_npenalty_fcn(self, axis, mask, ms_zoom, orig_shape):
         """
         :param axis:
@@ -405,19 +408,30 @@ class ImageGraphCut:
 
         """
         # import scipy.ndimage.filters as scf
+        # Váha velkého pixelu je nastavena na délku jeho úhlopříčky
         # TODO remove TILE_ZOOM_CONSTANT
-        TILE_ZOOM_CONSTANT = self.segparams['block_size']**2
-        # TILE_ZOOM_CONSTANT = 30
-        
-        import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
+        # TILE_ZOOM_CONSTANT = self.segparams['block_size'] * 2**0.5
+        TILE_ZOOM_CONSTANT = 0.25
 
-        ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
-        # for axis in range(0,dim):
-        # filtered = scf.prewitt(self.img, axis=axis)
+
+        
+
+        # ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
+        # # for axis in range(0,dim):
+        # # filtered = scf.prewitt(self.img, axis=axis)
         maskz = self.__zoom_to_shape(mask, orig_shape)
-        maskz = 1 - maskz.astype(np.int8)
-        maskz = (maskz * (ms_zoom - 1)) + 1
-        return maskz
+        # maskz = 1 - maskz.astype(np.int8)
+        # maskz = (maskz * (ms_zoom - 1)) + 1
+        
+
+        maskz_new = np.zeros(orig_shape, dtype=np.int16)
+        maskz_new[maskz==0] = ms_zoom * 1.4
+        maskz_new[maskz==1] = 1
+        # import sed3
+        # ed = sed3.sed3(maskz_new)
+        # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
+
+        return maskz_new
 
     def __multiscale_gc(self):  # , pyed):
         """
@@ -427,6 +441,7 @@ class ImageGraphCut:
         There is no option for use without `use_boundary_penalties`
         """
         deb = False
+        # deb = True
         # import py3DSeedEditor as ped
 
         from PyQt4.QtCore import pyqtRemoveInputHook
@@ -451,7 +466,8 @@ class ImageGraphCut:
 
 # step 1:  low res GC
         hiseeds = self.seeds
-        ms_zoom = 4  # 0.125 #self.segparams['scale']
+        # ms_zoom = 4  # 0.125 #self.segparams['scale']
+        ms_zoom = self.segparams['block_size']
         # loseeds = pyed.getSeeds()
         # logger.debug("msc " + str(np.unique(hiseeds)))
         loseeds = self.__seed_zoom(hiseeds, ms_zoom)
@@ -510,7 +526,7 @@ class ImageGraphCut:
         logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
         #     import sed3
-        #     pd = sed3.sed3(msinds)  # ), contour=seg)
+        #     pd = sed3.sed3(msinds, contour=seg)
         #     pd.show()
 
         # intensity values for indexes
@@ -528,25 +544,31 @@ class ImageGraphCut:
         orig_shape = img_orig.shape
 
         def local_ms_npenalty(x):
-            self.__ms_npenalty_fcn(x, seg, ms_zoom, orig_shape)
-        ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
-                                                           orig_shape)
+            return self.__ms_npenalty_fcn(x, seg, ms_zoom, orig_shape)
+            # return self.__uniform_npenalty_fcn(orig_shape)
+        # ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
+        #                                                    orig_shape)
 
-        import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
 # here are not unique couples of nodes
         nlinks_not_unique = self.__create_nlinks(
             ms_img,
             msinds,
             # boundary_penalties_fcn=ms_npenalty_fcn
-            boundary_penalties_fcn=ms_npenalty_fcn
+            boundary_penalties_fcn=local_ms_npenalty
         )
 
 # get unique set
+        # remove repetitive link from one pixel to another
         nlinks = np.array(
             [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
         )
+        # now remove cycle link
+        nlinks = np.array([line for line in nlinks if line[0] != line[1]])
 
+
+
+        # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 # tlinks - indexes, data_merge
         ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
         seeds = hiseeds
@@ -973,6 +995,8 @@ class ImageGraphCut:
 
         else:
             # print 'use_boundary_penalties'
+            # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
+
             logger.debug('use_boundary_penalties')
             bpw = self.segparams['boundary_penalties_weight']
 
