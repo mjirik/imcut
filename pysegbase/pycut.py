@@ -377,7 +377,7 @@ class ImageGraphCut:
 # @TODO smart interpolation for seeds in one block
 #        loseeds = scipy.ndimage.interpolation.zoom(
 #            seeds, zoom, order=0)
-        loshape = np.ceil(np.array(seeds.shape) * 1.0 / zoom)
+        loshape = np.ceil(np.array(seeds.shape) * 1.0 / zoom).astype(np.int)
         loseeds = np.zeros(loshape, dtype=np.int8)
         loseeds = loseeds.astype(np.int8)
         for label in labels:
@@ -526,13 +526,19 @@ class ImageGraphCut:
         # @TODO reorganise segparams and create_nlinks function
         self.img = img_orig  # not necessary
         orig_shape = img_orig.shape
+
+        def local_ms_npenalty(x):
+            self.__ms_npenalty_fcn(x, seg, ms_zoom, orig_shape)
         ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
                                                            orig_shape)
+
+        import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
 # here are not unique couples of nodes
         nlinks_not_unique = self.__create_nlinks(
             ms_img,
             msinds,
+            # boundary_penalties_fcn=ms_npenalty_fcn
             boundary_penalties_fcn=ms_npenalty_fcn
         )
 
@@ -957,16 +963,18 @@ class ImageGraphCut:
 # first, we construct the grid graph
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
-        if self.segparams['use_boundary_penalties']:
+        # if not self.segparams['use_boundary_penalties'] and \
+        #         boundary_penalties_fcn is None :
+        if boundary_penalties_fcn is None :
+            # This is faster for some specific format
+            edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
+            edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
+            edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
+
+        else:
             # print 'use_boundary_penalties'
             logger.debug('use_boundary_penalties')
             bpw = self.segparams['boundary_penalties_weight']
-            sigma = self.segparams['boundary_penalties_sigma']
-# set boundary penalties function
-# Default are penalties based on intensity differences
-            if boundary_penalties_fcn is None:
-                boundary_penalties_fcn = lambda ax: \
-                    self.boundary_penalties_array(axis=ax, sigma=sigma)
 
             bpa = boundary_penalties_fcn(2)
             # id1=inds[:, :, :-1].ravel()
@@ -994,11 +1002,7 @@ class ImageGraphCut:
                 # cc * np.ones(id1.shape)]
                 bpw * bpa[1:, :, :].ravel()
             ]
-        else:
 
-            edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
-            edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
-            edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
 
         # import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
@@ -1033,7 +1037,16 @@ class ImageGraphCut:
 
         self.iparams = {}
 
-        nlinks = self.__create_nlinks(data)
+        if self.segparams['use_boundary_penalties']:
+            sigma = self.segparams['boundary_penalties_sigma']
+# set boundary penalties function
+# Default are penalties based on intensity differences
+            boundary_penalties_fcn = lambda ax: \
+                self.boundary_penalties_array(axis=ax, sigma=sigma)
+        else:
+            boundary_penalties_fcn = None
+        nlinks = self.__create_nlinks(data, 
+                boundary_penalties_fcn=boundary_penalties_fcn)
 
         # print 'data shape ', data.shape
         # print 'nlinks sh ', nlinks.shape

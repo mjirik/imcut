@@ -8,6 +8,7 @@ import os.path
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 import unittest
+import scipy
 
 import numpy as np
 
@@ -27,7 +28,6 @@ class PycutTest(unittest.TestCase):
         img = img - seeds
 
         seeds[3:15, 2:6, 27:29] = 2
-        import scipy
         img = scipy.ndimage.morphology.distance_transform_edt(img)
         segm = img < 7
         img = (100 * segm + 100 * np.random.random(img.shape)).astype(np.uint8)
@@ -37,9 +37,11 @@ class PycutTest(unittest.TestCase):
 
         img, seg, seeds = self.make_data()
         segparams = {
-                # 'method':'graphcut',
-                'method':'multiscale_graphcut',
-                'use_boundary_penalties': False
+                'method':'graphcut',
+               # 'method':'multiscale_graphcut',
+                'use_boundary_penalties': False,
+                'boundary_dilatation_distance': 1,
+                'boundary_penalties_weight': 1
                 }
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
