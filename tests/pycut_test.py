@@ -48,14 +48,15 @@ class PycutTest(unittest.TestCase):
                 'use_boundary_penalties': False,
                 'boundary_dilatation_distance': 2,
                 'boundary_penalties_weight': 1,
-                'block_size': 8
+                'block_size': 8,
+                'tile_zoom_constant': 1
                 }
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
         gc.run()
-        # import sed3
-        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
-        # ed.show()
+        import sed3
+        ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        ed.show()
 
         self.assertLess(
                 np.sum(
@@ -64,6 +65,10 @@ class PycutTest(unittest.TestCase):
                         seg.astype(np.int8))
                     )
                 , 500)
+
+
+# different resolution
+        
 
     def test_segmentation(self):
         img, seg, seeds = self.make_data()
