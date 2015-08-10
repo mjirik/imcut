@@ -450,6 +450,7 @@ class ImageGraphCut:
         import scipy.ndimage
         logger.debug('performing multiscale_gc')
 # default parameters
+# TODO segparams_lo and segparams_hi je tam asi zbytecně
         sparams_lo = {
             'boundary_dilatation_distance': 2,
             'block_size': 6,
@@ -459,9 +460,9 @@ class ImageGraphCut:
 
         sparams_lo.update(self.segparams)
         sparams_hi = copy.copy(sparams_lo)
-        sparams_lo['boundary_penalties_weight'] = (
-                sparams_lo['boundary_penalties_weight'] * 
-                sparams_lo['block_size'])
+        # sparams_lo['boundary_penalties_weight'] = (
+        #         sparams_lo['boundary_penalties_weight'] * 
+        #         sparams_lo['block_size'])
         self.segparams = sparams_lo
 
 # step 1:  low res GC
