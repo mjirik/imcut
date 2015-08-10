@@ -419,13 +419,13 @@ class ImageGraphCut:
         # ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
         # # for axis in range(0,dim):
         # # filtered = scf.prewitt(self.img, axis=axis)
-        maskz = self.__zoom_to_shape(mask, orig_shape)
+        maskz = zoom_to_shape(mask, orig_shape)
         # maskz = 1 - maskz.astype(np.int8)
         # maskz = (maskz * (ms_zoom - 1)) + 1
         
 
         maskz_new = np.zeros(orig_shape, dtype=np.int16)
-        maskz_new[maskz==0] = ms_zoom * 1.4
+        maskz_new[maskz==0] = ms_zoom * self.segparams['tile_zoom_constant']
         maskz_new[maskz==1] = 1
         # import sed3
         # ed = sed3.sed3(maskz_new)
@@ -455,7 +455,8 @@ class ImageGraphCut:
             'boundary_dilatation_distance': 2,
             'block_size': 6,
             'use_boundary_penalties': True,
-            'boundary_penalties_weight': 1
+            'boundary_penalties_weight': 1,
+            'tile_zoom_constant': 1
         }
 
         sparams_lo.update(self.segparams)
@@ -701,10 +702,10 @@ class ImageGraphCut:
                   [5 4 4]]
         """
 
-        mask_orig = self.__zoom_to_shape(mask, orig_shape, dtype=np.int8)
+        mask_orig = zoom_to_shape(mask, orig_shape, dtype=np.int8)
 
         inds_small = np.arange(mask.size).reshape(mask.shape)
-        inds_small_in_orig = self.__zoom_to_shape(inds_small,
+        inds_small_in_orig = zoom_to_shape(inds_small,
                                                   orig_shape, dtype=np.int8)
         inds_orig = np.arange(np.prod(orig_shape)).reshape(orig_shape)
 
@@ -742,23 +743,6 @@ class ImageGraphCut:
         """
         inds1[mask == 1]
 
-    def __zoom_to_shape(self, data, shape, dtype=None):
-        """
-        Zoom data to specific shape.
-        """
-        import scipy
-        import scipy.ndimage
-        zoomd = np.array(shape) / np.array(data.shape, dtype=np.double)
-        datares = scipy.ndimage.interpolation.zoom(data, zoomd, order=0)
-
-        if datares.shape != shape:
-            logger.warning('Zoom with different output shape')
-        dataout = np.zeros(shape, dtype=dtype)
-        shpmin = np.minimum(dataout.shape, shape)
-
-        dataout[:shpmin[0], :shpmin[1], :shpmin[2]] = datares[
-            :shpmin[0], :shpmin[1], :shpmin[2]]
-        return datares
 
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
@@ -1097,6 +1081,23 @@ class ImageGraphCut:
 
         return result_labeling
 
+def zoom_to_shape(data, shape, dtype=None):
+    """
+    Zoom data to specific shape.
+    """
+    import scipy
+    import scipy.ndimage
+    zoomd = np.array(shape) / np.array(data.shape, dtype=np.double)
+    datares = scipy.ndimage.interpolation.zoom(data, zoomd, order=0)
+
+    if datares.shape != shape:
+        logger.warning('Zoom with different output shape')
+    dataout = np.zeros(shape, dtype=dtype)
+    shpmin = np.minimum(dataout.shape, shape)
+
+    dataout[:shpmin[0], :shpmin[1], :shpmin[2]] = datares[
+        :shpmin[0], :shpmin[1], :shpmin[2]]
+    return datares
 
 def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
     """
