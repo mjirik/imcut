@@ -401,7 +401,10 @@ class SliceBox(QLabel):
             shift_offset = 0
             if modifiers == PyQt4.QtCore.Qt.ShiftModifier:
                 shift_offset = BOX_BUTTONS_SEED_SHIFT_OFFSET
-            # elif modifiers == QtCore.Qt.ControlModifier:
+            elif modifiers == QtCore.Qt.ControlModifier:
+                # this make seed_mark = 0 when left button is pressed
+                shift_offset = -1
+
             #     print('Control+Click')
             # elif modifiers == (QtCore.Qt.ControlModifier |
             #                    QtCore.Qt.ShiftModifier):
