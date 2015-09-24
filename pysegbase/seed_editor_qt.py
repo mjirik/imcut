@@ -28,9 +28,9 @@ GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
                            dtype=np.uint8)
 
 SEEDS_COLORTABLE = np.array([[0, 255, 0, 255],
-                             [0, 0, 255, 255],
-                             [0, 255, 64, 255],
-                             [0, 64, 255, 255]], dtype=np.uint8)
+                             [64, 0, 255, 255],
+                             [0, 200, 64, 255],
+                             [64, 64, 200, 255]], dtype=np.uint8)
 
 CONTOURS_COLORS = {
     1: [255, 0, 0],
@@ -185,8 +185,6 @@ class SliceBox(QLabel):
         xx = xx[ii]
         yy = yy[ii]
 
-        print 'seeds', self.seeds
-        print 'ss', self.slice_size
         
         self.seeds[yy * self.slice_size[0] + xx] = self.seed_mark
 
@@ -408,10 +406,8 @@ class SliceBox(QLabel):
             # elif modifiers == (QtCore.Qt.ControlModifier |
             #                    QtCore.Qt.ShiftModifier):
             # print('Control+Shift+Click')
-            print '##############p ', self.last_position
             self.seed_mark = self.box_buttons[event.button()] + shift_offset
             self.last_position = self.gridPosition(event.pos())
-            print 'l#######p ', self.last_position
 
         elif event.button() == Qt.MiddleButton:
             self.drawing = False
@@ -1343,11 +1339,14 @@ def main():
 
     app = QApplication(sys.argv)
     pyed = QTSeedEditor(dataraw['data'],
-                        seeds=dataraw['segdata'],
+                        # seeds=dataraw['segdata'],
                         mode=options.mode,
                         voxelSize=dataraw['voxelsize_mm'])
+    pyed.changeC(50)
+    pyed.changeW(50)
+    pyed.exec_()
 
-    sys.exit(app.exec_())
+    # sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
