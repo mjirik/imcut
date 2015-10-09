@@ -29,8 +29,8 @@ GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
 
 SEEDS_COLORTABLE = np.array([[0, 255, 0, 255],
                              [64, 0, 255, 255],
-                             [0, 200, 64, 255],
-                             [64, 64, 200, 255]], dtype=np.uint8)
+                             [0, 200, 128, 255],
+                             [64, 128, 200, 255]], dtype=np.uint8)
 
 CONTOURS_COLORS = {
     1: [255, 0, 0],
@@ -572,12 +572,15 @@ class QTSeedEditor(QDialog):
 
         self.status_bar = QStatusBar()
 
+        self.seeds_copy = None
         vopts = []
         vmenu = []
         appmenu = []
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
             btn_recalc.clicked.connect(self.recalculate)
+            self.btn_save= QPushButton("Save/load", self)
+            self.btn_save.clicked.connect(self.seg_saveload)
             btn_s2b= QPushButton("Seg. to bckgr.", self)
             btn_s2b.clicked.connect(self.seg_to_background_seeds)
             btn_s2f= QPushButton("Seg. to forgr.", self)
@@ -614,6 +617,7 @@ class QTSeedEditor(QDialog):
             self.changeContourMode(combo_contour_options[combo_contour.currentIndex()])
             vopts.append(QLabel('Selection mode:'))
             vopts.append(combo_contour)
+
 
 
         if mode == 'mask':
@@ -1264,6 +1268,15 @@ class QTSeedEditor(QDialog):
         # import ipdb; ipdb.set_trace()
         self.seeds[(self.contours == 1) & (self.seeds < 3)] = self.FOREGROUND_NOMODEL_SEED_LABEL
         self.contours[...] = 0
+
+    def saveload(self, event):
+        if self.seeds_copy is None:
+            self.seeds_copy = self.seeds.copy()
+            self.seeds[...] = 0
+        else:
+            self.seeds[self.seeds_copy > 0] = self.seeds_copy[self.seeds_copy > 0]
+            self.seeds_copy = None
+
 
     def recalculate(self, event):
         self.saveSliceSeeds()
