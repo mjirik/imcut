@@ -579,8 +579,8 @@ class QTSeedEditor(QDialog):
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
             btn_recalc.clicked.connect(self.recalculate)
-            self.btn_save= QPushButton("Save/load", self)
-            self.btn_save.clicked.connect(self.seg_saveload)
+            self.btn_save= QPushButton("Save seeds", self)
+            self.btn_save.clicked.connect(self.saveload_seeds)
             btn_s2b= QPushButton("Seg. to bckgr.", self)
             btn_s2b.clicked.connect(self.seg_to_background_seeds)
             btn_s2f= QPushButton("Seg. to forgr.", self)
@@ -591,6 +591,7 @@ class QTSeedEditor(QDialog):
                                   '&nbsp;&nbsp;<i>left</i> - inner region<br>' +
                                   '&nbsp;&nbsp;<i>right</i> - outer region<br><br>'))
             appmenu.append(btn_recalc)
+            appmenu.append(self.btn_save)
             appmenu.append(btn_s2f)
             appmenu.append(btn_s2b)
             appmenu.append(QLabel())
@@ -1269,13 +1270,22 @@ class QTSeedEditor(QDialog):
         self.seeds[(self.contours == 1) & (self.seeds < 3)] = self.FOREGROUND_NOMODEL_SEED_LABEL
         self.contours[...] = 0
 
-    def saveload(self, event):
+    def saveload_seeds(self, event):
         if self.seeds_copy is None:
             self.seeds_copy = self.seeds.copy()
             self.seeds[...] = 0
+            # print "save"
+            # from PyQt4.QtCore import pyqtRemoveInputHook
+            # pyqtRemoveInputHook()
+            import ipdb; ipdb.set_trace()
+            self.btn_save.setText("Load seeds")
         else:
+            # from PyQt4.QtCore import pyqtRemoveInputHook
+            # pyqtRemoveInputHook()
+            # import ipdb; ipdb.set_trace()
             self.seeds[self.seeds_copy > 0] = self.seeds_copy[self.seeds_copy > 0]
             self.seeds_copy = None
+            self.btn_save.setText("Save seeds")
 
 
     def recalculate(self, event):
