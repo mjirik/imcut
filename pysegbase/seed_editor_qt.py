@@ -101,8 +101,6 @@ NEI_TAB = [[-1, -1], [0, -1], [1, -1],
            [-1, 0], [1, 0],
            [-1, 1], [0, 1], [1, 1]]
 
-BACKGROUND_NOMODEL_SEED_LABEL = 4
-FOREGROUND_NOMODEL_SEED_LABEL = 3
 
 def erase_reg(arr, p, val=0):
     from scipy.ndimage.measurements import label
@@ -580,9 +578,9 @@ class QTSeedEditor(QDialog):
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
             btn_recalc.clicked.connect(self.recalculate)
-            btn_s2b= QPushButton("Seg. to bckgr", self)
+            btn_s2b= QPushButton("Seg. to bckgr.", self)
             btn_s2b.clicked.connect(self.seg_to_background_seeds)
-            btn_s2f= QPushButton("Seg. to bckgr", self)
+            btn_s2f= QPushButton("Seg. to forgr.", self)
             btn_s2f.clicked.connect(self.seg_to_foreground_seeds)
             appmenu.append(QLabel('<b>Segmentation mode</b><br><br><br>' +
                                   'Select the region of interest<br>' +
@@ -591,7 +589,7 @@ class QTSeedEditor(QDialog):
                                   '&nbsp;&nbsp;<i>right</i> - outer region<br><br>'))
             appmenu.append(btn_recalc)
             appmenu.append(btn_s2f)
-            appmenu.append(btn_s2f)
+            appmenu.append(btn_s2b)
             appmenu.append(QLabel())
             self.volume_label = QLabel('Volume:\n  unknown')
             appmenu.append(self.volume_label)
@@ -763,6 +761,9 @@ class QTSeedEditor(QDialog):
         """
 
         QDialog.__init__(self)
+
+        self.BACKGROUND_NOMODEL_SEED_LABEL = 4
+        self.FOREGROUND_NOMODEL_SEED_LABEL = 3
 
         self.mode = mode
         self.mode_fun = modeFun
@@ -1247,13 +1248,21 @@ class QTSeedEditor(QDialog):
 
     def seg_to_background_seeds(self, event):
         self.saveSliceSeeds()
-        self.seeds[self.contours == 1] = BACKGROUND_NOMODEL_SEED_LABEL
+        self.seeds[self.seeds < 3] = 0
+
+        from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        # import ipdb; ipdb.set_trace()
+        self.seeds[(self.contours == 1) & (self.seeds < 3)] = self.BACKGROUND_NOMODEL_SEED_LABEL
         self.contours[...] = 0
 
     def seg_to_foreground_seeds(self, event):
         self.saveSliceSeeds()
-        self.seeds[self.contours == 1] = FOREGROUND_NOMODEL_SEED_LABEL
-
+        self.seeds[self.seeds < 3] = 0
+        # from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        import ipdb; ipdb.set_trace()
+        self.seeds[(self.contours == 1) & (self.seeds < 3)] = self.FOREGROUND_NOMODEL_SEED_LABEL
         self.contours[...] = 0
 
     def recalculate(self, event):
