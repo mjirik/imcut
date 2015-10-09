@@ -1261,7 +1261,7 @@ class QTSeedEditor(QDialog):
         self.seeds[self.seeds < 3] = 0
         # from PyQt4.QtCore import pyqtRemoveInputHook
         # pyqtRemoveInputHook()
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         self.seeds[(self.contours == 1) & (self.seeds < 3)] = self.FOREGROUND_NOMODEL_SEED_LABEL
         self.contours[...] = 0
 
