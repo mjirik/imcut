@@ -15,6 +15,7 @@ import numpy as np
 import sys
 from scipy.spatial import Delaunay
 
+import PyQt4
 from PyQt4.QtCore import Qt, QSize, QString, SIGNAL
 from PyQt4.QtGui import QImage, QDialog,\
     QApplication, QSlider, QPushButton,\
@@ -27,12 +28,20 @@ GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
                            dtype=np.uint8)
 
 SEEDS_COLORTABLE = np.array([[0, 255, 0, 255],
-                             [0, 0, 255, 255]], dtype=np.uint8)
+                             [64, 0, 255, 255],
+                             [0, 200, 64, 255],
+                             [64, 64, 200, 255]], dtype=np.uint8)
 
 CONTOURS_COLORS = {
     1: [255, 0, 0],
     2: [0, 0, 255],
     3: [0, 255, 255],
+    4: [255, 128, 0],
+    5: [255, 128, 0],
+    6: [255, 0, 128],
+    7: [128, 128, 255],
+    8: [0, 128, 255],
+    9: [128, 0, 255],
     10: [255, 255, 0],
     11: [0, 255, 0],
     12: [0, 255, 255],
@@ -80,6 +89,8 @@ BOX_BUTTONS_SEED = {
     Qt.LeftButton: 1,
     Qt.RightButton: 2,
     }
+
+BOX_BUTTONS_SEED_SHIFT_OFFSET = 2
 
 BOX_BUTTONS_DRAW = {
     Qt.LeftButton: 1,
@@ -176,6 +187,7 @@ class SliceBox(QLabel):
         xx = xx[ii]
         yy = yy[ii]
 
+        
         self.seeds[yy * self.slice_size[0] + xx] = self.seed_mark
 
     def drawLine(self, p0, p1):
@@ -387,7 +399,19 @@ class SliceBox(QLabel):
     def mousePressEvent(self, event):
         if event.button() in self.box_buttons:
             self.drawing = True
-            self.seed_mark = self.box_buttons[event.button()]
+            modifiers = PyQt4.QtGui.QApplication.keyboardModifiers()
+            shift_offset = 0
+            if modifiers == PyQt4.QtCore.Qt.ShiftModifier:
+                shift_offset = BOX_BUTTONS_SEED_SHIFT_OFFSET
+            elif modifiers == PyQt4.QtCore.Qt.ControlModifier:
+                # this make seed_mark = 0 when left button is pressed
+                shift_offset = -1
+
+            #     print('Control+Click')
+            # elif modifiers == (QtCore.Qt.ControlModifier |
+            #                    QtCore.Qt.ShiftModifier):
+            # print('Control+Shift+Click')
+            self.seed_mark = self.box_buttons[event.button()] + shift_offset
             self.last_position = self.gridPosition(event.pos())
 
         elif event.button() == Qt.MiddleButton:
@@ -784,7 +808,6 @@ class QTSeedEditor(QDialog):
         # set seeds
         if seeds is None:
             self.seeds = np.zeros(self.img.shape, np.int8)
-
         else:
             self.seeds = seeds
 
@@ -1294,8 +1317,11 @@ class QTSeedEditor(QDialog):
 
 def gen_test():
     test = {}
-    test['data'] = np.zeros((10,10,4), dtype=np.uint8)
+    # test['data'] = np.zeros((10,10,4), dtype=np.uint8)
+    test['data'] = (np.random.rand(4, 10, 9) * 100).astype(np.uint8)
+
     test['voxelsize_mm'] = (2, 2, 2.5)
+    test['segdata'] = None
 
     return test
 
@@ -1344,11 +1370,14 @@ def main():
 
     app = QApplication(sys.argv)
     pyed = QTSeedEditor(dataraw['data'],
-                        seeds=dataraw['segdata'],
+                        # seeds=dataraw['segdata'],
                         mode=options.mode,
                         voxelSize=dataraw['voxelsize_mm'])
+    pyed.changeC(50)
+    pyed.changeW(50)
+    pyed.exec_()
 
-    sys.exit(app.exec_())
+    # sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()

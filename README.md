@@ -8,6 +8,16 @@ see video to get an idea.
 
     http://youtu.be/bFSyY4jyMHw
 
+please cite:
+
+    @INPROCEEDINGS{jirik2013,
+        author = {Jirik, M. and Lukes, V. and Svobodova, M. and Zelezny, M.},
+        title = {Image Segmentation in Medical Imaging via Graph-Cuts.},
+        year = {2013},
+        journal = {11th International Conference on Pattern Recognition and Image Analysis: New Information Technologies (PRIA-11-2013). Samara, Conference Proceedings },
+        url = {http://www.kky.zcu.cz/en/publications/JirikMmjirik_2013_ImageSegmentationin},
+    }
+
 
 Links
 -----

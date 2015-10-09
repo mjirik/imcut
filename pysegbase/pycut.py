@@ -450,6 +450,7 @@ class ImageGraphCut:
         import scipy.ndimage
         logger.debug('performing multiscale_gc')
 # default parameters
+# TODO segparams_lo and segparams_hi je tam asi zbytecně
         sparams_lo = {
             'boundary_dilatation_distance': 2,
             'block_size': 6,
@@ -460,9 +461,9 @@ class ImageGraphCut:
 
         sparams_lo.update(self.segparams)
         sparams_hi = copy.copy(sparams_lo)
-        sparams_lo['boundary_penalties_weight'] = (
-                sparams_lo['boundary_penalties_weight'] * 
-                sparams_lo['block_size'])
+        # sparams_lo['boundary_penalties_weight'] = (
+        #         sparams_lo['boundary_penalties_weight'] * 
+        #         sparams_lo['block_size'])
         self.segparams = sparams_lo
 
 # step 1:  low res GC
@@ -777,7 +778,9 @@ class ImageGraphCut:
         """
         Function for manual seed setting. Sets variable seeds and prepares
         voxels for density model.
-        :param seeds: ndarray (0 - nothing, 1 - object, 2 - background)
+        :param seeds: ndarray (0 - nothing, 1 - object, 2 - background,
+        3 - object just hard constraints, no model training, 4 - background 
+        just hard constraints, no model training)
         """
         if self.img.shape != seeds.shape:
             raise Exception("Seeds must be same size as input image")
@@ -820,10 +823,21 @@ class ImageGraphCut:
         self.segmentation = res_segm
 
     def set_hard_hard_constraints(self, tdata1, tdata2, seeds):
-        tdata1[seeds == 2] = np.max(tdata1) + 1
-        tdata2[seeds == 1] = np.max(tdata2) + 1
-        tdata1[seeds == 1] = 0
-        tdata2[seeds == 2] = 0
+        """
+        it works with seed labels:
+        0: nothing
+        1: object 1 - full seeds
+        2: object 2 - full seeds
+        3: object 1 - not a training seeds
+        4: object 2 - not a training seeds
+        """
+        seeds_mask = (seeds == 1) | (seeds == 3)
+        tdata2[seeds_mask] = np.max(tdata2) + 1
+        tdata1[seeds_mask] = 0
+
+        seeds_mask = (seeds == 2) | (seeds == 4)
+        tdata1[seeds_mask] = np.max(tdata1) + 1
+        tdata2[seeds_mask] = 0
 
         return tdata1, tdata2
 
