@@ -577,7 +577,7 @@ class ImageGraphCut:
         print "t5 ", (time.time() - start)
 # get unique set
         # remove repetitive link from one pixel to another
-        nlinks = __ms_remove_repetitive_link(nlinks_not_unique)
+        nlinks = ms_remove_repetitive_link(nlinks_not_unique)
         # now remove cycle link
         print "t5.5 ", (time.time() - start)
         nlinks = np.array([line for line in nlinks if line[0] != line[1]])
@@ -1136,9 +1136,12 @@ class ImageGraphCut:
         return result_labeling
 
 def ms_remove_repetitive_link(nlinks_not_unique):
-    nlinks = np.array(
-        [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
-    )
+    # nlinks = np.array(
+    #     [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
+    # )
+    a = nlinks_not_unique
+    nlinks = np.unique(a.view(np.dtype((np.void, a.dtype.itemsize*a.shape[1])))).view(a.dtype).reshape(-1, a.shape[1])
+
     return nlinks
 
 def zoom_to_shape(data, shape, dtype=None):
