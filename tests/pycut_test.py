@@ -36,7 +36,14 @@ class PycutTest(unittest.TestCase):
         img = (100 * segm + 80 * np.random.random(img.shape)).astype(np.uint8)
         return img, segm, seeds
 
-    @unittest.skip("Cekame, az to Mire opravi")
+    def test_remove_repetitive(self):
+        import time
+        start = time.time()
+        nlinks_not_unique = np.random.randint(0, 5, [100000, 3])
+        nlinks = pycut.ms_remove_repetitive_link(nlinks_not_unique)
+        elapsed = (time.time() - start)
+        print "elapsed ", elapsed
+    # @unittest.skip("Cekame, az to Mire opravi")
     def test_ms_seg(self):
         """
         Test multiscale segmentation
@@ -74,7 +81,7 @@ class PycutTest(unittest.TestCase):
         sz = [90,90,90]
         sz = [100,100,100]
         sz = [200,200,200]
-        sz1 = 208
+        sz1 = 70
         sz = [sz1, sz1, sz1]
         img2 = pycut.zoom_to_shape(img, sz, np.uint8)
         seg2 = pycut.zoom_to_shape(seg, sz, np.uint8)
