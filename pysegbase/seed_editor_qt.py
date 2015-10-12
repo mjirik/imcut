@@ -1277,7 +1277,7 @@ class QTSeedEditor(QDialog):
             # print "save"
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
             self.btn_save.setText("Load seeds")
         else:
             # from PyQt4.QtCore import pyqtRemoveInputHook
