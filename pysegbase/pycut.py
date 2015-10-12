@@ -489,8 +489,14 @@ class ImageGraphCut:
         hard_constraints = True
 
         self.seeds = loseeds
-        self.voxels1 = self.img[self.seeds == 1]
-        self.voxels2 = self.img[self.seeds == 2]
+
+        # hiseeds and hiimage is used to create intensity model
+        self.voxels1 = self.img[hiseeds == 1]
+        self.voxels2 = self.img[hiseeds == 2]
+        # this is how to compute with loseeds resolution but in wrong way
+        # self.voxels1 = self.img[self.seeds == 1]
+        # self.voxels2 = self.img[self.seeds == 2]
+
         # self.voxels1 = pyed.getSeedsVal(1)
         # self.voxels2 = pyed.getSeedsVal(2)
 

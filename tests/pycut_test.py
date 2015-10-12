@@ -44,7 +44,7 @@ class PycutTest(unittest.TestCase):
         elapsed = (time.time() - start)
         # print "elapsed ", elapsed
 
-    @unittest.skip("Cekame, az to Mire opravi")
+    # @unittest.skip("Cekame, az to Mire opravi")
     def test_ms_seg(self):
         """
         Test multiscale segmentation
