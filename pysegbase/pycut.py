@@ -318,6 +318,10 @@ class ImageGraphCut:
             self.voxel_volume = None
 
         self.interactivity_counter = 0
+        self.stats={
+            'tlinks shape':[],
+            'nlinks shape': []
+        }
 
     def interactivity_loop(self, pyed):
         # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
@@ -433,6 +437,10 @@ class ImageGraphCut:
 
         return maskz_new
 
+
+    def __general_gc(self):
+        pass
+
     def __multiscale_gc(self):  # , pyed):
         """
         In first step is performed normal GC.
@@ -443,6 +451,8 @@ class ImageGraphCut:
         deb = False
         # deb = True
         # import py3DSeedEditor as ped
+        import time
+        start = time.time()
 
         from PyQt4.QtCore import pyqtRemoveInputHook
         pyqtRemoveInputHook()
@@ -466,6 +476,7 @@ class ImageGraphCut:
         #         sparams_lo['block_size'])
         self.segparams = sparams_lo
 
+        self.stats["t1"] = (time.time() - start)
 # step 1:  low res GC
         hiseeds = self.seeds
         # ms_zoom = 4  # 0.125 #self.segparams['scale']
@@ -498,6 +509,7 @@ class ImageGraphCut:
 
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
+        self.stats["t2"] = (time.time() - start)
 # step 2: discontinuity localization
         # self.segparams = sparams_hi
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
@@ -523,6 +535,7 @@ class ImageGraphCut:
             pd.show()
 #        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
 #                                                order=0).astype('int8')
+        self.stats["t3"] = (time.time() - start)
 # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
@@ -552,6 +565,7 @@ class ImageGraphCut:
         #                                                    orig_shape)
 
 
+        self.stats["t4"] = (time.time() - start)
 # here are not unique couples of nodes
         nlinks_not_unique = self.__create_nlinks(
             ms_img,
@@ -560,16 +574,18 @@ class ImageGraphCut:
             boundary_penalties_fcn=local_ms_npenalty
         )
 
+        self.stats["t5"] = (time.time() - start)
+
 # get unique set
         # remove repetitive link from one pixel to another
-        nlinks = np.array(
-            [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
-        )
+        nlinks = ms_remove_repetitive_link(nlinks_not_unique)
         # now remove cycle link
+        self.stats["t6"] = (time.time() - start)
         nlinks = np.array([line for line in nlinks if line[0] != line[1]])
 
 
 
+        self.stats["t7"] = (time.time() - start)
         # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 # tlinks - indexes, data_merge
         ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
@@ -588,6 +604,7 @@ class ImageGraphCut:
                                           ms_seeds_lin,
                                           area_weight, hard_constraints)
 
+        self.stats["t8"] = (time.time() - start)
 # create potts pairwise
         # pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
@@ -598,12 +615,23 @@ class ImageGraphCut:
         # print 'nlinks sh ', nlinks.shape
         # print 'tlinks sh ', unariesalt.shape
 
+        # print "cut_from_graph"
+        # print "unaries sh ", unariesalt.reshape(-1,2).shape
+        # print "nlinks sh",  nlinks.shape
+        self.stats["t9"] = (time.time() - start)
+        self.stats['tlinks shape'].append(unariesalt.reshape(-1,2).shape)
+        self.stats['nlinks shape'].append(nlinks.shape)
+        import time
+        start = time.time()
     # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
             pairwise
         )
+
+        elapsed = (time.time() - start)
+        self.stats['gc time'] = elapsed
 
 # probably not necessary
 #        del nlinks
@@ -981,6 +1009,8 @@ class ImageGraphCut:
         """
 # use the gerneral graph algorithm
 # first, we construct the grid graph
+        import time
+        start = time.time()
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
         # if not self.segparams['use_boundary_penalties'] and \
@@ -992,7 +1022,7 @@ class ImageGraphCut:
             edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
 
         else:
-            # print 'use_boundary_penalties'
+            print 'use_boundary_penalties'
             # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
             logger.debug('use_boundary_penalties')
@@ -1028,7 +1058,10 @@ class ImageGraphCut:
 
         # import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
-# edges - seznam indexu hran, kteres spolu sousedi
+# edges - seznam indexu hran, kteres spolu sousedi\
+        elapsed = (time.time() - start)
+        self.stats['_create_nlinks time'] = elapsed
+        print "__create nlinks time ", elapsed
         return edges
 
     def set_data(self, data, voxels1, voxels2,
@@ -1075,15 +1108,24 @@ class ImageGraphCut:
         # print 'tlinks sh ', unariesalt.shape
 # edges - seznam indexu hran, kteres spolu sousedi
 
+        # print "cut_from_graph"
+        # print "unaries sh ", unariesalt.reshape(-1,2).shape
+        # print "nlinks sh",  nlinks.shape
+
+        self.stats['tlinks shape'].append(unariesalt.reshape(-1,2).shape)
+        self.stats['nlinks shape'].append(nlinks.shape)
 # we flatten the unaries
         # result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2),
         # pairwise)
+        import time
+        start = time.time()
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
             pairwise
         )
-
+        elapsed = (time.time() - start)
+        self.stats['gc time'] = elapsed
 # probably not necessary
 #        del nlinks
 #        del unariesalt
@@ -1093,6 +1135,15 @@ class ImageGraphCut:
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
+
+def ms_remove_repetitive_link(nlinks_not_unique):
+    # nlinks = np.array(
+    #     [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
+    # )
+    a = nlinks_not_unique
+    nlinks = np.unique(a.view(np.dtype((np.void, a.dtype.itemsize*a.shape[1])))).view(a.dtype).reshape(-1, a.shape[1])
+
+    return nlinks
 
 def zoom_to_shape(data, shape, dtype=None):
     """
