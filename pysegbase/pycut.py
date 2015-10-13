@@ -1254,7 +1254,12 @@ def seed_zoom(seeds, zoom):
         loc = np.round(c / zoom)
         # loseeds = np.zeros(loshape)
 
-        loseeds[loa, lob, loc] = label
+        loseeds[loa, lob, loc] += label
+        # this is to detect conflict seeds
+        loseeds[loseeds > label] = 100
+
+    # remove conflict seeds
+    loseeds[loseeds > 99] = 0
 
     # import py3DSeedEditor
     # ped = py3DSeedEditor.py3DSeedEditor(loseeds)
