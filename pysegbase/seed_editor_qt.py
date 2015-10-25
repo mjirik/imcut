@@ -29,8 +29,8 @@ GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
 
 SEEDS_COLORTABLE = np.array([[0, 255, 0, 255],
                              [64, 0, 255, 255],
-                             [0, 200, 64, 255],
-                             [64, 64, 200, 255]], dtype=np.uint8)
+                             [0, 200, 128, 255],
+                             [64, 128, 200, 255]], dtype=np.uint8)
 
 CONTOURS_COLORS = {
     1: [255, 0, 0],
@@ -572,18 +572,28 @@ class QTSeedEditor(QDialog):
 
         self.status_bar = QStatusBar()
 
+        self.seeds_copy = None
         vopts = []
         vmenu = []
         appmenu = []
         if mode == 'seed' and self.mode_fun is not None:
             btn_recalc = QPushButton("Recalculate", self)
             btn_recalc.clicked.connect(self.recalculate)
+            self.btn_save= QPushButton("Save seeds", self)
+            self.btn_save.clicked.connect(self.saveload_seeds)
+            btn_s2b= QPushButton("Seg. to bckgr.", self)
+            btn_s2b.clicked.connect(self.seg_to_background_seeds)
+            btn_s2f= QPushButton("Seg. to forgr.", self)
+            btn_s2f.clicked.connect(self.seg_to_foreground_seeds)
             appmenu.append(QLabel('<b>Segmentation mode</b><br><br><br>' +
                                   'Select the region of interest<br>' +
                                   'using the mouse buttons:<br><br>' +
                                   '&nbsp;&nbsp;<i>left</i> - inner region<br>' +
                                   '&nbsp;&nbsp;<i>right</i> - outer region<br><br>'))
             appmenu.append(btn_recalc)
+            appmenu.append(self.btn_save)
+            appmenu.append(btn_s2f)
+            appmenu.append(btn_s2b)
             appmenu.append(QLabel())
             self.volume_label = QLabel('Volume:\n  unknown')
             appmenu.append(self.volume_label)
@@ -608,6 +618,7 @@ class QTSeedEditor(QDialog):
             self.changeContourMode(combo_contour_options[combo_contour.currentIndex()])
             vopts.append(QLabel('Selection mode:'))
             vopts.append(combo_contour)
+
 
 
         if mode == 'mask':
@@ -755,6 +766,9 @@ class QTSeedEditor(QDialog):
         """
 
         QDialog.__init__(self)
+
+        self.BACKGROUND_NOMODEL_SEED_LABEL = 4
+        self.FOREGROUND_NOMODEL_SEED_LABEL = 3
 
         self.mode = mode
         self.mode_fun = modeFun
@@ -1016,6 +1030,15 @@ class QTSeedEditor(QDialog):
         return self.contours
 
     def setContours(self, contours):
+        """
+        store segmentation
+        :param contours: segmentation
+        :return: Nothing
+        """
+        """
+        :param contours:
+        :return:
+        """
         self.contours = contours
         self.contours_aview = self.contours.transpose(self.act_transposition)
 
@@ -1227,6 +1250,43 @@ class QTSeedEditor(QDialog):
             self.showStatus('Region not selected!')
 
         self.cropUpdate(self.img)
+
+    def seg_to_background_seeds(self, event):
+        self.saveSliceSeeds()
+        self.seeds[self.seeds < 3] = 0
+
+        from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        # import ipdb; ipdb.set_trace()
+        self.seeds[(self.contours == 1) & (self.seeds < 3)] = self.BACKGROUND_NOMODEL_SEED_LABEL
+        self.contours[...] = 0
+
+    def seg_to_foreground_seeds(self, event):
+        self.saveSliceSeeds()
+        self.seeds[self.seeds < 3] = 0
+        # from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        # import ipdb; ipdb.set_trace()
+        self.seeds[(self.contours == 1) & (self.seeds < 3)] = self.FOREGROUND_NOMODEL_SEED_LABEL
+        self.contours[...] = 0
+
+    def saveload_seeds(self, event):
+        if self.seeds_copy is None:
+            self.seeds_copy = self.seeds.copy()
+            self.seeds[...] = 0
+            # print "save"
+            # from PyQt4.QtCore import pyqtRemoveInputHook
+            # pyqtRemoveInputHook()
+            # import ipdb; ipdb.set_trace()
+            self.btn_save.setText("Load seeds")
+        else:
+            # from PyQt4.QtCore import pyqtRemoveInputHook
+            # pyqtRemoveInputHook()
+            # import ipdb; ipdb.set_trace()
+            self.seeds[self.seeds_copy > 0] = self.seeds_copy[self.seeds_copy > 0]
+            self.seeds_copy = None
+            self.btn_save.setText("Save seeds")
+
 
     def recalculate(self, event):
         self.saveSliceSeeds()

@@ -4,13 +4,13 @@
 # import funkcí z jiného adresáře
 import sys
 import os.path
+import unittest
+import scipy
+import numpy as np
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
-import unittest
-import scipy
 
-import numpy as np
 
 from pysegbase import pycut
 
@@ -36,8 +36,45 @@ class PycutTest(unittest.TestCase):
         img = (100 * segm + 80 * np.random.random(img.shape)).astype(np.uint8)
         return img, segm, seeds
 
+    def test_remove_repetitive(self):
+        import time
+        start = time.time()
+        nlinks_not_unique = np.random.randint(0, 5, [100000, 3])
+        nlinks = pycut.ms_remove_repetitive_link(nlinks_not_unique)
+        elapsed = (time.time() - start)
+        # print "elapsed ", elapsed
+
+    def test_multiscale_gc_seg(self):
+        """
+        Test multiscale segmentation
+        """
+
+        img, seg, seeds = self.make_data(64, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'multiscale_graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'block_size': 8,
+            'tile_zoom_constant': 1
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
+        # import sed3
+        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        # ed.show()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+
     @unittest.skip("Cekame, az to Mire opravi")
-    def test_ms_seg(self):
+    def test_ms_seg_compared_with_different_resolution(self):
         """
         Test multiscale segmentation
         """
@@ -45,7 +82,7 @@ class PycutTest(unittest.TestCase):
         img, seg, seeds = self.make_data(64, 20)
         segparams = {
                 # 'method':'graphcut',
-                'method':'multiscale_graphcut',
+                'method': 'multiscale_graphcut',
                 'use_boundary_penalties': False,
                 'boundary_dilatation_distance': 2,
                 'boundary_penalties_weight': 1,
@@ -62,10 +99,9 @@ class PycutTest(unittest.TestCase):
         self.assertLess(
                 np.sum(
                     np.abs(
-                        (gc.segmentation == 0).astype(np.int8) - 
-                        seg.astype(np.int8))
-                    )
-                , 600)
+                        (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+                    ),
+                600)
 
 
 # different resolution
@@ -74,7 +110,7 @@ class PycutTest(unittest.TestCase):
         sz = [90,90,90]
         sz = [100,100,100]
         sz = [200,200,200]
-        sz1 = 208
+        sz1 = 70
         sz = [sz1, sz1, sz1]
         img2 = pycut.zoom_to_shape(img, sz, np.uint8)
         seg2 = pycut.zoom_to_shape(seg, sz, np.uint8)
@@ -102,7 +138,6 @@ class PycutTest(unittest.TestCase):
                     )
                 , 30)
         
-
     def test_multiscale_indexes(self):
         # there must be some data
         img = np.zeros([32, 32, 32], dtype=np.int16)

@@ -62,6 +62,10 @@ class Model:
     algorithm is implemented as 'gmmsame'. Gaussian kernel density estimation
     is implemented as 'gaussian_kde'. General kernel estimation ('kernel')
     is from scipy version 0.14 and it is not tested.
+
+    fv_type:
+        intensity - based on seeds and data the intensity as feature vector is used
+        voxel - information in voxel1 and voxel2 is used
     """
 
     def __init__(self, nObjects=2, modelparams={}):
@@ -87,20 +91,44 @@ class Model:
         fv = self.createFV(data, seeds, cl)
         self.train(fv, cl)
 
-    def createFV(self, data, seeds=None, cl=None):
+    def trainFromSomething(self, data, seeds, cl, voxels):
+        """
+        This Method allows computes feature vector and train model.
+
+        :cl: scalar index number of class
+        """
+        logger.debug('cl: ' + str(cl))
+        fv = self.createFV(data, seeds, cl, voxels)
+        self.train(fv, cl)
+
+    def createFV(self, data, seeds=None, cl=None, voxels=None):
         """
         Input data is 3d image
+
+        funcion is called twice in graph cut
+        first call is with all params, second is only with data.
         """
         fv_type = self.modelparams['fv_type']
         logger.debug("fv_type " + fv_type)
         if fv_type == 'intensity':
+
             if seeds is not None:
-                fv = data[seeds == cl]
-                fv = fv.reshape(-1, 1)
+                try:
+                    fv = data[seeds == cl]
+                    fv = fv.reshape(-1, 1)
+                except:
+                    import ipdb
+                    ipdb.set_trace()
             else:
                 fv = data
                 fv = fv.reshape(-1, 1)
             # print fv.shape
+        elif fv_type in ("voxels"):
+            if seeds is not None:
+                fv = np.asarray(voxels).reshape(-1,1)
+            else:
+                fv = data
+                fv = fv.reshape(-1, 1)
         elif fv_type == 'fv001':
             # intensity in pixel, gaussian blur intensity
             data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
@@ -318,6 +346,10 @@ class ImageGraphCut:
             self.voxel_volume = None
 
         self.interactivity_counter = 0
+        self.stats={
+            'tlinks shape':[],
+            'nlinks shape': []
+        }
 
     def interactivity_loop(self, pyed):
         # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
@@ -362,38 +394,6 @@ class ImageGraphCut:
         logger.debug('interactivity counter: ' +
                      str(self.interactivity_counter))
 
-    def __seed_zoom(self, seeds, zoom):
-        """
-        Smart zoom for sparse matrix. If there is resize to bigger resolution
-        thin line of label could be lost. This function prefers labels larger
-        then zero. If there is only one small voxel in larger volume with zeros
-        it is selected.
-        """
-        # import scipy
-        # loseeds=seeds
-        labels = np.unique(seeds)
-# remove first label - 0
-        labels = np.delete(labels, 0)
-# @TODO smart interpolation for seeds in one block
-#        loseeds = scipy.ndimage.interpolation.zoom(
-#            seeds, zoom, order=0)
-        loshape = np.ceil(np.array(seeds.shape) * 1.0 / zoom).astype(np.int)
-        loseeds = np.zeros(loshape, dtype=np.int8)
-        loseeds = loseeds.astype(np.int8)
-        for label in labels:
-            a, b, c = np.where(seeds == label)
-            loa = np.round(a / zoom)
-            lob = np.round(b / zoom)
-            loc = np.round(c / zoom)
-            # loseeds = np.zeros(loshape)
-
-            loseeds[loa, lob, loc] = label
-
-        # import py3DSeedEditor
-        # ped = py3DSeedEditor.py3DSeedEditor(loseeds)
-        # ped.show()
-
-        return loseeds
 
     def __uniform_npenalty_fcn(self, orig_shape):
         return np.ones(orig_shape, dtype=np.int8)
@@ -433,6 +433,10 @@ class ImageGraphCut:
 
         return maskz_new
 
+
+    def __general_gc(self):
+        pass
+
     def __multiscale_gc(self):  # , pyed):
         """
         In first step is performed normal GC.
@@ -443,6 +447,8 @@ class ImageGraphCut:
         deb = False
         # deb = True
         # import py3DSeedEditor as ped
+        import time
+        start = time.time()
 
         from PyQt4.QtCore import pyqtRemoveInputHook
         pyqtRemoveInputHook()
@@ -466,27 +472,42 @@ class ImageGraphCut:
         #         sparams_lo['block_size'])
         self.segparams = sparams_lo
 
+
+
+        self.stats["t1"] = (time.time() - start)
 # step 1:  low res GC
         hiseeds = self.seeds
         # ms_zoom = 4  # 0.125 #self.segparams['scale']
         ms_zoom = self.segparams['block_size']
         # loseeds = pyed.getSeeds()
         # logger.debug("msc " + str(np.unique(hiseeds)))
-        loseeds = self.__seed_zoom(hiseeds, ms_zoom)
+        loseeds = seed_zoom(hiseeds, ms_zoom)
 
         area_weight = 1
         hard_constraints = True
 
         self.seeds = loseeds
-        self.voxels1 = self.img[self.seeds == 1]
-        self.voxels2 = self.img[self.seeds == 2]
+
+        modelparams_hi = self.modelparams.copy()
+        # feature vector will be computed from selected voxels
+        self.modelparams['fv_type'] = 'voxels'
+
+        # hiseeds and hiimage is used to create intensity model
+        self.voxels1 = self.img[hiseeds == 1]
+        self.voxels2 = self.img[hiseeds == 2]
+        # this is how to compute with loseeds resolution but in wrong way
+        # self.voxels1 = self.img[self.seeds == 1]
+        # self.voxels2 = self.img[self.seeds == 2]
+
         # self.voxels1 = pyed.getSeedsVal(1)
         # self.voxels2 = pyed.getSeedsVal(2)
 
         img_orig = self.img
 
-        self.img = scipy.ndimage.interpolation.zoom(img_orig, 1.0 / ms_zoom,
+        # TODO this should be done with resize_to_shape_whith_zoom
+        self.img = scipy.ndimage.interpolation.zoom(img_orig, np.asarray(loseeds.shape).astype(np.float)/img_orig.shape,
                                                     order=0)
+        # self.img = resize_to_shape_with_zoom(img_orig, loseeds.shape, 1.0 / ms_zoom, order=0)
 
         self.make_gc()
         logger.debug(
@@ -498,6 +519,9 @@ class ImageGraphCut:
 
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
+        # back to normal parameters
+        self.modelparams = modelparams_hi
+        self.stats["t2"] = (time.time() - start)
 # step 2: discontinuity localization
         # self.segparams = sparams_hi
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
@@ -523,6 +547,7 @@ class ImageGraphCut:
             pd.show()
 #        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
 #                                                order=0).astype('int8')
+        self.stats["t3"] = (time.time() - start)
 # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
@@ -552,6 +577,7 @@ class ImageGraphCut:
         #                                                    orig_shape)
 
 
+        self.stats["t4"] = (time.time() - start)
 # here are not unique couples of nodes
         nlinks_not_unique = self.__create_nlinks(
             ms_img,
@@ -560,16 +586,18 @@ class ImageGraphCut:
             boundary_penalties_fcn=local_ms_npenalty
         )
 
+        self.stats["t5"] = (time.time() - start)
+
 # get unique set
         # remove repetitive link from one pixel to another
-        nlinks = np.array(
-            [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
-        )
+        nlinks = ms_remove_repetitive_link(nlinks_not_unique)
         # now remove cycle link
+        self.stats["t6"] = (time.time() - start)
         nlinks = np.array([line for line in nlinks if line[0] != line[1]])
 
 
 
+        self.stats["t7"] = (time.time() - start)
         # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 # tlinks - indexes, data_merge
         ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
@@ -588,6 +616,7 @@ class ImageGraphCut:
                                           ms_seeds_lin,
                                           area_weight, hard_constraints)
 
+        self.stats["t8"] = (time.time() - start)
 # create potts pairwise
         # pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
@@ -598,12 +627,23 @@ class ImageGraphCut:
         # print 'nlinks sh ', nlinks.shape
         # print 'tlinks sh ', unariesalt.shape
 
+        # print "cut_from_graph"
+        # print "unaries sh ", unariesalt.reshape(-1,2).shape
+        # print "nlinks sh",  nlinks.shape
+        self.stats["t9"] = (time.time() - start)
+        self.stats['tlinks shape'].append(unariesalt.reshape(-1,2).shape)
+        self.stats['nlinks shape'].append(nlinks.shape)
+        import time
+        start = time.time()
     # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
             pairwise
         )
+
+        elapsed = (time.time() - start)
+        self.stats['gc time'] = elapsed
 
 # probably not necessary
 #        del nlinks
@@ -879,6 +919,7 @@ class ImageGraphCut:
 # diffs.insert(0,
         return filtered
 
+
     def __similarity_for_tlinks_obj_bgr(self, data, voxels1, voxels2,
                                         seeds, otherfeatures=None):
         """
@@ -886,12 +927,18 @@ class ImageGraphCut:
         and texture.
         """
 
+        # TODO rename voxels1 and voxels2
+        # voxe1s1 and voxels2 are used only in this function for multiscale graphcut
+        # threre can be some
+
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
 
         mdl = Model(modelparams=self.modelparams)
-        mdl.trainFromImageAndSeeds(data, seeds, 1)
-        mdl.trainFromImageAndSeeds(data, seeds, 2)
+        # mdl.trainFromImageAndSeeds(data, seeds, 1)
+        # mdl.trainFromImageAndSeeds(data, seeds, 2)
+        mdl.trainFromSomething(data, seeds, 1, voxels1)
+        mdl.trainFromSomething(data, seeds, 2, voxels2)
         # mdl.train(voxels1, 1)
         # mdl.train(voxels2, 2)
         # pdb.set_trace();
@@ -981,6 +1028,8 @@ class ImageGraphCut:
         """
 # use the gerneral graph algorithm
 # first, we construct the grid graph
+        import time
+        start = time.time()
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
         # if not self.segparams['use_boundary_penalties'] and \
@@ -992,7 +1041,7 @@ class ImageGraphCut:
             edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
 
         else:
-            # print 'use_boundary_penalties'
+            print 'use_boundary_penalties'
             # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
             logger.debug('use_boundary_penalties')
@@ -1028,7 +1077,10 @@ class ImageGraphCut:
 
         # import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
-# edges - seznam indexu hran, kteres spolu sousedi
+# edges - seznam indexu hran, kteres spolu sousedi\
+        elapsed = (time.time() - start)
+        self.stats['_create_nlinks time'] = elapsed
+        print "__create nlinks time ", elapsed
         return edges
 
     def set_data(self, data, voxels1, voxels2,
@@ -1075,15 +1127,24 @@ class ImageGraphCut:
         # print 'tlinks sh ', unariesalt.shape
 # edges - seznam indexu hran, kteres spolu sousedi
 
+        # print "cut_from_graph"
+        # print "unaries sh ", unariesalt.reshape(-1,2).shape
+        # print "nlinks sh",  nlinks.shape
+
+        self.stats['tlinks shape'].append(unariesalt.reshape(-1,2).shape)
+        self.stats['nlinks shape'].append(nlinks.shape)
 # we flatten the unaries
         # result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2),
         # pairwise)
+        import time
+        start = time.time()
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
             pairwise
         )
-
+        elapsed = (time.time() - start)
+        self.stats['gc time'] = elapsed
 # probably not necessary
 #        del nlinks
 #        del unariesalt
@@ -1093,6 +1154,127 @@ class ImageGraphCut:
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
+
+
+def resize_to_shape(data, shape, zoom=None, mode='nearest', order=0):
+    """
+    Function resize input data to specific shape.
+    :param data: input 3d array-like data
+    :param shape: shape of output data
+    :param zoom: zoom is used for back compatibility
+    :mode: default is 'nearest'
+    """
+    # @TODO remove old code in except part
+    # TODO use function from library in future
+
+    try:
+        # rint 'pred vyjimkou'
+        # aise Exception ('test without skimage')
+        # rint 'za vyjimkou'
+        import skimage
+        import skimage.transform
+# Now we need reshape  seeds and segmentation to original size
+
+        segm_orig_scale = skimage.transform.resize(
+            data, shape, order=0,
+            preserve_range=True
+        )
+
+        segmentation = segm_orig_scale
+        logger.debug('resize to orig with skimage')
+    except:
+        if zoom is None:
+            zoom = shape / np.asarray(data.shape).astype(np.double)
+        segmentation = resize_to_shape_with_zoom(
+            data,
+            zoom=zoom,
+            mode=mode,
+            order=order
+        )
+
+    return segmentation
+
+def resize_to_shape_with_zoom(data, shape, zoom, mode='nearest', order=0):
+    import scipy
+    import scipy.ndimage
+    dtype = data.dtype
+
+    segm_orig_scale = scipy.ndimage.zoom(
+        data,
+        1.0 / zoom,
+        mode=mode,
+        order=order
+    ).astype(dtype)
+    logger.debug('resize to orig with scipy.ndimage')
+
+# @TODO odstranit hack pro oříznutí na stejnou velikost
+# v podstatě je to vyřešeno, ale nechalo by se to dělat elegantněji v zoom
+# tam je bohužel patrně bug
+    # rint 'd3d ', self.data3d.shape
+    # rint 's orig scale shape ', segm_orig_scale.shape
+    shp = [
+        np.min([segm_orig_scale.shape[0], shape[0]]),
+        np.min([segm_orig_scale.shape[1], shape[1]]),
+        np.min([segm_orig_scale.shape[2], shape[2]]),
+    ]
+    # elf.data3d = self.data3d[0:shp[0], 0:shp[1], 0:shp[2]]
+    # mport ipdb; ipdb.set_trace() # BREAKPOINT
+
+    segmentation = np.zeros(shape, dtype=dtype)
+    segmentation[
+        0:shp[0],
+        0:shp[1],
+        0:shp[2]] = segm_orig_scale[0:shp[0], 0:shp[1], 0:shp[2]]
+
+    del segm_orig_scale
+    return segmentation
+
+def seed_zoom(seeds, zoom):
+    """
+    Smart zoom for sparse matrix. If there is resize to bigger resolution
+    thin line of label could be lost. This function prefers labels larger
+    then zero. If there is only one small voxel in larger volume with zeros
+    it is selected.
+    """
+    # import scipy
+    # loseeds=seeds
+    labels = np.unique(seeds)
+    # remove first label - 0
+    labels = np.delete(labels, 0)
+    # @TODO smart interpolation for seeds in one block
+    #        loseeds = scipy.ndimage.interpolation.zoom(
+    #            seeds, zoom, order=0)
+    loshape = np.ceil(np.array(seeds.shape) * 1.0 / zoom).astype(np.int)
+    loseeds = np.zeros(loshape, dtype=np.int8)
+    loseeds = loseeds.astype(np.int8)
+    for label in labels:
+        a, b, c = np.where(seeds == label)
+        loa = np.round(a / zoom)
+        lob = np.round(b / zoom)
+        loc = np.round(c / zoom)
+        # loseeds = np.zeros(loshape)
+
+        loseeds[loa, lob, loc] += label
+        # this is to detect conflict seeds
+        loseeds[loseeds > label] = 100
+
+    # remove conflict seeds
+    loseeds[loseeds > 99] = 0
+
+    # import py3DSeedEditor
+    # ped = py3DSeedEditor.py3DSeedEditor(loseeds)
+    # ped.show()
+
+    return loseeds
+
+def ms_remove_repetitive_link(nlinks_not_unique):
+    # nlinks = np.array(
+    #     [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
+    # )
+    a = nlinks_not_unique
+    nlinks = np.unique(a.view(np.dtype((np.void, a.dtype.itemsize*a.shape[1])))).view(a.dtype).reshape(-1, a.shape[1])
+
+    return nlinks
 
 def zoom_to_shape(data, shape, dtype=None):
     """
