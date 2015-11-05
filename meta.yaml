@@ -30,13 +30,11 @@ requirements:
   build:
     - python
     - setuptools
-    - pyqt
     - numpy
     - scipy
 
   run:
     - python
-    - pyqt
     - numpy
     - scipy
 
