@@ -1,9 +1,9 @@
 package:
   name: pysegbase
-  version: "1.0.44"
+  version: "1.0.45"
 
 source:
-  git_rev: 1.0.44
+  git_rev: 1.0.45
   git_url: https://github.com/mjirik/pyseg_base.git
 #  patches:
    # List any patch files here
