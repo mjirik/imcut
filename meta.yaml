@@ -32,11 +32,15 @@ requirements:
     - setuptools
     - numpy
     - scipy
+    - pyqt
+    - pydicom
 
   run:
     - python
     - numpy
     - scipy
+    - pyqt
+    - pydicom
 
 test:
   # Python imports
