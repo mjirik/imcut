@@ -68,6 +68,7 @@ class Model:
         voxel - information in voxel1 and voxel2 is used
     """
 
+
     def __init__(self, nObjects=2, modelparams={}):
 
         # fix change of cvtype and covariancetype
@@ -79,7 +80,14 @@ class Model:
 
         self.mdl = {}
         self.modelparams = defaultmodelparams.copy()
+        self.modelparams.update({
+            'forbid_retraining': False,
+        })
         self.modelparams.update(modelparams)
+        if "mdl_stored_file" in self.modelparams.keys() and self.modelparams['mdl_stored_file']:
+            mdl_file = self.modelparams['mdl_stored_file']
+            self.load(mdl_file)
+
 
     def trainFromImageAndSeeds(self, data, seeds, cl):
         """
@@ -105,8 +113,25 @@ class Model:
         """
         Input data is 3d image
 
+        :param data: is 3d image
+        :param seeds: ndimage with same shape as data, nonzero values means seeds.
+        :param cl: can select only fv for seeds from specific class
+
         funcion is called twice in graph cut
         first call is with all params, second is only with data.
+
+        based on self.modelparams['fv_type'] the feature vector is computed
+        keywords "intensity", "voxels", "fv001", "fv_extern"  can be used.
+        modelparams['fv_type'] = 'fv_extern' allows to use external fv function
+
+        def fv_function(data, seeds=None, cl=None):
+            if seeds is None:
+                fv = np.asarray(data).reshape(-1,1)
+            else:
+                fv = np.asarray(data[seeds==cl]).reshape(-1,1)
+            return fv
+
+        modelparams['fv_exter'] = fv_function
         """
         fv_type = self.modelparams['fv_type']
         logger.debug("fv_type " + fv_type)
@@ -150,6 +175,9 @@ class Model:
             # print fv1.shape
             # print fv2.shape
             # print fv.shape
+        elif fv_type == "fv_extern":
+            fv_function = self.modelparams['fv_extern']
+            fv = fv_function(data, seeds, cl)
 
         else:
             logger.error("Unknown feature vector type: " +
@@ -157,6 +185,30 @@ class Model:
         return fv
 
     def train(self, clx, cl):
+        """
+
+        Args:
+            clx: feature vector
+            cl: class, scalar or array
+
+        Returns:
+
+        """
+        # TODO for now only sclar is used. Do not use scalar cl if future.
+        # Model is not trained from other class konwledge
+        # use model trained by all classes number.
+        if np.isscalar(cl):
+            self._train_one_class(clx, cl)
+        else:
+            cl = np.asarray(clx)
+            clx = np.asarray(clx)
+            for cli in np.unique(cl):
+                selection = clx==cli
+                self._train_one_class(clx[selection], cli)
+
+        pass
+
+    def _train_one_class(self, clx, cl):
         """ Train clas number cl with data clx.
 
         Use trainFromImageAndSeeds() function if you want to use 3D image data
@@ -173,6 +225,9 @@ class Model:
         # name = 'clx' + str(cl) + '.npy'
         # print name
         # np.save(name, clx)
+        if self.modelparams['forbid_retraining']:
+            if cl in self.mdl.keys():
+                return
 
         if self.modelparams['type'] == 'gmmsame':
             if len(clx.shape) == 1:
@@ -217,8 +272,9 @@ class Model:
             # Classifer is trained before segmentation and stored to pickle
             import pickle
             print "stored"
-            mdl_file = self.modelparams['params']['mdl_file']
+            logger.warning("deprecated use of stored parameters")
 
+            mdl_file = self.modelparams['params']['mdl_file']
             self.mdl = pickle.load(open(mdl_file, "rb"))
 
         else:
@@ -226,14 +282,25 @@ class Model:
 
         # pdb.set_trace();
 # TODO remove saving
-        self.save('classif.p')
+#         self.save('classif.p')
 
     def save(self, filename):
         """
         Save model to pickle file
         """
-        import pickle
-        pickle.dump(self.mdl, open(filename, "wb"))
+        import dill as pickle
+        sv = {
+            'modelparams': self.modelparams,
+            'mdl': self.mdl
+
+        }
+        pickle.dump(sv, open(filename, "wb"))
+
+    def load(self, mdl_file):
+        import dill as pickle
+        sv = pickle.load(open(mdl_file, "rb"))
+        self.mdl = sv['mdl']
+        self.modelparams.update(sv['modelparams'])
 
     def likelihoodFromImage(self, data, cl):
         sha = data.shape
@@ -325,6 +392,8 @@ class ImageGraphCut:
             'return_only_object_with_seeds': False,
             'use_old_similarity': True  # New similarity not implemented @TODO
         }
+        if 'modelparams' in segparams.keys():
+            modelparams = segparams['modelparams']
         self.segparams.update(segparams)
 
         self.img = img
@@ -350,6 +419,7 @@ class ImageGraphCut:
             'tlinks shape':[],
             'nlinks shape': []
         }
+        self.mdl = Model(modelparams=self.modelparams)
 
     def interactivity_loop(self, pyed):
         # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
@@ -934,11 +1004,10 @@ class ImageGraphCut:
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
 
-        mdl = Model(modelparams=self.modelparams)
         # mdl.trainFromImageAndSeeds(data, seeds, 1)
         # mdl.trainFromImageAndSeeds(data, seeds, 2)
-        mdl.trainFromSomething(data, seeds, 1, voxels1)
-        mdl.trainFromSomething(data, seeds, 2, voxels2)
+        self.mdl.trainFromSomething(data, seeds, 1, voxels1)
+        self.mdl.trainFromSomething(data, seeds, 2, voxels2)
         # mdl.train(voxels1, 1)
         # mdl.train(voxels2, 2)
         # pdb.set_trace();
@@ -950,8 +1019,8 @@ class ImageGraphCut:
 # R(bck) = -ln( Pr (Ip | B) )
 # Boykov2001b
 # ln is computed in likelihood
-        tdata1 = (-(mdl.likelihoodFromImage(data, 1))) * 10
-        tdata2 = (-(mdl.likelihoodFromImage(data, 2))) * 10
+        tdata1 = (-(self.mdl.likelihoodFromImage(data, 1))) * 10
+        tdata2 = (-(self.mdl.likelihoodFromImage(data, 2))) * 10
 
         if self.debug_images:
             # Show model parameters
@@ -971,8 +1040,8 @@ class ImageGraphCut:
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
                 hstx = np.linspace(-1000, 1000, 400)
-                ax.plot(hstx, np.exp(mdl.likelihoodFromImage(hstx, 1)))
-                ax.plot(hstx, np.exp(mdl.likelihoodFromImage(hstx, 2)))
+                ax.plot(hstx, np.exp(self.mdl.likelihoodFromImage(hstx, 1)))
+                ax.plot(hstx, np.exp(self.mdl.likelihoodFromImage(hstx, 2)))
 
 # histogram
                 fig = plt.figure()
@@ -1154,6 +1223,9 @@ class ImageGraphCut:
         result_labeling = result_graph.reshape(data.shape)
 
         return result_labeling
+
+    def save(self, filename):
+        self.mdl.save(filename)
 
 
 def resize_to_shape(data, shape, zoom=None, mode='nearest', order=0):

@@ -44,6 +44,107 @@ class PycutTest(unittest.TestCase):
         elapsed = (time.time() - start)
         # print "elapsed ", elapsed
 
+    def test_external_fv(self):
+        """
+        Test multiscale segmentation
+        """
+        def fv_function(data, seeds=None, cl=None):
+            # data = np.random.random(data.shape)
+            # data = (data * 100).astype(np.int)
+            if seeds is None:
+                fv = np.asarray(data).reshape(-1,1)
+            else:
+                fv = np.asarray(data[seeds==cl]).reshape(-1,1)
+            return fv
+
+        img, seg, seeds = self.make_data(64, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'fv_type': "fv_extern",
+                'fv_extern': fv_function,
+            }
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
+        # import sed3
+        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        # ed.show()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+
+    def test_external_fv_with_save(self):
+        """
+        Test multiscale segmentation
+        """
+        def fv_function(data, seeds=None, cl=None):
+            # data = np.random.random(data.shape)
+            # data = (data * 100).astype(np.int)
+            if seeds is None:
+                fv = np.asarray(data).reshape(-1,1)
+            else:
+                fv = np.asarray(data[seeds==cl]).reshape(-1,1)
+            return fv
+
+        img, seg, seeds = self.make_data(64, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                'fv_type': "fv_extern",
+                'fv_extern': fv_function,
+            }
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
+        # import sed3
+        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        # ed.show()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+
+        mdl_stored_file = "test_model.p"
+        gc.save(mdl_stored_file)
+
+        # forget
+        gc = None
+
+
+        # there is only one change in mdl params
+        segparams['modelparams']['mdl_stored_file'] = mdl_stored_file
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+        os.remove(mdl_stored_file)
+
+
     def test_multiscale_gc_seg(self):
         """
         Test multiscale segmentation
