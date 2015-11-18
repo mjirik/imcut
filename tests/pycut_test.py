@@ -143,13 +143,22 @@ class PycutTest(unittest.TestCase):
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
             600)
+        # import sed3
+        # sed3.show_slices(img, contour=gc.segmentation==0, slice_step=6)
 
 
         # if we change the data there should be more error (assertMore)
-        img = img * 2
+        img = (img * 0.2).astype(np.uint8)
+        segparams['modelparams']['forbid_retraining'] = True
+        print np.max(img)
+        print np.min(img)
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
         gc.run()
+
+        m0 = gc.mdl.mdl[1]
+        m1 = gc.mdl.mdl[2]
+        print "model parameters"
 
         self.assertGreater(
             np.sum(
@@ -157,6 +166,7 @@ class PycutTest(unittest.TestCase):
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
             600)
+        import sed3
 
         os.remove(mdl_stored_file)
 

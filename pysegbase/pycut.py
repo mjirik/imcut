@@ -79,10 +79,10 @@ class Model:
         self.modelparams.update({
             'forbid_retraining': False,
         })
-        self.modelparams.update(modelparams)
-        if "mdl_stored_file" in self.modelparams.keys() and self.modelparams['mdl_stored_file']:
-            mdl_file = self.modelparams['mdl_stored_file']
+        if "mdl_stored_file" in modelparams.keys() and modelparams['mdl_stored_file']:
+            mdl_file = modelparams['mdl_stored_file']
             self.load(mdl_file)
+        self.modelparams.update(modelparams)
 
     def trainFromImageAndSeeds(self, data, seeds, cl):
         """
@@ -276,8 +276,8 @@ class Model:
             raise NameError("Unknown model type")
 
             # pdb.set_trace();
-        # TODO remove saving
-        #         self.save('classif.p')
+            # TODO remove saving
+            #         self.save('classif.p')
 
     def save(self, filename):
         """
@@ -603,7 +603,7 @@ class ImageGraphCut:
             import sed3
             pd = sed3.sed3(seg)  # ), contour=seg)
             pd.show()
-        #        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
+        # segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
         #                                                order=0).astype('int8')
         self.stats["t3"] = (time.time() - start)
         # step 3: indexes of new dual graph
