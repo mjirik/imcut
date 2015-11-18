@@ -34,6 +34,7 @@ requirements:
     - scipy
     - pyqt
     - pydicom
+    - dill
 
   run:
     - python
@@ -41,6 +42,7 @@ requirements:
     - scipy
     - pyqt
     - pydicom
+    - dill
 
 test:
   # Python imports
