@@ -130,6 +130,7 @@ class PycutTest(unittest.TestCase):
         gc = None
 
 
+        img, seg, seeds = self.make_data(56, 18)
         # there is only one change in mdl params
         segparams['modelparams']['mdl_stored_file'] = mdl_stored_file
         gc = pycut.ImageGraphCut(img, segparams=segparams)
@@ -142,6 +143,21 @@ class PycutTest(unittest.TestCase):
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
             600)
+
+
+        # if we change the data there should be more error (assertMore)
+        img = img * 2
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        self.assertGreater(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+
         os.remove(mdl_stored_file)
 
 
