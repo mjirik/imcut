@@ -13,22 +13,20 @@ $ pycat -f head.mat -o brain.mat
 import argparse
 import sys
 import logging
+
 logger = logging.getLogger(__name__)
 
 from scipy.io import loadmat
 import numpy as np
 import copy
-
 import pygco
 # from pygco import cut_from_graph
 
 import sklearn
 import sklearn.mixture
-
 # version comparison
 from pkg_resources import parse_version
 import scipy.ndimage
-
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
     # new versions
@@ -50,7 +48,6 @@ methods = ['graphcut', 'multiscale_graphcut']
 
 
 class Model:
-
     """ Model for image intensity. Last dimension represent feature vector.
     m = Model()
     m.train(cla, clb)
@@ -68,13 +65,12 @@ class Model:
         voxel - information in voxel1 and voxel2 is used
     """
 
-
     def __init__(self, nObjects=2, modelparams={}):
 
         # fix change of cvtype and covariancetype
         # print modelparams
-        if 'params' in modelparams.keys() and\
-                gmm__cvtype_bad in modelparams['params']:
+        if 'params' in modelparams.keys() and \
+                        gmm__cvtype_bad in modelparams['params']:
             value = modelparams['params'].pop(gmm__cvtype_bad)
             modelparams['params'][gmm__cvtype] = value
 
@@ -87,7 +83,6 @@ class Model:
         if "mdl_stored_file" in self.modelparams.keys() and self.modelparams['mdl_stored_file']:
             mdl_file = self.modelparams['mdl_stored_file']
             self.load(mdl_file)
-
 
     def trainFromImageAndSeeds(self, data, seeds, cl):
         """
@@ -147,10 +142,10 @@ class Model:
             else:
                 fv = data
                 fv = fv.reshape(-1, 1)
-            # print fv.shape
+                # print fv.shape
         elif fv_type in ("voxels"):
             if seeds is not None:
-                fv = np.asarray(voxels).reshape(-1,1)
+                fv = np.asarray(voxels).reshape(-1, 1)
             else:
                 fv = data
                 fv = fv.reshape(-1, 1)
@@ -203,7 +198,7 @@ class Model:
             cl = np.asarray(clx)
             clx = np.asarray(clx)
             for cli in np.unique(cl):
-                selection = clx==cli
+                selection = clx == cli
                 self._train_one_class(clx[selection], cli)
 
         pass
@@ -262,11 +257,11 @@ class Model:
             # print 'cl ', cl
             gmmparams = self.modelparams['params']
             self.mdl[cl] = sklearn.mixture.DPGMM(**gmmparams)
-# todo here is a hack
-# dpgmm z nějakého důvodu nefunguje pro naše data
-# vždy natrénuje jednu složku v blízkosti nuly
-# patrně to bude mít něco společného s parametrem alpha
-# přenásobí-li se to malým číslem, zázračně to chodí
+            # todo here is a hack
+            # dpgmm z nějakého důvodu nefunguje pro naše data
+            # vždy natrénuje jednu složku v blízkosti nuly
+            # patrně to bude mít něco společného s parametrem alpha
+            # přenásobí-li se to malým číslem, zázračně to chodí
             self.mdl[cl].fit(clx * 0.001)
         elif self.modelparams['type'] == 'stored':
             # Classifer is trained before segmentation and stored to pickle
@@ -280,9 +275,9 @@ class Model:
         else:
             raise NameError("Unknown model type")
 
-        # pdb.set_trace();
-# TODO remove saving
-#         self.save('classif.p')
+            # pdb.set_trace();
+        # TODO remove saving
+        #         self.save('classif.p')
 
     def save(self, filename):
         """
@@ -326,8 +321,8 @@ class Model:
 
             px = self.mdl[cl].score(x)
 
-# todo ošetřit více dimenzionální fv
-            # px = px.reshape(outsha)
+        # todo ošetřit více dimenzionální fv
+        # px = px.reshape(outsha)
         elif self.modelparams['type'] == 'kernel':
             px = self.mdl[cl].score_samples(x)
         elif self.modelparams['type'] == 'gaussian_kde':
@@ -354,7 +349,6 @@ class Model:
 
 
 class ImageGraphCut:
-
     """
     Interactive Graph Cut.
 
@@ -381,7 +375,7 @@ class ImageGraphCut:
                      str(segparams) + " voxelsize: " + str(voxelsize) +
                      " debug_images: " + str(debug_images))
 
-# default values                              use_boundary_penalties
+        # default values                              use_boundary_penalties
         # self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
         self.segparams = {
             'method': 'graphcut',
@@ -415,8 +409,8 @@ class ImageGraphCut:
             self.voxel_volume = None
 
         self.interactivity_counter = 0
-        self.stats={
-            'tlinks shape':[],
+        self.stats = {
+            'tlinks shape': [],
             'nlinks shape': []
         }
         self.mdl = Model(modelparams=self.modelparams)
@@ -464,7 +458,6 @@ class ImageGraphCut:
         logger.debug('interactivity counter: ' +
                      str(self.interactivity_counter))
 
-
     def __uniform_npenalty_fcn(self, orig_shape):
         return np.ones(orig_shape, dtype=np.int8)
 
@@ -483,26 +476,22 @@ class ImageGraphCut:
         # TILE_ZOOM_CONSTANT = self.segparams['block_size'] * 2**0.5
         TILE_ZOOM_CONSTANT = 0.25
 
-
-        
-
         # ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
         # # for axis in range(0,dim):
         # # filtered = scf.prewitt(self.img, axis=axis)
         maskz = zoom_to_shape(mask, orig_shape)
         # maskz = 1 - maskz.astype(np.int8)
         # maskz = (maskz * (ms_zoom - 1)) + 1
-        
+
 
         maskz_new = np.zeros(orig_shape, dtype=np.int16)
-        maskz_new[maskz==0] = ms_zoom * self.segparams['tile_zoom_constant']
-        maskz_new[maskz==1] = 1
+        maskz_new[maskz == 0] = ms_zoom * self.segparams['tile_zoom_constant']
+        maskz_new[maskz == 1] = 1
         # import sed3
         # ed = sed3.sed3(maskz_new)
         # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
         return maskz_new
-
 
     def __general_gc(self):
         pass
@@ -525,8 +514,8 @@ class ImageGraphCut:
         import scipy
         import scipy.ndimage
         logger.debug('performing multiscale_gc')
-# default parameters
-# TODO segparams_lo and segparams_hi je tam asi zbytecně
+        # default parameters
+        # TODO segparams_lo and segparams_hi je tam asi zbytecně
         sparams_lo = {
             'boundary_dilatation_distance': 2,
             'block_size': 6,
@@ -542,10 +531,8 @@ class ImageGraphCut:
         #         sparams_lo['block_size'])
         self.segparams = sparams_lo
 
-
-
         self.stats["t1"] = (time.time() - start)
-# step 1:  low res GC
+        # step 1:  low res GC
         hiseeds = self.seeds
         # ms_zoom = 4  # 0.125 #self.segparams['scale']
         ms_zoom = self.segparams['block_size']
@@ -575,7 +562,8 @@ class ImageGraphCut:
         img_orig = self.img
 
         # TODO this should be done with resize_to_shape_whith_zoom
-        self.img = scipy.ndimage.interpolation.zoom(img_orig, np.asarray(loseeds.shape).astype(np.float)/img_orig.shape,
+        self.img = scipy.ndimage.interpolation.zoom(img_orig,
+                                                    np.asarray(loseeds.shape).astype(np.float) / img_orig.shape,
                                                     order=0)
         # self.img = resize_to_shape_with_zoom(img_orig, loseeds.shape, 1.0 / ms_zoom, order=0)
 
@@ -592,7 +580,7 @@ class ImageGraphCut:
         # back to normal parameters
         self.modelparams = modelparams_hi
         self.stats["t2"] = (time.time() - start)
-# step 2: discontinuity localization
+        # step 2: discontinuity localization
         # self.segparams = sparams_hi
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
         logger.debug(str(np.max(segl)))
@@ -615,10 +603,10 @@ class ImageGraphCut:
             import sed3
             pd = sed3.sed3(seg)  # ), contour=seg)
             pd.show()
-#        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
-#                                                order=0).astype('int8')
+        #        segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
+        #                                                order=0).astype('int8')
         self.stats["t3"] = (time.time() - start)
-# step 3: indexes of new dual graph
+        # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
@@ -643,12 +631,13 @@ class ImageGraphCut:
         def local_ms_npenalty(x):
             return self.__ms_npenalty_fcn(x, seg, ms_zoom, orig_shape)
             # return self.__uniform_npenalty_fcn(orig_shape)
+
         # ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
         #                                                    orig_shape)
 
 
         self.stats["t4"] = (time.time() - start)
-# here are not unique couples of nodes
+        # here are not unique couples of nodes
         nlinks_not_unique = self.__create_nlinks(
             ms_img,
             msinds,
@@ -658,18 +647,16 @@ class ImageGraphCut:
 
         self.stats["t5"] = (time.time() - start)
 
-# get unique set
+        # get unique set
         # remove repetitive link from one pixel to another
         nlinks = ms_remove_repetitive_link(nlinks_not_unique)
         # now remove cycle link
         self.stats["t6"] = (time.time() - start)
         nlinks = np.array([line for line in nlinks if line[0] != line[1]])
 
-
-
         self.stats["t7"] = (time.time() - start)
         # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
-# tlinks - indexes, data_merge
+        # tlinks - indexes, data_merge
         ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
         seeds = hiseeds
         # seeds = pyed.getSeeds()
@@ -687,7 +674,7 @@ class ImageGraphCut:
                                           area_weight, hard_constraints)
 
         self.stats["t8"] = (time.time() - start)
-# create potts pairwise
+        # create potts pairwise
         # pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
         pairwise = (self.segparams['pairwise_alpha'] * pairwise
@@ -701,11 +688,11 @@ class ImageGraphCut:
         # print "unaries sh ", unariesalt.reshape(-1,2).shape
         # print "nlinks sh",  nlinks.shape
         self.stats["t9"] = (time.time() - start)
-        self.stats['tlinks shape'].append(unariesalt.reshape(-1,2).shape)
+        self.stats['tlinks shape'].append(unariesalt.reshape(-1, 2).shape)
         self.stats['nlinks shape'].append(nlinks.shape)
         import time
         start = time.time()
-    # Same functionality is in self.seg_data()
+        # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
@@ -715,9 +702,9 @@ class ImageGraphCut:
         elapsed = (time.time() - start)
         self.stats['gc time'] = elapsed
 
-# probably not necessary
-#        del nlinks
-#        del unariesalt
+        # probably not necessary
+        #        del nlinks
+        #        del unariesalt
 
         # print "unaries %.3g , %.3g" % (np.max(unariesalt),np.min(unariesalt))
         # @TODO get back original data
@@ -748,12 +735,12 @@ class ImageGraphCut:
         """
         # get unique labels and their first indexes
         # lab, linds = np.unique(inds, return_index=True)
-# compute values by indexes
+        # compute values by indexes
         # values = data.reshape(-1)[linds]
 
-# alternative slow implementation
-# if there are different data on same index, it will take
-# maximal value
+        # alternative slow implementation
+        # if there are different data on same index, it will take
+        # maximal value
         # lab = np.unique(inds)
         # values = [0]*len(lab)
         # for label in lab:
@@ -761,7 +748,7 @@ class ImageGraphCut:
         #
         # values = np.asarray(values)
 
-# yet another implementation
+        # yet another implementation
         values = [None] * (np.max(inds) + 1)
 
         linear_inds = inds.ravel()
@@ -784,16 +771,16 @@ class ImageGraphCut:
         """  Makes relabeling of data if there are unused values.  """
         palette, index = np.unique(data, return_inverse=True)
         data = index.reshape(data.shape)
-# realy slow solution
-#        unq = np.unique(data)
-#        actual_label = 0
-#        for lab in unq:
-#            data[data == lab] = actual_label
-#            actual_label += 1
+        # realy slow solution
+        #        unq = np.unique(data)
+        #        actual_label = 0
+        #        for lab in unq:
+        #            data[data == lab] = actual_label
+        #            actual_label += 1
 
         # one another solution probably slower
         # arr = data
-# data = (np.digitize(arr.reshape(-1,),np.unique(arr))-1).reshape(arr.shape)
+        # data = (np.digitize(arr.reshape(-1,),np.unique(arr))-1).reshape(arr.shape)
 
         return data
 
@@ -816,7 +803,7 @@ class ImageGraphCut:
 
         inds_small = np.arange(mask.size).reshape(mask.shape)
         inds_small_in_orig = zoom_to_shape(inds_small,
-                                                  orig_shape, dtype=np.int8)
+                                           orig_shape, dtype=np.int8)
         inds_orig = np.arange(np.prod(orig_shape)).reshape(orig_shape)
 
         # inds_orig = inds_orig * mask_orig
@@ -825,7 +812,7 @@ class ImageGraphCut:
         # import py3DSeedEditor as ped
         # import pdb; pdb.set_trace() # BREAKPOINT
 
-#  '==' is not the same as 'is' for numpy.array
+        #  '==' is not the same as 'is' for numpy.array
         inds_small_in_orig[mask_orig == True] = inds_orig[mask_orig == True]  # noqa
         inds = inds_small_in_orig
         # print np.max(inds)
@@ -835,7 +822,7 @@ class ImageGraphCut:
         logger.debug("Minimal index after relabeling: " + str(np.min(inds)))
         # inds_orig[mask_orig==True] = 0
         # inds_small_in_orig[mask_orig==False] = 0
-# inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
+        # inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
 
         return inds
 
@@ -852,7 +839,6 @@ class ImageGraphCut:
 
         """
         inds1[mask == 1]
-
 
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
@@ -971,24 +957,23 @@ class ImageGraphCut:
             'ax %.1g max %.3g min %.3g  avg %.3g' % (
                 axis, np.max(filtered), np.min(filtered), np.mean(filtered))
         )
-#
-# @TODO Check why forumla with exp is not stable
-# Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
-# aby to slušně vycházelo, takže jsem si jí upravil
-# Originální vzorec je
-# Bpq = exp( - (Ip - Iq)^2 / (2 * \sigma^2) ) * 1 / dist(p,q)
-#        filtered = (-np.power(filtered,2)/(16*sigma))
-# Přičítám tu 256 což je empiricky zjištěná hodnota - aby to dobře vyšlo
-# nedávám to do exponenciely, protože je to numericky nestabilní
-# filtered = filtered + 255 # - np.min(filtered2) + 1e-30
-# Ještě by tady měl a následovat exponenciela, ale s ní je to numericky
-# nestabilní. Netuším proč.
-# if dim >= 1:
-# odecitame od sebe tentyz obrazek
-# df0 = self.img[:-1,:] - self.img[]
-# diffs.insert(0,
+        #
+        # @TODO Check why forumla with exp is not stable
+        # Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
+        # aby to slušně vycházelo, takže jsem si jí upravil
+        # Originální vzorec je
+        # Bpq = exp( - (Ip - Iq)^2 / (2 * \sigma^2) ) * 1 / dist(p,q)
+        #        filtered = (-np.power(filtered,2)/(16*sigma))
+        # Přičítám tu 256 což je empiricky zjištěná hodnota - aby to dobře vyšlo
+        # nedávám to do exponenciely, protože je to numericky nestabilní
+        # filtered = filtered + 255 # - np.min(filtered2) + 1e-30
+        # Ještě by tady měl a následovat exponenciela, ale s ní je to numericky
+        # nestabilní. Netuším proč.
+        # if dim >= 1:
+        # odecitame od sebe tentyz obrazek
+        # df0 = self.img[:-1,:] - self.img[]
+        # diffs.insert(0,
         return filtered
-
 
     def __similarity_for_tlinks_obj_bgr(self, data, voxels1, voxels2,
                                         seeds, otherfeatures=None):
@@ -1012,13 +997,13 @@ class ImageGraphCut:
         # mdl.train(voxels2, 2)
         # pdb.set_trace();
         # tdata = {}
-# as we convert to int, we need to multipy to get sensible values
+        # as we convert to int, we need to multipy to get sensible values
 
-# There is a need to have small vaues for good fit
-# R(obj) = -ln( Pr (Ip | O) )
-# R(bck) = -ln( Pr (Ip | B) )
-# Boykov2001b
-# ln is computed in likelihood
+        # There is a need to have small vaues for good fit
+        # R(obj) = -ln( Pr (Ip | O) )
+        # R(bck) = -ln( Pr (Ip | B) )
+        # Boykov2001b
+        # ln is computed in likelihood
         tdata1 = (-(self.mdl.likelihoodFromImage(data, 1))) * 10
         tdata2 = (-(self.mdl.likelihoodFromImage(data, 2))) * 10
 
@@ -1043,7 +1028,7 @@ class ImageGraphCut:
                 ax.plot(hstx, np.exp(self.mdl.likelihoodFromImage(hstx, 1)))
                 ax.plot(hstx, np.exp(self.mdl.likelihoodFromImage(hstx, 2)))
 
-# histogram
+                # histogram
                 fig = plt.figure()
                 plt.hist([voxels1, voxels2], 30)
 
@@ -1095,15 +1080,15 @@ class ImageGraphCut:
             pixels.
 
         """
-# use the gerneral graph algorithm
-# first, we construct the grid graph
+        # use the gerneral graph algorithm
+        # first, we construct the grid graph
         import time
         start = time.time()
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
         # if not self.segparams['use_boundary_penalties'] and \
         #         boundary_penalties_fcn is None :
-        if boundary_penalties_fcn is None :
+        if boundary_penalties_fcn is None:
             # This is faster for some specific format
             edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
             edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
@@ -1143,10 +1128,9 @@ class ImageGraphCut:
                 bpw * bpa[1:, :, :].ravel()
             ]
 
-
         # import pdb; pdb.set_trace()
         edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
-# edges - seznam indexu hran, kteres spolu sousedi\
+        # edges - seznam indexu hran, kteres spolu sousedi\
         elapsed = (time.time() - start)
         self.stats['_create_nlinks time'] = elapsed
         print "__create nlinks time ", elapsed
@@ -1166,11 +1150,11 @@ class ImageGraphCut:
 
         unariesalt = self.__create_tlinks(data, voxels1, voxels2, seeds,
                                           area_weight, hard_constraints)
-#  některém testu  organ semgmentation dosahují unaries -15. což je podiné
-# stačí vyhodit print před if a je to vidět
+        #  některém testu  organ semgmentation dosahují unaries -15. což je podiné
+        # stačí vyhodit print před if a je to vidět
         logger.debug("unaries %.3g , %.3g" % (
             np.max(unariesalt), np.min(unariesalt)))
-# create potts pairwise
+        # create potts pairwise
         # pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
         pairwise = (self.segparams['pairwise_alpha'] * pairwise
@@ -1182,27 +1166,27 @@ class ImageGraphCut:
 
         if self.segparams['use_boundary_penalties']:
             sigma = self.segparams['boundary_penalties_sigma']
-# set boundary penalties function
-# Default are penalties based on intensity differences
+            # set boundary penalties function
+            # Default are penalties based on intensity differences
             boundary_penalties_fcn = lambda ax: \
                 self.boundary_penalties_array(axis=ax, sigma=sigma)
         else:
             boundary_penalties_fcn = None
-        nlinks = self.__create_nlinks(data, 
-                boundary_penalties_fcn=boundary_penalties_fcn)
+        nlinks = self.__create_nlinks(data,
+                                      boundary_penalties_fcn=boundary_penalties_fcn)
 
         # print 'data shape ', data.shape
         # print 'nlinks sh ', nlinks.shape
         # print 'tlinks sh ', unariesalt.shape
-# edges - seznam indexu hran, kteres spolu sousedi
+        # edges - seznam indexu hran, kteres spolu sousedi
 
         # print "cut_from_graph"
         # print "unaries sh ", unariesalt.reshape(-1,2).shape
         # print "nlinks sh",  nlinks.shape
 
-        self.stats['tlinks shape'].append(unariesalt.reshape(-1,2).shape)
+        self.stats['tlinks shape'].append(unariesalt.reshape(-1, 2).shape)
         self.stats['nlinks shape'].append(nlinks.shape)
-# we flatten the unaries
+        # we flatten the unaries
         # result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2),
         # pairwise)
         import time
@@ -1214,9 +1198,9 @@ class ImageGraphCut:
         )
         elapsed = (time.time() - start)
         self.stats['gc time'] = elapsed
-# probably not necessary
-#        del nlinks
-#        del unariesalt
+        # probably not necessary
+        #        del nlinks
+        #        del unariesalt
 
         # print "unaries %.3g , %.3g" % (np.max(unariesalt),
         # np.min(unariesalt))
@@ -1245,7 +1229,7 @@ def resize_to_shape(data, shape, zoom=None, mode='nearest', order=0):
         # rint 'za vyjimkou'
         import skimage
         import skimage.transform
-# Now we need reshape  seeds and segmentation to original size
+        # Now we need reshape  seeds and segmentation to original size
 
         segm_orig_scale = skimage.transform.resize(
             data, shape, order=0,
@@ -1266,6 +1250,7 @@ def resize_to_shape(data, shape, zoom=None, mode='nearest', order=0):
 
     return segmentation
 
+
 def resize_to_shape_with_zoom(data, shape, zoom, mode='nearest', order=0):
     import scipy
     import scipy.ndimage
@@ -1279,9 +1264,9 @@ def resize_to_shape_with_zoom(data, shape, zoom, mode='nearest', order=0):
     ).astype(dtype)
     logger.debug('resize to orig with scipy.ndimage')
 
-# @TODO odstranit hack pro oříznutí na stejnou velikost
-# v podstatě je to vyřešeno, ale nechalo by se to dělat elegantněji v zoom
-# tam je bohužel patrně bug
+    # @TODO odstranit hack pro oříznutí na stejnou velikost
+    # v podstatě je to vyřešeno, ale nechalo by se to dělat elegantněji v zoom
+    # tam je bohužel patrně bug
     # rint 'd3d ', self.data3d.shape
     # rint 's orig scale shape ', segm_orig_scale.shape
     shp = [
@@ -1294,12 +1279,13 @@ def resize_to_shape_with_zoom(data, shape, zoom, mode='nearest', order=0):
 
     segmentation = np.zeros(shape, dtype=dtype)
     segmentation[
-        0:shp[0],
-        0:shp[1],
-        0:shp[2]] = segm_orig_scale[0:shp[0], 0:shp[1], 0:shp[2]]
+    0:shp[0],
+    0:shp[1],
+    0:shp[2]] = segm_orig_scale[0:shp[0], 0:shp[1], 0:shp[2]]
 
     del segm_orig_scale
     return segmentation
+
 
 def seed_zoom(seeds, zoom):
     """
@@ -1339,14 +1325,16 @@ def seed_zoom(seeds, zoom):
 
     return loseeds
 
+
 def ms_remove_repetitive_link(nlinks_not_unique):
     # nlinks = np.array(
     #     [list(x) for x in set(tuple(x) for x in nlinks_not_unique)]
     # )
     a = nlinks_not_unique
-    nlinks = np.unique(a.view(np.dtype((np.void, a.dtype.itemsize*a.shape[1])))).view(a.dtype).reshape(-1, a.shape[1])
+    nlinks = np.unique(a.view(np.dtype((np.void, a.dtype.itemsize * a.shape[1])))).view(a.dtype).reshape(-1, a.shape[1])
 
     return nlinks
+
 
 def zoom_to_shape(data, shape, dtype=None):
     """
@@ -1363,8 +1351,9 @@ def zoom_to_shape(data, shape, dtype=None):
     shpmin = np.minimum(dataout.shape, shape)
 
     dataout[:shpmin[0], :shpmin[1], :shpmin[2]] = datares[
-        :shpmin[0], :shpmin[1], :shpmin[2]]
+                                                  :shpmin[0], :shpmin[1], :shpmin[2]]
     return datares
+
 
 def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
     """
@@ -1421,7 +1410,7 @@ def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
                 else:
                     # Jakakoli dalsi iterace
                     returning = returning + data * \
-                        (dataLabels == arrayLabels[label])
+                                            (dataLabels == arrayLabels[label])
             else:
                 # Musime prodlouzit hledany interval, protoze jsme narazili na
                 # nulove pozadi.
@@ -1491,7 +1480,7 @@ def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
                     returning = data * (dataLabels == arrSeed[index])
                 else:
                     returning = returning + data * \
-                        (dataLabels == arrSeed[index])
+                                            (dataLabels == arrSeed[index])
 
                 if debug:
                     logger.debug((str(index)) + ':' + str(returning))
@@ -1505,6 +1494,8 @@ def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
                 'nenalezeny (DEBUG: function getPriorityObjects:' +
                 str(len(arrSeed) == 0))
             return None
+
+
 # class Tests(unittest.TestCase):
 #     def setUp(self):
 #         pass
@@ -1544,6 +1535,8 @@ help = {
     'debug_interactivity': "turn on interactive debug mode",
     'test': 'run unit test',
 }
+
+
 # @profile
 
 
@@ -1621,6 +1614,7 @@ def main():
     logger.debug('igc interactivity countr: ' + str(igc.interactivity_counter))
 
     logger.debug(igc.segmentation.shape)
+
 
 if __name__ == "__main__":
     main()
