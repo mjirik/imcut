@@ -84,26 +84,6 @@ class Model:
             self.load(mdl_file)
         self.modelparams.update(modelparams)
 
-    def trainFromImageAndSeeds(self, data, seeds, cl):
-        """
-        This Method allows computes feature vector and train model.
-
-        :cl: scalar index number of class
-        """
-        logger.debug('cl: ' + str(cl))
-        fv = self.createFV(data, seeds, cl)
-        self.train(fv, cl)
-
-    def trainFromSomething(self, data, seeds, cl, voxels):
-        """
-        This Method allows computes feature vector and train model.
-
-        :cl: scalar index number of class
-        """
-        logger.debug('cl: ' + str(cl))
-        fv = self.createFV(data, seeds, cl, voxels)
-        self.train(fv, cl)
-
     def createFV(self, data, seeds=None, cl=None, voxels=None):
         """
         Input data is 3d image
@@ -179,6 +159,26 @@ class Model:
                          self.modelparams['fv_type'])
         return fv
 
+    def trainFromImageAndSeeds(self, data, seeds, cl):
+        """
+        This Method allows computes feature vector and train model.
+
+        :cl: scalar index number of class
+        """
+        logger.debug('cl: ' + str(cl))
+        fv = self.createFV(data, seeds, cl)
+        self.train(fv, cl)
+
+    def trainFromSomething(self, data, seeds, cl, voxels):
+        """
+        This Method allows computes feature vector and train model.
+
+        :cl: scalar index number of class
+        """
+        logger.debug('cl: ' + str(cl))
+        fv = self.createFV(data, seeds, cl, voxels)
+        self.train(fv, cl)
+
     def train(self, clx, cl):
         """
 
@@ -223,6 +223,8 @@ class Model:
         if self.modelparams['forbid_retraining']:
             if cl in self.mdl.keys():
                 return
+
+
 
         if self.modelparams['type'] == 'gmmsame':
             if len(clx.shape) == 1:
@@ -549,6 +551,7 @@ class ImageGraphCut:
         # feature vector will be computed from selected voxels
         self.modelparams['fv_type'] = 'voxels'
 
+        # TODO what with voxels? It is used from here
         # hiseeds and hiimage is used to create intensity model
         self.voxels1 = self.img[hiseeds == 1]
         self.voxels2 = self.img[hiseeds == 2]
@@ -669,7 +672,7 @@ class ImageGraphCut:
         # logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
 
         unariesalt = self.__create_tlinks(ms_values_lin,
-                                          self.voxels1, self.voxels2,
+                                          # self.voxels1, self.voxels2,
                                           ms_seeds_lin,
                                           area_weight, hard_constraints)
 
@@ -975,7 +978,8 @@ class ImageGraphCut:
         # diffs.insert(0,
         return filtered
 
-    def __similarity_for_tlinks_obj_bgr(self, data, voxels1, voxels2,
+    def __similarity_for_tlinks_obj_bgr(self, data,
+                                        #voxels1, voxels2,
                                         seeds, otherfeatures=None):
         """
         Compute edge values for graph cut tlinks based on image intensity
@@ -989,14 +993,9 @@ class ImageGraphCut:
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
 
-        # mdl.trainFromImageAndSeeds(data, seeds, 1)
-        # mdl.trainFromImageAndSeeds(data, seeds, 2)
-        self.mdl.trainFromSomething(data, seeds, 1, voxels1)
-        self.mdl.trainFromSomething(data, seeds, 2, voxels2)
-        # mdl.train(voxels1, 1)
-        # mdl.train(voxels2, 2)
-        # pdb.set_trace();
-        # tdata = {}
+        self.mdl.trainFromSomething(data, seeds, 1, self.voxels1)
+        self.mdl.trainFromSomething(data, seeds, 2, self.voxels2)
+        # self.mdl.trainFromImageAndSeeds(data, seeds, [1, 2]),
         # as we convert to int, we need to multipy to get sensible values
 
         # There is a need to have small vaues for good fit
@@ -1030,7 +1029,9 @@ class ImageGraphCut:
 
                 # histogram
                 fig = plt.figure()
-                plt.hist([voxels1, voxels2], 30)
+                vx1 = data[seeds==1]
+                vx2 = data[seeds==2]
+                plt.hist([vx1, vx2], 30)
 
                 # plt.hist(voxels2)
 
@@ -1039,10 +1040,13 @@ class ImageGraphCut:
                 logger.debug('problem with showing debug images')
         return tdata1, tdata2
 
-    def __create_tlinks(self, data, voxels1, voxels2, seeds,
+    def __create_tlinks(self, data,
+                        # voxels1, voxels2,
+                        seeds,
                         area_weight, hard_constraints):
-        tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data, voxels1,
-                                                              voxels2, seeds)
+        tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data,
+                                                              # voxels1, voxels2,
+                                                              seeds)
 
         logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
         logger.debug('tdata2 min %f , max %f' % (tdata2.min(), tdata2.max()))
@@ -1148,7 +1152,9 @@ class ImageGraphCut:
         # pyqtRemoveInputHook()
         # import pdb; pdb.set_trace() # BREAKPOINT
 
-        unariesalt = self.__create_tlinks(data, voxels1, voxels2, seeds,
+        unariesalt = self.__create_tlinks(data,
+                                          # voxels1, voxels2,
+                                          seeds,
                                           area_weight, hard_constraints)
         #  některém testu  organ semgmentation dosahují unaries -15. což je podiné
         # stačí vyhodit print před if a je to vidět
