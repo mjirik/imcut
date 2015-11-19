@@ -18,7 +18,13 @@ def fv_function(data, seeds=None, cls=None):
     """
     Creates feature vector for only data or for data from classes
     """
-    fv = data.reshape(-1,1)
+
+    fv1 = data.reshape(-1,1)
+
+    data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=0.1)
+    fv2 = data2.reshape(-1,1)
+
+    fv = np.hstack([fv1, fv2])
 
     if seeds is not None:
         sd = seeds.reshape(-1,1)
@@ -96,9 +102,9 @@ class PycutTest(unittest.TestCase):
         out = fv_function(img)
         print out.shape
         out1, out2 = fv_function(img, seeds, [1,2])
-        print np.min(out1), np.max(out1)
-        print np.min(out2), np.max(out2)
-        self.assertEqual(np.prod(out.shape), np.prod(img.shape))
+        print np.min(out1), np.max(out1), out1.shape
+        print np.min(out2), np.max(out2), out2.shape
+        self.assertEqual(out.shape[0], np.prod(img.shape))
         self.assertEqual(out1.shape[0], out2.shape[0])
         self.assertEqual(np.min(out2), 1)
         self.assertEqual(np.max(out2), 2)
