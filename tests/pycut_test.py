@@ -48,13 +48,17 @@ class PycutTest(unittest.TestCase):
         """
         Test multiscale segmentation
         """
-        def fv_function(data, seeds=None, cl=None):
-            # data = np.random.random(data.shape)
-            # data = (data * 100).astype(np.int)
+        def fv_function(data, seeds=None, cls=None):
+            """
+            Creates feature vector for only data or for data from classes
+            """
+            fv = []
             if seeds is None:
                 fv = np.asarray(data).reshape(-1,1)
             else:
-                fv = np.asarray(data[seeds==cl]).reshape(-1,1)
+                for cl in cls:
+                    fvi = np.asarray(data[seeds==cl]).reshape(-1,1)
+                    fv.append(fvi)
             return fv
 
         img, seg, seeds = self.make_data(64, 20)
@@ -87,13 +91,17 @@ class PycutTest(unittest.TestCase):
         """
         Test multiscale segmentation
         """
-        def fv_function(data, seeds=None, cl=None):
-            # data = np.random.random(data.shape)
-            # data = (data * 100).astype(np.int)
+        def fv_function(data, seeds=None, cls=None):
+            """
+            Creates feature vector for only data or for data from classes
+            """
+            fv = []
             if seeds is None:
                 fv = np.asarray(data).reshape(-1,1)
             else:
-                fv = np.asarray(data[seeds==cl]).reshape(-1,1)
+                for cl in cls:
+                    fvi = np.asarray(data[seeds==cl]).reshape(-1,1)
+                    fv.append(fvi)
             return fv
 
         img, seg, seeds = self.make_data(64, 20)

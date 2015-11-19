@@ -84,7 +84,7 @@ class Model:
             self.load(mdl_file)
         self.modelparams.update(modelparams)
 
-    def createFV(self, data, seeds=None, cl=None, voxels=None):
+    def createFV(self, data, seeds=None, cls=None):# , voxels=None):
         """
         Input data is 3d image
 
@@ -108,41 +108,49 @@ class Model:
 
         modelparams['fv_exter'] = fv_function
         """
+
         fv_type = self.modelparams['fv_type']
         logger.debug("fv_type " + fv_type)
+        fv = []
         if fv_type == 'intensity':
 
             if seeds is not None:
-                try:
-                    fv = data[seeds == cl]
-                    fv = fv.reshape(-1, 1)
-                except:
-                    import ipdb
-                    ipdb.set_trace()
+                for cl in cls:
+                    try:
+                        fvi = data[seeds == cl]
+                        fvi = fvi.reshape(-1, 1)
+                        fv.append(fvi)
+                    except:
+                        import ipdb
+                        ipdb.set_trace()
             else:
                 fv = data
                 fv = fv.reshape(-1, 1)
                 # print fv.shape
-        elif fv_type in ("voxels"):
-            if seeds is not None:
-                fv = np.asarray(voxels).reshape(-1, 1)
-            else:
-                fv = data
-                fv = fv.reshape(-1, 1)
+        # elif fv_type in ("voxels"):
+        #     if seeds is not None:
+        #         fv = np.asarray(voxels).reshape(-1, 1)
+        #     else:
+        #         fv = data
+        #         fv = fv.reshape(-1, 1)
         elif fv_type == 'fv001':
             # intensity in pixel, gaussian blur intensity
             data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
             data2 = data2 - data
             if seeds is not None:
 
-                fv1 = data[seeds == cl].reshape(-1, 1)
-                fv2 = data2[seeds == cl].reshape(-1, 1)
+                for cl in cls:
+                    fv1 = data[seeds == cl].reshape(-1, 1)
+                    fv2 = data2[seeds == cl].reshape(-1, 1)
+                    fvi = np.hstack((fv1, fv2))
+                    fvi = fvi.reshape(-1, 2)
+                    fv.append(fvi)
             else:
                 fv1 = data.reshape(-1, 1)
                 fv2 = data2.reshape(-1, 1)
-            fv = np.hstack((fv1, fv2))
-            fv = fv.reshape(-1, 2)
-            logger.debug(str(fv[:10, :]))
+                fv = np.hstack((fv1, fv2))
+                fv = fv.reshape(-1, 2)
+                logger.debug(str(fv[:10, :]))
 
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
@@ -152,32 +160,34 @@ class Model:
             # print fv.shape
         elif fv_type == "fv_extern":
             fv_function = self.modelparams['fv_extern']
-            fv = fv_function(data, seeds, cl)
+            fv = fv_function(data, seeds, cls)
 
         else:
             logger.error("Unknown feature vector type: " +
                          self.modelparams['fv_type'])
         return fv
 
-    def trainFromImageAndSeeds(self, data, seeds, cl):
+    def trainFromImageAndSeeds(self, data, seeds, cls):
         """
         This Method allows computes feature vector and train model.
 
-        :cl: scalar index number of class
+        :cls: list of index number of requested classes in seeds
         """
-        logger.debug('cl: ' + str(cl))
-        fv = self.createFV(data, seeds, cl)
-        self.train(fv, cl)
+        fvs = self.createFV(data, seeds, cls)
+        for fv, cl in zip(fvs, cls):
+            logger.debug('cl: ' + str(cl))
+            self.train(fv, cl)
 
-    def trainFromSomething(self, data, seeds, cl, voxels):
-        """
-        This Method allows computes feature vector and train model.
-
-        :cl: scalar index number of class
-        """
-        logger.debug('cl: ' + str(cl))
-        fv = self.createFV(data, seeds, cl, voxels)
-        self.train(fv, cl)
+    # def trainFromSomething(self, data, seeds, cls, voxels):
+    #     """
+    #     This Method allows computes feature vector and train model.
+    #
+    #     :cl: scalar index number of class
+    #     """
+    #     for cl, voxels_i in zip(cls, voxels):
+    #         logger.debug('cl: ' + str(cl))
+    #         fv = self.createFV(data, seeds, cl, voxels_i)
+    #         self.train(fv, cl)
 
     def train(self, clx, cl):
         """
@@ -215,6 +225,7 @@ class Model:
         label: gmmsame, gaussian_kde, dpgmm, stored
         """
 
+        logger.debug('clx raw ' + str(clx))
         logger.debug('clx ' + str(clx[:10, :]))
         logger.debug('clx type' + str(clx.dtype))
         # name = 'clx' + str(cl) + '.npy'
@@ -386,7 +397,8 @@ class ImageGraphCut:
             'boundary_penalties_sigma': 200,
             'boundary_penalties_weight': 30,
             'return_only_object_with_seeds': False,
-            'use_old_similarity': True  # New similarity not implemented @TODO
+            'use_old_similarity': True,  # New similarity not implemented @TODO
+            'use_extra_features_for_training': False,
         }
         if 'modelparams' in segparams.keys():
             modelparams = segparams['modelparams']
@@ -549,12 +561,12 @@ class ImageGraphCut:
 
         modelparams_hi = self.modelparams.copy()
         # feature vector will be computed from selected voxels
-        self.modelparams['fv_type'] = 'voxels'
+        self.modelparams['use_extra_features_for_training'] = True
 
         # TODO what with voxels? It is used from here
         # hiseeds and hiimage is used to create intensity model
-        self.voxels1 = self.img[hiseeds == 1]
-        self.voxels2 = self.img[hiseeds == 2]
+        self.voxels1 = self.img[hiseeds == 1].reshape(-1, 1)
+        self.voxels2 = self.img[hiseeds == 2].reshape(-1, 1)
         # this is how to compute with loseeds resolution but in wrong way
         # self.voxels1 = self.img[self.seeds == 1]
         # self.voxels2 = self.img[self.seeds == 2]
@@ -898,7 +910,7 @@ class ImageGraphCut:
 
     def make_gc(self):
         res_segm = self.set_data(self.img,
-                                 self.voxels1, self.voxels2,
+                                 # self.voxels1, self.voxels2,
                                  seeds=self.seeds)
 
         if self.segparams['return_only_object_with_seeds']:
@@ -993,9 +1005,14 @@ class ImageGraphCut:
         # Dobře to fungovalo area_weight = 0.05 a cc = 6 a diference se
         # počítaly z :-1
 
-        self.mdl.trainFromSomething(data, seeds, 1, self.voxels1)
-        self.mdl.trainFromSomething(data, seeds, 2, self.voxels2)
-        # self.mdl.trainFromImageAndSeeds(data, seeds, [1, 2]),
+
+        # self.mdl.trainFromSomething(data, seeds, 1, self.voxels1)
+        # self.mdl.trainFromSomething(data, seeds, 2, self.voxels2)
+        if self.segparams['use_extra_features_for_training']:
+            self.mdl.train(self.voxels1, 1)
+            self.mdl.train(self.voxels2, 2)
+        else:
+            self.mdl.trainFromImageAndSeeds(data, seeds, [1, 2]),
         # as we convert to int, we need to multipy to get sensible values
 
         # There is a need to have small vaues for good fit
@@ -1140,7 +1157,8 @@ class ImageGraphCut:
         print "__create nlinks time ", elapsed
         return edges
 
-    def set_data(self, data, voxels1, voxels2,
+    def set_data(self, data,
+                 # voxels1, voxels2,
                  seeds=False,
                  hard_constraints=True,
                  area_weight=1):
