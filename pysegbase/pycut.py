@@ -113,20 +113,17 @@ class Model:
         logger.debug("fv_type " + fv_type)
         fv = []
         if fv_type == 'intensity':
+            fv = data.reshape(-1,1)
 
             if seeds is not None:
-                for cl in cls:
-                    try:
-                        fvi = data[seeds == cl]
-                        fvi = fvi.reshape(-1, 1)
-                        fv.append(fvi)
-                    except:
-                        import ipdb
-                        ipdb.set_trace()
-            else:
-                fv = data
-                fv = fv.reshape(-1, 1)
-                # print fv.shape
+                sd = seeds.reshape(-1,1)
+                selection = np.in1d(sd, cls)
+                fv = fv[selection]
+                sd = sd[selection]
+                # sd = sd[]
+                return fv, sd
+            return fv
+
         # elif fv_type in ("voxels"):
         #     if seeds is not None:
         #         fv = np.asarray(voxels).reshape(-1, 1)
@@ -160,7 +157,7 @@ class Model:
             # print fv.shape
         elif fv_type == "fv_extern":
             fv_function = self.modelparams['fv_extern']
-            fv = fv_function(data, seeds, cls)
+            return fv_function(data, seeds, cls)
 
         else:
             logger.error("Unknown feature vector type: " +
@@ -173,10 +170,13 @@ class Model:
 
         :cls: list of index number of requested classes in seeds
         """
-        fvs = self.createFV(data, seeds, cls)
-        for fv, cl in zip(fvs, cls):
-            logger.debug('cl: ' + str(cl))
-            self.train(fv, cl)
+        fvs, clsselected = self.createFV(data, seeds, cls)
+        # import pdb
+        # pdb.set_trace()
+        self.train(fvs, clsselected)
+        # for fv, cl in zip(fvs, cls):
+        #     logger.debug('cl: ' + str(cl))
+        #     self.train(fv, cl)
 
     # def trainFromSomething(self, data, seeds, cls, voxels):
     #     """
@@ -189,7 +189,7 @@ class Model:
     #         fv = self.createFV(data, seeds, cl, voxels_i)
     #         self.train(fv, cl)
 
-    def train(self, clx, cl):
+    def train(self, clx, cla):
         """
 
         Args:
@@ -202,16 +202,17 @@ class Model:
         # TODO for now only sclar is used. Do not use scalar cl if future.
         # Model is not trained from other class konwledge
         # use model trained by all classes number.
-        if np.isscalar(cl):
-            self._train_one_class(clx, cl)
+        if np.isscalar(cla):
+            self._train_one_class(clx, cla)
         else:
-            cl = np.asarray(clx)
+            cla = np.asarray(cla)
             clx = np.asarray(clx)
-            for cli in np.unique(cl):
-                selection = clx == cli
-                self._train_one_class(clx[selection], cli)
-
-        pass
+            # import pdb
+            # pdb.set_trace()
+            for cli in np.unique(cla):
+                selection = cla == cli
+                clxsel = clx[np.nonzero(selection)[0]]
+                self._train_one_class(clxsel, cli)
 
     def _train_one_class(self, clx, cl):
         """ Train clas number cl with data clx.

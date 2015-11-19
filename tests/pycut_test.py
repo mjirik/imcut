@@ -14,6 +14,20 @@ sys.path.append(os.path.join(path_to_script, "../src/"))
 
 from pysegbase import pycut
 
+def fv_function(data, seeds=None, cls=None):
+    """
+    Creates feature vector for only data or for data from classes
+    """
+    fv = data.reshape(-1,1)
+
+    if seeds is not None:
+        sd = seeds.reshape(-1,1)
+        selection = np.in1d(sd, cls)
+        fv = fv[selection]
+        sd = sd[selection]
+        # sd = sd[]
+        return fv, sd
+    return fv
 
 class PycutTest(unittest.TestCase):
 
@@ -22,7 +36,7 @@ class PycutTest(unittest.TestCase):
     # @unittest.skip("Cekame, az to Tomas opravi")
     def make_data(self, sz=32, offset=0):
         seeds = np.zeros([sz, sz, sz], dtype=np.int8)
-        seeds[offset + 12, offset + 10:offset + 13, offset + 10] = 1
+        seeds[offset + 12, offset + 9:offset + 14, offset + 10] = 1
         seeds[offset + 20, offset + 18:offset + 21, offset + 12] = 1
         img = np.ones([sz, sz, sz])
         img = img - seeds
@@ -46,20 +60,8 @@ class PycutTest(unittest.TestCase):
 
     def test_external_fv(self):
         """
-        Test multiscale segmentation
+        test external feature vector
         """
-        def fv_function(data, seeds=None, cls=None):
-            """
-            Creates feature vector for only data or for data from classes
-            """
-            fv = []
-            if seeds is None:
-                fv = np.asarray(data).reshape(-1,1)
-            else:
-                for cl in cls:
-                    fvi = np.asarray(data[seeds==cl]).reshape(-1,1)
-                    fv.append(fvi)
-            return fv
 
         img, seg, seeds = self.make_data(64, 20)
         segparams = {
@@ -87,22 +89,24 @@ class PycutTest(unittest.TestCase):
             ),
             600)
 
+
+
+    def test_test_fv_function(self):
+        img, seg, seeds = self.make_data(64, 20)
+        out = fv_function(img)
+        print out.shape
+        out1, out2 = fv_function(img, seeds, [1,2])
+        print np.min(out1), np.max(out1)
+        print np.min(out2), np.max(out2)
+        self.assertEqual(np.prod(out.shape), np.prod(img.shape))
+        self.assertEqual(out1.shape[0], out2.shape[0])
+        self.assertEqual(np.min(out2), 1)
+        self.assertEqual(np.max(out2), 2)
+
     def test_external_fv_with_save(self):
         """
-        Test multiscale segmentation
+        test external feature vector with save model in the middle of processing
         """
-        def fv_function(data, seeds=None, cls=None):
-            """
-            Creates feature vector for only data or for data from classes
-            """
-            fv = []
-            if seeds is None:
-                fv = np.asarray(data).reshape(-1,1)
-            else:
-                for cl in cls:
-                    fvi = np.asarray(data[seeds==cl]).reshape(-1,1)
-                    fv.append(fvi)
-            return fv
 
         img, seg, seeds = self.make_data(64, 20)
         segparams = {
