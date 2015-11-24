@@ -84,7 +84,7 @@ class Model:
             self.load(mdl_file)
         self.modelparams.update(modelparams)
 
-    def createFV(self, data, seeds=None, cls=None):# , voxels=None):
+    def createFV(self, data, voxelsize, seeds=None, cls=None):# , voxels=None):
         """
         Input data is 3d image
 
@@ -157,20 +157,20 @@ class Model:
             # print fv.shape
         elif fv_type == "fv_extern":
             fv_function = self.modelparams['fv_extern']
-            return fv_function(data, seeds, cls)
+            return fv_function(data, voxelsize, seeds, cls)
 
         else:
             logger.error("Unknown feature vector type: " +
                          self.modelparams['fv_type'])
         return fv
 
-    def trainFromImageAndSeeds(self, data, seeds, cls):
+    def trainFromImageAndSeeds(self, data, voxelsize, seeds, cls):
         """
         This Method allows computes feature vector and train model.
 
         :cls: list of index number of requested classes in seeds
         """
-        fvs, clsselected = self.createFV(data, seeds, cls)
+        fvs, clsselected = self.createFV(data, voxelsize, seeds, cls)
         # import pdb
         # pdb.set_trace()
         self.train(fvs, clsselected)
@@ -311,10 +311,10 @@ class Model:
         self.mdl = sv['mdl']
         self.modelparams.update(sv['modelparams'])
 
-    def likelihoodFromImage(self, data, cl):
+    def likelihoodFromImage(self, data, voxelsize, cl):
         sha = data.shape
 
-        likel = self.likelihood(self.createFV(data), cl)
+        likel = self.likelihood(self.createFV(data, voxelsize), cl)
         return likel.reshape(sha)
 
     def likelihood(self, x, cl):
@@ -378,7 +378,8 @@ class ImageGraphCut:
 
     """
 
-    def __init__(self, img,
+    def __init__(self,
+                 img,
                  modelparams={},
                  segparams={},
                  voxelsize=None,
@@ -684,7 +685,9 @@ class ImageGraphCut:
         # logger.debug("unique seeds " + str(np.unique(seeds)))
         # logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
 
+        # TODO vyresit voxelsize
         unariesalt = self.__create_tlinks(ms_values_lin,
+                                          voxelsize=None,
                                           # self.voxels1, self.voxels2,
                                           ms_seeds_lin,
                                           area_weight, hard_constraints)
@@ -910,9 +913,12 @@ class ImageGraphCut:
             logger.error('Unknown method: ' + self.segparams['method'])
 
     def make_gc(self):
-        res_segm = self.set_data(self.img,
+        res_segm = self.set_data(
+            # self.img,
+            #                      self
                                  # self.voxels1, self.voxels2,
-                                 seeds=self.seeds)
+             # seeds=self.seeds
+        )
 
         if self.segparams['return_only_object_with_seeds']:
             try:
@@ -991,7 +997,8 @@ class ImageGraphCut:
         # diffs.insert(0,
         return filtered
 
-    def __similarity_for_tlinks_obj_bgr(self, data,
+    def __similarity_for_tlinks_obj_bgr(self,
+                                        # data,
                                         #voxels1, voxels2,
                                         seeds, otherfeatures=None):
         """
@@ -1013,7 +1020,7 @@ class ImageGraphCut:
             self.mdl.train(self.voxels1, 1)
             self.mdl.train(self.voxels2, 2)
         else:
-            self.mdl.trainFromImageAndSeeds(data, seeds, [1, 2]),
+            self.mdl.trainFromImageAndSeeds(data, voxelsize, seeds, [1, 2]),
         # as we convert to int, we need to multipy to get sensible values
 
         # There is a need to have small vaues for good fit
@@ -1058,13 +1065,19 @@ class ImageGraphCut:
                 logger.debug('problem with showing debug images')
         return tdata1, tdata2
 
-    def __create_tlinks(self, data,
+    def __create_tlinks(self,
+                        data,
+                        voxelsize,
+
                         # voxels1, voxels2,
                         seeds,
                         area_weight, hard_constraints):
-        tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(data,
-                                                              # voxels1, voxels2,
-                                                              seeds)
+        tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(
+            data,
+            voxelsize,
+            # voxels1, voxels2,
+            seeds
+        )
 
         logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
         logger.debug('tdata2 min %f , max %f' % (tdata2.min(), tdata2.max()))
@@ -1158,7 +1171,8 @@ class ImageGraphCut:
         print "__create nlinks time ", elapsed
         return edges
 
-    def set_data(self, data,
+    def set_data(self,
+                 # data,
                  # voxels1, voxels2,
                  seeds=False,
                  hard_constraints=True,
@@ -1171,7 +1185,8 @@ class ImageGraphCut:
         # pyqtRemoveInputHook()
         # import pdb; pdb.set_trace() # BREAKPOINT
 
-        unariesalt = self.__create_tlinks(data,
+        unariesalt = self.__create_tlinks(self.data,
+                                          self.voxelsize
                                           # voxels1, voxels2,
                                           seeds,
                                           area_weight, hard_constraints)
@@ -1197,7 +1212,7 @@ class ImageGraphCut:
                 self.boundary_penalties_array(axis=ax, sigma=sigma)
         else:
             boundary_penalties_fcn = None
-        nlinks = self.__create_nlinks(data,
+        nlinks = self.__create_nlinks(self.data,
                                       boundary_penalties_fcn=boundary_penalties_fcn)
 
         # print 'data shape ', data.shape
@@ -1229,7 +1244,7 @@ class ImageGraphCut:
 
         # print "unaries %.3g , %.3g" % (np.max(unariesalt),
         # np.min(unariesalt))
-        result_labeling = result_graph.reshape(data.shape)
+        result_labeling = result_graph.reshape(self.data.shape)
 
         return result_labeling
 
