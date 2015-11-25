@@ -8,13 +8,16 @@ import unittest
 import scipy
 import numpy as np
 
+import logging
+logger = logging.getLogger(__name__)
+
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 
 
 from pysegbase import pycut
 
-def fv_function(data, seeds=None, cls=None):
+def fv_function(data, voxelsize, seeds=None, cls=None):
     """
     Creates feature vector for only data or for data from classes
     """
@@ -27,6 +30,8 @@ def fv_function(data, seeds=None, cls=None):
     fv = np.hstack([fv1, fv2])
 
     if seeds is not None:
+        logger.debug("seeds " + str(seeds))
+        print "seeds ", seeds
         sd = seeds.reshape(-1,1)
         selection = np.in1d(sd, cls)
         fv = fv[selection]
@@ -99,9 +104,10 @@ class PycutTest(unittest.TestCase):
 
     def test_test_fv_function(self):
         img, seg, seeds = self.make_data(64, 20)
-        out = fv_function(img)
+        vs = [1,1,1]
+        out = fv_function(img, voxelsize=vs)
         print out.shape
-        out1, out2 = fv_function(img, seeds, [1,2])
+        out1, out2 = fv_function(img, vs, seeds, [1,2])
         print np.min(out1), np.max(out1), out1.shape
         print np.min(out2), np.max(out2), out2.shape
         self.assertEqual(out.shape[0], np.prod(img.shape))

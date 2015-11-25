@@ -84,7 +84,7 @@ class Model:
             self.load(mdl_file)
         self.modelparams.update(modelparams)
 
-    def createFV(self, data, voxelsize, seeds=None, cls=None):# , voxels=None):
+    def features_from_image(self, data, voxelsize, seeds=None, cls=None):# , voxels=None):
         """
         Input data is 3d image
 
@@ -116,6 +116,7 @@ class Model:
             fv = data.reshape(-1,1)
 
             if seeds is not None:
+                print "seeds" , seeds
                 sd = seeds.reshape(-1,1)
                 selection = np.in1d(sd, cls)
                 fv = fv[selection]
@@ -170,7 +171,7 @@ class Model:
 
         :cls: list of index number of requested classes in seeds
         """
-        fvs, clsselected = self.createFV(data, voxelsize, seeds, cls)
+        fvs, clsselected = self.features_from_image(data, voxelsize, seeds, cls)
         # import pdb
         # pdb.set_trace()
         self.train(fvs, clsselected)
@@ -314,7 +315,7 @@ class Model:
     def likelihoodFromImage(self, data, voxelsize, cl):
         sha = data.shape
 
-        likel = self.likelihood(self.createFV(data, voxelsize), cl)
+        likel = self.likelihood(self.features_from_image(data, voxelsize), cl)
         return likel.reshape(sha)
 
     def likelihood(self, x, cl):
@@ -382,7 +383,7 @@ class ImageGraphCut:
                  img,
                  modelparams={},
                  segparams={},
-                 voxelsize=None,
+                 voxelsize=[1,1,1],
                  debug_images=False,
                  volume_unit='mm3'
                  ):
@@ -417,7 +418,7 @@ class ImageGraphCut:
         self.debug_images = debug_images
         self.volume_unit = volume_unit
 
-        self.voxelsize = voxelsize
+        self.voxelsize = np.asarray(voxelsize)
         if voxelsize is not None:
             self.voxel_volume = np.prod(voxelsize)
 
@@ -579,9 +580,15 @@ class ImageGraphCut:
         img_orig = self.img
 
         # TODO this should be done with resize_to_shape_whith_zoom
+        zoom = np.asarray(loseeds.shape).astype(np.float) / img_orig.shape
         self.img = scipy.ndimage.interpolation.zoom(img_orig,
-                                                    np.asarray(loseeds.shape).astype(np.float) / img_orig.shape,
+                                                    zoom,
                                                     order=0)
+        voxelsize_orig = self.voxelsize
+        logger.debug("zoom " + str(zoom))
+        logger.debug("vs" + str(self.voxelsize))
+        self.voxelsize = self.voxelsize * zoom
+
         # self.img = resize_to_shape_with_zoom(img_orig, loseeds.shape, 1.0 / ms_zoom, order=0)
 
         self.make_gc()
@@ -597,6 +604,7 @@ class ImageGraphCut:
         # back to normal parameters
         self.modelparams = modelparams_hi
         self.stats["t2"] = (time.time() - start)
+        self.voxelsize = voxelsize_orig
         # step 2: discontinuity localization
         # self.segparams = sparams_hi
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
@@ -687,10 +695,11 @@ class ImageGraphCut:
 
         # TODO vyresit voxelsize
         unariesalt = self.__create_tlinks(ms_values_lin,
-                                          voxelsize=None,
+                                          voxelsize=self.voxelsize,
                                           # self.voxels1, self.voxels2,
-                                          ms_seeds_lin,
-                                          area_weight, hard_constraints)
+                                          seeds=ms_seeds_lin,
+                                          area_weight=area_weight,
+                                          hard_constraints=hard_constraints)
 
         self.stats["t8"] = (time.time() - start)
         # create potts pairwise
@@ -889,6 +898,8 @@ class ImageGraphCut:
 
         qt_app.exec_()
 
+
+
     def set_seeds(self, seeds):
         """
         Function for manual seed setting. Sets variable seeds and prepares
@@ -998,8 +1009,10 @@ class ImageGraphCut:
         return filtered
 
     def __similarity_for_tlinks_obj_bgr(self,
-                                        # data,
+                                        data,
+                                        voxelsize,
                                         #voxels1, voxels2,
+
                                         seeds, otherfeatures=None):
         """
         Compute edge values for graph cut tlinks based on image intensity
@@ -1028,8 +1041,8 @@ class ImageGraphCut:
         # R(bck) = -ln( Pr (Ip | B) )
         # Boykov2001b
         # ln is computed in likelihood
-        tdata1 = (-(self.mdl.likelihoodFromImage(data, 1))) * 10
-        tdata2 = (-(self.mdl.likelihoodFromImage(data, 2))) * 10
+        tdata1 = (-(self.mdl.likelihoodFromImage(data, voxelsize, 1))) * 10
+        tdata2 = (-(self.mdl.likelihoodFromImage(data, voxelsize, 2))) * 10
 
         if self.debug_images:
             # Show model parameters
@@ -1172,9 +1185,7 @@ class ImageGraphCut:
         return edges
 
     def set_data(self,
-                 # data,
                  # voxels1, voxels2,
-                 seeds=False,
                  hard_constraints=True,
                  area_weight=1):
         """
@@ -1185,10 +1196,10 @@ class ImageGraphCut:
         # pyqtRemoveInputHook()
         # import pdb; pdb.set_trace() # BREAKPOINT
 
-        unariesalt = self.__create_tlinks(self.data,
-                                          self.voxelsize
+        unariesalt = self.__create_tlinks(self.img,
+                                          self.voxelsize,
                                           # voxels1, voxels2,
-                                          seeds,
+                                          self.seeds,
                                           area_weight, hard_constraints)
         #  některém testu  organ semgmentation dosahují unaries -15. což je podiné
         # stačí vyhodit print před if a je to vidět
@@ -1212,7 +1223,7 @@ class ImageGraphCut:
                 self.boundary_penalties_array(axis=ax, sigma=sigma)
         else:
             boundary_penalties_fcn = None
-        nlinks = self.__create_nlinks(self.data,
+        nlinks = self.__create_nlinks(self.img,
                                       boundary_penalties_fcn=boundary_penalties_fcn)
 
         # print 'data shape ', data.shape
@@ -1244,7 +1255,7 @@ class ImageGraphCut:
 
         # print "unaries %.3g , %.3g" % (np.max(unariesalt),
         # np.min(unariesalt))
-        result_labeling = result_graph.reshape(self.data.shape)
+        result_labeling = result_graph.reshape(self.img.shape)
 
         return result_labeling
 
