@@ -47,7 +47,8 @@ else:
 methods = ['graphcut', 'multiscale_graphcut']
 
 
-class Model:
+class Model3D(object):
+
     """ Model for image intensity. Last dimension represent feature vector.
     m = Model()
     m.train(cla, clb)
@@ -64,11 +65,9 @@ class Model:
         intensity - based on seeds and data the intensity as feature vector is used
         voxel - information in voxel1 and voxel2 is used
     """
-
-    def __init__(self, nObjects=2, modelparams={}):
-
-        # fix change of cvtype and covariancetype
-        # print modelparams
+    def __init__(self, modelparams):
+        # modelparams = {}
+        # modelparams.update(parameters['modelparams'])
         if 'params' in modelparams.keys() and \
                         gmm__cvtype_bad in modelparams['params']:
             value = modelparams['params'].pop(gmm__cvtype_bad)
@@ -83,6 +82,53 @@ class Model:
             mdl_file = modelparams['mdl_stored_file']
             self.load(mdl_file)
         self.modelparams.update(modelparams)
+
+
+    def fit_from_image(self, data, voxelsize, seeds, cls):
+        """
+        This Method allows computes feature vector and train model.
+
+        :cls: list of index number of requested classes in seeds
+        """
+        fvs, clsselected = self.features_from_image(data, voxelsize, seeds, cls)
+        # import pdb
+        # pdb.set_trace()
+        self.fit(fvs, clsselected)
+        # for fv, cl in zip(fvs, cls):
+        #     logger.debug('cl: ' + str(cl))
+        #     self.train(fv, cl)
+
+    def save(self, filename):
+        """
+        Save model to pickle file
+        """
+        import dill as pickle
+        sv = {
+            'modelparams': self.modelparams,
+            'mdl': self.mdl
+
+        }
+        pickle.dump(sv, open(filename, "wb"))
+
+    def load(self, mdl_file):
+        import dill as pickle
+        sv = pickle.load(open(mdl_file, "rb"))
+        self.mdl = sv['mdl']
+        self.modelparams.update(sv['modelparams'])
+
+    def likelihood_from_image(self, data, voxelsize, cl):
+        sha = data.shape
+
+        likel = self.likelihood(self.features_from_image(data, voxelsize), cl)
+        return likel.reshape(sha)
+
+
+class Model(Model3D):
+    #def __init__(self, nObjects=2, modelparams={}):
+        #super(Model3D, self).__init__()
+
+        # fix change of cvtype and covariancetype
+        # print modelparams
 
     def features_from_image(self, data, voxelsize, seeds=None, cls=None):# , voxels=None):
         """
@@ -165,19 +211,6 @@ class Model:
                          self.modelparams['fv_type'])
         return fv
 
-    def trainFromImageAndSeeds(self, data, voxelsize, seeds, cls):
-        """
-        This Method allows computes feature vector and train model.
-
-        :cls: list of index number of requested classes in seeds
-        """
-        fvs, clsselected = self.features_from_image(data, voxelsize, seeds, cls)
-        # import pdb
-        # pdb.set_trace()
-        self.train(fvs, clsselected)
-        # for fv, cl in zip(fvs, cls):
-        #     logger.debug('cl: ' + str(cl))
-        #     self.train(fv, cl)
 
     # def trainFromSomething(self, data, seeds, cls, voxels):
     #     """
@@ -190,7 +223,8 @@ class Model:
     #         fv = self.createFV(data, seeds, cl, voxels_i)
     #         self.train(fv, cl)
 
-    def train(self, clx, cla):
+
+    def fit(self, clx, cla):
         """
 
         Args:
@@ -204,7 +238,7 @@ class Model:
         # Model is not trained from other class konwledge
         # use model trained by all classes number.
         if np.isscalar(cla):
-            self._train_one_class(clx, cla)
+            self._fit_one_class(clx, cla)
         else:
             cla = np.asarray(cla)
             clx = np.asarray(clx)
@@ -213,9 +247,9 @@ class Model:
             for cli in np.unique(cla):
                 selection = cla == cli
                 clxsel = clx[np.nonzero(selection)[0]]
-                self._train_one_class(clxsel, cli)
+                self._fit_one_class(clxsel, cli)
 
-    def _train_one_class(self, clx, cl):
+    def _fit_one_class(self, clx, cl):
         """ Train clas number cl with data clx.
 
         Use trainFromImageAndSeeds() function if you want to use 3D image data
@@ -293,30 +327,6 @@ class Model:
             # pdb.set_trace();
             # TODO remove saving
             #         self.save('classif.p')
-
-    def save(self, filename):
-        """
-        Save model to pickle file
-        """
-        import dill as pickle
-        sv = {
-            'modelparams': self.modelparams,
-            'mdl': self.mdl
-
-        }
-        pickle.dump(sv, open(filename, "wb"))
-
-    def load(self, mdl_file):
-        import dill as pickle
-        sv = pickle.load(open(mdl_file, "rb"))
-        self.mdl = sv['mdl']
-        self.modelparams.update(sv['modelparams'])
-
-    def likelihoodFromImage(self, data, voxelsize, cl):
-        sha = data.shape
-
-        likel = self.likelihood(self.features_from_image(data, voxelsize), cl)
-        return likel.reshape(sha)
 
     def likelihood(self, x, cl):
         """
@@ -1030,10 +1040,10 @@ class ImageGraphCut:
         # self.mdl.trainFromSomething(data, seeds, 1, self.voxels1)
         # self.mdl.trainFromSomething(data, seeds, 2, self.voxels2)
         if self.segparams['use_extra_features_for_training']:
-            self.mdl.train(self.voxels1, 1)
-            self.mdl.train(self.voxels2, 2)
+            self.mdl.fit(self.voxels1, 1)
+            self.mdl.fit(self.voxels2, 2)
         else:
-            self.mdl.trainFromImageAndSeeds(data, voxelsize, seeds, [1, 2]),
+            self.mdl.fit_from_image(data, voxelsize, seeds, [1, 2]),
         # as we convert to int, we need to multipy to get sensible values
 
         # There is a need to have small vaues for good fit
@@ -1041,8 +1051,8 @@ class ImageGraphCut:
         # R(bck) = -ln( Pr (Ip | B) )
         # Boykov2001b
         # ln is computed in likelihood
-        tdata1 = (-(self.mdl.likelihoodFromImage(data, voxelsize, 1))) * 10
-        tdata2 = (-(self.mdl.likelihoodFromImage(data, voxelsize, 2))) * 10
+        tdata1 = (-(self.mdl.likelihood_from_image(data, voxelsize, 1))) * 10
+        tdata2 = (-(self.mdl.likelihood_from_image(data, voxelsize, 2))) * 10
 
         if self.debug_images:
             # Show model parameters
@@ -1062,8 +1072,8 @@ class ImageGraphCut:
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
                 hstx = np.linspace(-1000, 1000, 400)
-                ax.plot(hstx, np.exp(self.mdl.likelihoodFromImage(hstx, 1)))
-                ax.plot(hstx, np.exp(self.mdl.likelihoodFromImage(hstx, 2)))
+                ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, 1)))
+                ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, 2)))
 
                 # histogram
                 fig = plt.figure()
