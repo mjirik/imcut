@@ -64,6 +64,12 @@ class Model3D(object):
     fv_type:
         intensity - based on seeds and data the intensity as feature vector is used
         voxel - information in voxel1 and voxel2 is used
+
+    adaptation:
+        - retrain: no adaptatin
+        - original_data: train every class only once
+
+
     """
     def __init__(self, modelparams):
         # modelparams = {}
@@ -76,7 +82,7 @@ class Model3D(object):
         self.mdl = {}
         self.modelparams = defaultmodelparams.copy()
         self.modelparams.update({
-            'forbid_retraining': False,
+            'adaptation': "retrain",
         })
         if "mdl_stored_file" in modelparams.keys() and modelparams['mdl_stored_file']:
             mdl_file = modelparams['mdl_stored_file']
@@ -115,6 +121,10 @@ class Model3D(object):
         sv = pickle.load(open(mdl_file, "rb"))
         self.mdl = sv['mdl']
         self.modelparams.update(sv['modelparams'])
+        logger.debug("loaded model from path: " + mdl_file)
+        from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
+        import ipdb; ipdb.set_trace()
+
 
     def likelihood_from_image(self, data, voxelsize, cl):
         sha = data.shape
@@ -267,10 +277,14 @@ class Model(Model3D):
         # name = 'clx' + str(cl) + '.npy'
         # print name
         # np.save(name, clx)
-        if self.modelparams['forbid_retraining']:
+        logger.debug("_fit()")
+        if self.modelparams['adaptation'] == "original_data":
             if cl in self.mdl.keys():
                 return
+        if True:
+            return
 
+        logger.debug("training continues")
 
 
         if self.modelparams['type'] == 'gmmsame':
@@ -342,6 +356,7 @@ class Model(Model3D):
         # outsha = sha[:-1]
         # from PyQt4.QtCore import pyqtRemoveInputHook
         # pyqtRemoveInputHook()
+        print "likel ", x.shape
         if self.modelparams['type'] == 'gmmsame':
 
             px = self.mdl[cl].score(x)
