@@ -271,7 +271,6 @@ class Model(Model3D):
         label: gmmsame, gaussian_kde, dpgmm, stored
         """
 
-        logger.debug('clx raw ' + str(clx))
         logger.debug('clx ' + str(clx[:10, :]))
         logger.debug('clx type' + str(clx.dtype))
         # name = 'clx' + str(cl) + '.npy'
