@@ -84,23 +84,26 @@ class Model3D(object):
         self.modelparams.update({
             'adaptation': "retrain",
         })
+        # if modelparams are updated after load, there are problems with some setting comming from outside and rewriting
+        # for example "fv_type" into "intensity"
+        self.modelparams.update(modelparams)
         if "mdl_stored_file" in modelparams.keys() and modelparams['mdl_stored_file']:
             mdl_file = modelparams['mdl_stored_file']
             self.load(mdl_file)
-        self.modelparams.update(modelparams)
 
 
-    def fit_from_image(self, data, voxelsize, seeds, cls):
+    def fit_from_image(self, data, voxelsize, seeds, unique_cls):
         """
         This Method allows computes feature vector and train model.
 
         :cls: list of index number of requested classes in seeds
         """
-        fvs, clsselected = self.features_from_image(data, voxelsize, seeds, cls)
+        fvs, clsselected = self.features_from_image(data, voxelsize, seeds, unique_cls)
+        self.fit(fvs, clsselected)
         # import pdb
         # pdb.set_trace()
-        self.fit(fvs, clsselected)
         # for fv, cl in zip(fvs, cls):
+        #     fvs, clsselected = self.features_from_image(data, voxelsize, seeds, cl)
         #     logger.debug('cl: ' + str(cl))
         #     self.train(fv, cl)
 
@@ -120,10 +123,12 @@ class Model3D(object):
         import dill as pickle
         sv = pickle.load(open(mdl_file, "rb"))
         self.mdl = sv['mdl']
+        # self.mdl[2] = self.mdl[0]
+
         self.modelparams.update(sv['modelparams'])
         logger.debug("loaded model from path: " + mdl_file)
-        from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
-        import ipdb; ipdb.set_trace()
+        # from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
+        # import ipdb; ipdb.set_trace()
 
 
     def likelihood_from_image(self, data, voxelsize, cl):
@@ -140,13 +145,14 @@ class Model(Model3D):
         # fix change of cvtype and covariancetype
         # print modelparams
 
-    def features_from_image(self, data, voxelsize, seeds=None, cls=None):# , voxels=None):
+    def features_from_image(self, data, voxelsize, seeds=None, unique_cls=None):# , voxels=None):
         """
         Input data is 3d image
 
         :param data: is 3d image
         :param seeds: ndimage with same shape as data, nonzero values means seeds.
-        :param cl: can select only fv for seeds from specific class
+        :param unique_cls: can select only fv for seeds from specific class.
+        f.e. unique_cls = [1, 2] ignores label 0
 
         funcion is called twice in graph cut
         first call is with all params, second is only with data.
@@ -169,12 +175,12 @@ class Model(Model3D):
         logger.debug("fv_type " + fv_type)
         fv = []
         if fv_type == 'intensity':
-            fv = data.reshape(-1,1)
+            fv = data.reshape(-1, 1)
 
             if seeds is not None:
                 print "seeds" , seeds
-                sd = seeds.reshape(-1,1)
-                selection = np.in1d(sd, cls)
+                sd = seeds.reshape(-1, 1)
+                selection = np.in1d(sd, unique_cls)
                 fv = fv[selection]
                 sd = sd[selection]
                 # sd = sd[]
@@ -193,7 +199,7 @@ class Model(Model3D):
             data2 = data2 - data
             if seeds is not None:
 
-                for cl in cls:
+                for cl in unique_cls:
                     fv1 = data[seeds == cl].reshape(-1, 1)
                     fv2 = data2[seeds == cl].reshape(-1, 1)
                     fvi = np.hstack((fv1, fv2))
@@ -214,7 +220,7 @@ class Model(Model3D):
             # print fv.shape
         elif fv_type == "fv_extern":
             fv_function = self.modelparams['fv_extern']
-            return fv_function(data, voxelsize, seeds, cls)
+            return fv_function(data, voxelsize, seeds, unique_cls)
 
         else:
             logger.error("Unknown feature vector type: " +
@@ -280,8 +286,8 @@ class Model(Model3D):
         if self.modelparams['adaptation'] == "original_data":
             if cl in self.mdl.keys():
                 return
-        if True:
-            return
+        # if True:
+        #     return
 
         logger.debug("training continues")
 
