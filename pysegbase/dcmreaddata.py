@@ -11,7 +11,7 @@ $ dcmreaddata -d sample_data -o head.mat
 
 import sys
 import os
-import dicom
+import pydicom as dicom
 import numpy as np
 from optparse import OptionParser
 from scipy.io import savemat
