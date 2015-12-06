@@ -143,7 +143,7 @@ class DicomReader():
                         print('series')
                         series_info = self.dcmdirstats()
                         print(self.print_series_info(series_info))
-                        snstring = raw_input('Select Serie: ')
+                        snstring = input('Select Serie: ')
 
                     sn = int(snstring)
                 else:
