@@ -16,7 +16,12 @@ import sys
 from scipy.spatial import Delaunay
 
 import PyQt4
-from PyQt4.QtCore import Qt, QSize, QString, SIGNAL
+from PyQt4.QtCore import Qt, QSize, SIGNAL
+try:
+    from PyQt4.QtCore import QString
+except ImportError:
+    # we are using Python3 so QString is not defined
+    QString = type("")
 from PyQt4.QtGui import QImage, QDialog,\
     QApplication, QSlider, QPushButton,\
     QLabel, QPixmap, QPainter, qRgba,\
