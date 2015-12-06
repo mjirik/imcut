@@ -246,7 +246,7 @@ class DicomReader():
         inter = None
 
         printRescaleWarning = False
-        for i in xrange(start, stop, step):
+        for i in range(start, stop, step):
             onefile = dcmlist[i]
             logger.info(onefile)
             data = dicom.read_file(onefile)
