@@ -8,7 +8,7 @@ Example:
 $ pycat -f head.mat -o brain.mat
 """
 
-from __future__ import division
+from __future__ import absolute_import, division
 
 # import unittest
 # from optparse import OptionParser
@@ -904,7 +904,7 @@ class ImageGraphCut:
         """
         Interactive seed setting with 3d seed editor
         """
-        from seed_editor_qt import QTSeedEditor
+        from .seed_editor_qt import QTSeedEditor
         from PyQt4.QtGui import QApplication
         if min_val is None:
             min_val = np.min(self.img)
