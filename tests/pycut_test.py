@@ -41,6 +41,10 @@ def fv_function(data, voxelsize, seeds=None, cls=None):
     return fv
 
 class PycutTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if sys.version_info.major < 3:
+            cls.assertCountEqual = cls.assertItemsEqual
 
     # @TODO znovu zprovoznit test
 
@@ -316,7 +320,7 @@ class PycutTest(unittest.TestCase):
                             [5, 5, 19, 20, 6, 6],
                             [5, 5, 21, 22, 6, 6]]]
 
-        self.assertItemsEqual(inds.reshape(-1),
+        self.assertCountEqual(inds.reshape(-1),
                               np.array(expected_result).reshape(-1))
 
     def test_ordered_values_by_indexes(self):
@@ -340,7 +344,7 @@ class PycutTest(unittest.TestCase):
         gc = pycut.ImageGraphCut(img)
         vals = gc._ImageGraphCut__ordered_values_by_indexes(data, inds)
         expected = np.array([0, 1, 1, 0, 2, 0])
-        self.assertItemsEqual(vals, expected)
+        self.assertCountEqual(vals, expected)
 
     def test_ordered_values_by_indexes_with_different_values(self):
         """
@@ -365,7 +369,7 @@ class PycutTest(unittest.TestCase):
         gc = pycut.ImageGraphCut(img)
         vals = gc._ImageGraphCut__ordered_values_by_indexes(data, inds)
         expected = np.array([0, 1, 1, 0, 3, 0])
-        self.assertItemsEqual(vals, expected)
+        self.assertCountEqual(vals, expected)
 
 
 if __name__ == "__main__":
