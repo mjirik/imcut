@@ -8,6 +8,8 @@ Example:
 $ pycat -f head.mat -o brain.mat
 """
 
+from __future__ import division
+
 # import unittest
 # from optparse import OptionParser
 import argparse
@@ -1388,9 +1390,9 @@ def seed_zoom(seeds, zoom):
     loseeds = loseeds.astype(np.int8)
     for label in labels:
         a, b, c = np.where(seeds == label)
-        loa = np.round(a / zoom)
-        lob = np.round(b / zoom)
-        loc = np.round(c / zoom)
+        loa = np.round(a // zoom)
+        lob = np.round(b // zoom)
+        loc = np.round(c // zoom)
         # loseeds = np.zeros(loshape)
 
         loseeds[loa, lob, loc] += label
