@@ -1,6 +1,8 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 # import funkcí z jiného adresáře
 import sys
 import os.path
@@ -31,7 +33,7 @@ def fv_function(data, voxelsize, seeds=None, cls=None):
 
     if seeds is not None:
         logger.debug("seeds " + str(seeds))
-        print "seeds ", seeds
+        print("seeds ", seeds)
         sd = seeds.reshape(-1,1)
         selection = np.in1d(sd, cls)
         fv = fv[selection]
@@ -110,10 +112,10 @@ class PycutTest(unittest.TestCase):
         img, seg, seeds = self.make_data(64, 20)
         vs = [1,1,1]
         out = fv_function(img, voxelsize=vs)
-        print out.shape
+        print(out.shape)
         out1, out2 = fv_function(img, vs, seeds, [1,2])
-        print np.min(out1), np.max(out1), out1.shape
-        print np.min(out2), np.max(out2), out2.shape
+        print(np.min(out1), np.max(out1), out1.shape)
+        print(np.min(out2), np.max(out2), out2.shape)
         self.assertEqual(out.shape[0], np.prod(img.shape))
         self.assertEqual(out1.shape[0], out2.shape[0])
         self.assertEqual(np.min(out2), 1)
@@ -178,15 +180,15 @@ class PycutTest(unittest.TestCase):
         # if we change the data there should be more error (assertMore)
         img = (img * 0.2).astype(np.uint8)
         segparams['modelparams']['forbid_retraining'] = True
-        print np.max(img)
-        print np.min(img)
+        print(np.max(img))
+        print(np.min(img))
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
         gc.run()
 
         m0 = gc.mdl.mdl[1]
         m1 = gc.mdl.mdl[2]
-        print "model parameters"
+        print("model parameters")
 
         self.assertGreater(
             np.sum(

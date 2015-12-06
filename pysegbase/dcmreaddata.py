@@ -9,6 +9,8 @@ Example:
 $ dcmreaddata -d sample_data -o head.mat
 """
 
+from __future__ import print_function
+
 import sys
 import os
 import pydicom as dicom
@@ -88,7 +90,7 @@ def is_dicom_dir(datapath):
 
         if retval:
             return True
-            print f
+            print(f)
     return False
 
 
@@ -126,7 +128,7 @@ class DicomReader():
                             # rom PyQt4.QtGui import QApplication
                             # t_app = QApplication(sys.argv)
                             # t_app = PyQt4.QtGui.QWidget(sys.argv)
-                            print qt_app
+                            print(qt_app)
 
                         from PyQt4.QtGui import QInputDialog
                         # bins = ', '.join([str(ii) for ii in bins])
@@ -138,9 +140,9 @@ class DicomReader():
                                                  sbins,
                                                  editable=False)
                     else:
-                        print 'series'
+                        print('series')
                         series_info = self.dcmdirstats()
-                        print self.print_series_info(series_info)
+                        print(self.print_series_info(series_info))
                         snstring = raw_input('Select Serie: ')
 
                     sn = int(snstring)
@@ -276,9 +278,9 @@ class DicomReader():
                 logger.warning(
                     'problem with RescaleSlope and RescaleIntercept'
                 )
-                print 'problem with RescaleSlope and RescaleIntercept'
+                print('problem with RescaleSlope and RescaleIntercept')
                 traceback.print_exc()
-                print '----------'
+                print('----------')
             # first readed slide is at the end
 
             data3d[-i - 1, :, :] = new_data2d
@@ -286,7 +288,7 @@ class DicomReader():
             logger.debug("Data size: " + str(data3d.nbytes)
                          + ', shape: ' + str(shp2) + 'x' + str(len(dcmlist)))
         if printRescaleWarning:
-            print "Automatic Rescale with slope 0.5"
+            print("Automatic Rescale with slope 0.5")
             logger.warning("Automatic Rescale with slope 0.5")
 
         return data3d
@@ -532,7 +534,7 @@ class DicomReader():
             # xcept Exception as e:
             except:
                 if head != self.dicomdir_filename:
-                    print 'Dicom read problem with file ' + filepath
+                    print('Dicom read problem with file ' + filepath)
 
         files.sort(key=lambda x: x['SliceLocation'])
 
@@ -677,4 +679,4 @@ if __name__ == "__main__":
     savemat(options.out_filename,
             {'data': data3d_out, 'voxelsize_mm': vs_out}
             )
-    print "Data size: %d, shape: %s" % (data3d_out.nbytes, data3d_out.shape)
+    print("Data size: %d, shape: %s" % (data3d_out.nbytes, data3d_out.shape))
