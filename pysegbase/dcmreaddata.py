@@ -13,7 +13,10 @@ from __future__ import print_function
 
 import sys
 import os
-import pydicom as dicom
+try:
+    import pydicom as dicom
+except:
+    import dicom
 import numpy as np
 from optparse import OptionParser
 from scipy.io import savemat
