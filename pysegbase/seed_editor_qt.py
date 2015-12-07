@@ -16,7 +16,12 @@ import sys
 from scipy.spatial import Delaunay
 
 import PyQt4
-from PyQt4.QtCore import Qt, QSize, QString, SIGNAL
+from PyQt4.QtCore import Qt, QSize, SIGNAL
+try:
+    from PyQt4.QtCore import QString
+except ImportError:
+    # we are using Python3 so QString is not defined
+    QString = type("")
 from PyQt4.QtGui import QImage, QDialog,\
     QApplication, QSlider, QPushButton,\
     QLabel, QPixmap, QPainter, qRgba,\
@@ -53,7 +58,7 @@ CONTOURS_COLORTABLE[:,:3] = 255
 CONTOURLINES_COLORTABLE = np.zeros((256,2,4), dtype=np.uint8)
 CONTOURLINES_COLORTABLE[:,:,:3] = 255
 
-for ii, jj in CONTOURS_COLORS.iteritems():
+for ii, jj in CONTOURS_COLORS.items():
     key = ii - 1
     CONTOURS_COLORTABLE[key,:3] = jj
     CONTOURS_COLORTABLE[key,3] = 64
@@ -781,7 +786,7 @@ class QTSeedEditor(QDialog):
         self.volume_unit = volume_unit
 
         self.last_view_position = {}
-        for jj, ii in enumerate(VIEW_TABLE.iterkeys()):
+        for jj, ii in enumerate(VIEW_TABLE.keys()):
             if viewPositions is None:
                 viewpos = img.shape[VIEW_TABLE[ii][-1]] / 2
 
@@ -1160,7 +1165,7 @@ class QTSeedEditor(QDialog):
 
     def cropUpdate(self, img):
 
-        for ii in VIEW_TABLE.iterkeys():
+        for ii in VIEW_TABLE.keys():
             self.last_view_position[ii] = 0
         self.actual_slice = 0
 

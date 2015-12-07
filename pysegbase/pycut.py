@@ -8,6 +8,8 @@ Example:
 $ pycat -f head.mat -o brain.mat
 """
 
+from __future__ import absolute_import, division, print_function
+
 # import unittest
 # from optparse import OptionParser
 import argparse
@@ -178,7 +180,7 @@ class Model(Model3D):
             fv = data.reshape(-1, 1)
 
             if seeds is not None:
-                print "seeds" , seeds
+                print("seeds" , seeds)
                 sd = seeds.reshape(-1, 1)
                 selection = np.in1d(sd, unique_cls)
                 fv = fv[selection]
@@ -297,7 +299,7 @@ class Model(Model3D):
                 logger.warning('reshaping in train will be removed. Use \
                                 \ntrainFromImageAndSeeds() function')
 
-                print 'Warning deprecated feature in train() function'
+                print('Warning deprecated feature in train() function')
                 #  je to jen jednorozměrný vektor, tak je potřeba to
                 # převést na 2d matici
                 clx = clx.reshape(-1, 1)
@@ -334,7 +336,7 @@ class Model(Model3D):
         elif self.modelparams['type'] == 'stored':
             # Classifer is trained before segmentation and stored to pickle
             import pickle
-            print "stored"
+            print("stored")
             logger.warning("deprecated use of stored parameters")
 
             mdl_file = self.modelparams['params']['mdl_file']
@@ -361,7 +363,7 @@ class Model(Model3D):
         # outsha = sha[:-1]
         # from PyQt4.QtCore import pyqtRemoveInputHook
         # pyqtRemoveInputHook()
-        print "likel ", x.shape
+        print("likel ", x.shape)
         if self.modelparams['type'] == 'gmmsame':
 
             px = self.mdl[cl].score(x)
@@ -902,7 +904,7 @@ class ImageGraphCut:
         """
         Interactive seed setting with 3d seed editor
         """
-        from seed_editor_qt import QTSeedEditor
+        from .seed_editor_qt import QTSeedEditor
         from PyQt4.QtGui import QApplication
         if min_val is None:
             min_val = np.min(self.img)
@@ -1082,12 +1084,12 @@ class ImageGraphCut:
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
                 ax.imshow(tdata1[5, :, :])
-                print 'max ', np.max(tdata1), 'min ', np.min(tdata1)
+                print('max ', np.max(tdata1), 'min ', np.min(tdata1))
 
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
                 ax.imshow(tdata2[5, :, :])
-                print 'max ', np.max(tdata2), 'min ', np.min(tdata2)
+                print('max ', np.max(tdata2), 'min ', np.min(tdata2))
 
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
@@ -1173,7 +1175,7 @@ class ImageGraphCut:
             edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
 
         else:
-            print 'use_boundary_penalties'
+            print('use_boundary_penalties')
             # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
             logger.debug('use_boundary_penalties')
@@ -1211,7 +1213,7 @@ class ImageGraphCut:
         # edges - seznam indexu hran, kteres spolu sousedi\
         elapsed = (time.time() - start)
         self.stats['_create_nlinks time'] = elapsed
-        print "__create nlinks time ", elapsed
+        print("__create nlinks time ", elapsed)
         return edges
 
     def set_data(self,
@@ -1388,9 +1390,9 @@ def seed_zoom(seeds, zoom):
     loseeds = loseeds.astype(np.int8)
     for label in labels:
         a, b, c = np.where(seeds == label)
-        loa = np.round(a / zoom)
-        lob = np.round(b / zoom)
-        loc = np.round(c / zoom)
+        loa = np.round(a // zoom)
+        lob = np.round(b // zoom)
+        loc = np.round(c // zoom)
         # loseeds = np.zeros(loshape)
 
         loseeds[loa, lob, loc] += label
