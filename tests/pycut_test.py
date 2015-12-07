@@ -137,21 +137,19 @@ class PycutTest(unittest.TestCase):
                 'type': 'gmmsame',
                 'fv_type': "fv_extern",
                 'fv_extern': fv_function,
+                'adaptation': 'original_data',
             }
         }
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
+
         gc.run()
         # import sed3
-        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        # ed = sed3.sed3((gc.segmentation==0).astype(np.double), contour=seg)
         # ed.show()
 
-        self.assertLess(
-            np.sum(
-                np.abs(
-                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
-            ),
-            600)
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertLess(err, 600)
 
         mdl_stored_file = "test_model.p"
         gc.save(mdl_stored_file)
@@ -167,19 +165,15 @@ class PycutTest(unittest.TestCase):
         gc.set_seeds(seeds)
         gc.run()
 
-        self.assertLess(
-            np.sum(
-                np.abs(
-                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
-            ),
-            600)
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertLess(err, 600)
         # import sed3
         # sed3.show_slices(img, contour=gc.segmentation==0, slice_step=6)
 
 
         # if we change the data there should be more error (assertMore)
         img = (img * 0.2).astype(np.uint8)
-        segparams['modelparams']['forbid_retraining'] = True
+        # segparams['modelparams']['adaptation'] = 'original_data'
         print(np.max(img))
         print(np.min(img))
         gc = pycut.ImageGraphCut(img, segparams=segparams)
@@ -188,14 +182,21 @@ class PycutTest(unittest.TestCase):
 
         m0 = gc.mdl.mdl[1]
         m1 = gc.mdl.mdl[2]
+        logger.debug("model parameters")
         print("model parameters")
 
-        self.assertGreater(
-            np.sum(
-                np.abs(
-                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
-            ),
-            600)
+        # import sed3
+        # ed = sed3.sed3((gc.segmentation==0).astype(np.double), contour=seg)
+        # ed.show()
+
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertGreater(err, 600)
+        # self.assertGreater(
+        #     np.sum(
+        #         np.abs(
+        #             (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+        #     ),
+        #     600)
         import sed3
 
         os.remove(mdl_stored_file)
