@@ -113,19 +113,39 @@ class Model3D(object):
         """
         Save model to pickle file
         """
-        import dill as pickle
+        import dill
+        tmpmodelparams = self.modelparams.copy()
+        # fv_extern_src = None
+        # fv_extern_src_name = None
+        # try:
+        #     fv_extern_src = dill.source.getsource(tmpmodelparams['fv_extern'])
+        #     tmpmodelparams.pop('fv_extern')
+        # except:
+        #     pass
+
         sv = {
             'modelparams': self.modelparams,
-            'mdl': self.mdl
+            'mdl': self.mdl,
+            # 'fv_extern_src': fv_extern_src,
+            # 'fv_extern_src_name': fv_extern_src_name,
 
         }
-        pickle.dump(sv, open(filename, "wb"))
+        sss = dill.dumps(self.modelparams)
+        print ("pickled " + sss)
+        dill.dump(sv, open(filename, "wb"))
 
     def load(self, mdl_file):
         import dill as pickle
         sv = pickle.load(open(mdl_file, "rb"))
         self.mdl = sv['mdl']
         # self.mdl[2] = self.mdl[0]
+        # try:
+        #     eval(sv['fv_extern_src'])
+        #     eval("fv_extern_temp_name  = " + sv['fv_extern_src_name'])
+        #     sv['fv_extern'] = fv_extern_temp_name
+        # except:
+        #     print "pomoc,necoje blbe"
+        #     pass
 
         self.modelparams.update(sv['modelparams'])
         logger.debug("loaded model from path: " + mdl_file)
