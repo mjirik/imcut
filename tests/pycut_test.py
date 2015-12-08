@@ -160,7 +160,10 @@ class PycutTest(unittest.TestCase):
 
         img, seg, seeds = self.make_data(56, 18)
         # there is only one change in mdl params
-        segparams['modelparams']['mdl_stored_file'] = mdl_stored_file
+        segparams['modelparams'] = {
+            'mdl_stored_file': mdl_stored_file,
+            'fv_extern': fv_function
+        }
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
         gc.run()
