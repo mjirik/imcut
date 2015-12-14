@@ -15,6 +15,7 @@ from __future__ import absolute_import, division, print_function
 import argparse
 import sys
 import logging
+import os.path as op
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,9 @@ class Model3D(object):
 
     def load(self, mdl_file):
         import dill as pickle
-        sv = pickle.load(open(mdl_file, "rb"))
+        mdl_file_e = op.expanduser(mdl_file)
+
+        sv = pickle.load(open(mdl_file_e, "rb"))
         self.mdl = sv['mdl']
         # self.mdl[2] = self.mdl[0]
         # try:
