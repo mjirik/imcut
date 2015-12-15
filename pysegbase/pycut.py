@@ -154,7 +154,7 @@ class Model3D(object):
         #     pass
 
         self.modelparams.update(sv['modelparams'])
-        logger.debug("loaded model from path: " + mdl_file)
+        logger.debug("loaded model from path: " + mdl_file_e)
         # from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
         # import ipdb; ipdb.set_trace()
 
