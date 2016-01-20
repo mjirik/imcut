@@ -135,7 +135,8 @@ class Model3D(object):
         #
         }
         sss = dill.dumps(self.modelparams)
-        print ("pickled " + sss)
+        logger.info("pickled " + sss)
+
         dill.dump(sv, open(filename, "wb"))
 
     def load(self, mdl_file):
@@ -206,7 +207,7 @@ class Model(Model3D):
             fv = data.reshape(-1, 1)
 
             if seeds is not None:
-                print("seeds" , seeds)
+                logger.debug("seeds" + str(seeds))
                 sd = seeds.reshape(-1, 1)
                 selection = np.in1d(sd, unique_cls)
                 fv = fv[selection]
@@ -389,7 +390,7 @@ class Model(Model3D):
         # outsha = sha[:-1]
         # from PyQt4.QtCore import pyqtRemoveInputHook
         # pyqtRemoveInputHook()
-        print("likel ", x.shape)
+        logger.debug("likel " + str(x.shape))
         if self.modelparams['type'] == 'gmmsame':
 
             px = self.mdl[cl].score(x)
@@ -1239,7 +1240,7 @@ class ImageGraphCut:
         # edges - seznam indexu hran, kteres spolu sousedi\
         elapsed = (time.time() - start)
         self.stats['_create_nlinks time'] = elapsed
-        print("__create nlinks time ", elapsed)
+        logger.info("__create nlinks time " + str(elapsed))
         return edges
 
     def set_data(self,
