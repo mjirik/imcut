@@ -460,6 +460,7 @@ class ImageGraphCut:
             'return_only_object_with_seeds': False,
             'use_old_similarity': True,  # New similarity not implemented @TODO
             'use_extra_features_for_training': False,
+            'use_apriori': True,
         }
         if 'modelparams' in segparams.keys():
             modelparams = segparams['modelparams']
@@ -489,6 +490,7 @@ class ImageGraphCut:
             'nlinks shape': []
         }
         self.mdl = Model(modelparams=self.modelparams)
+        self.apriori = None
 
     def interactivity_loop(self, pyed):
         # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
@@ -1101,6 +1103,12 @@ class ImageGraphCut:
         # ln is computed in likelihood
         tdata1 = (-(self.mdl.likelihood_from_image(data, voxelsize, 1))) * 10
         tdata2 = (-(self.mdl.likelihood_from_image(data, voxelsize, 2))) * 10
+
+        dtype = tdata1.dtype
+
+        if self.apriori is not None:
+            tdata1 = (tdata1 * self.apriori).astype(dtype)
+            tdata2 = (tdata1 * (1 - self.apriori)).astype(dtype)
 
         if self.debug_images:
             # Show model parameters
