@@ -61,20 +61,23 @@ Make graph_cut:
 Use is as a library:
 
     import numpy as np
-    import pyseg_base as psb
-    
+    import pysegbase.pycut as pspc
+
     data = np.random.rand(30, 30, 30)
     data[10:20, 5:15, 3:13] += 1
     data = data * 30
     data = data.astype(np.int16)
-    igc = psb.ImageGraphCut(data, voxelsize=[1, 1, 1])
-    igc.interactivity()
+    igc = pspc.ImageGraphCut(data, voxelsize=[1, 1, 1])
+    seeds = igc.interactivity()
+    
+![pysegbase_screenshot](http://147.228.240.61/queetech/www/pysegbase_screenshot0.png)
+
     
 More complex example without interactivity
 ---
 
     import numpy as np
-    import pysegbase as psb
+    import pysegbase.pycut as pspc
     import matplotlib.pyplot as plt
 
     # create data
@@ -89,7 +92,7 @@ More complex example without interactivity
     seeds[0:5:, 0:10, 0:11] = 2
     
     # Run 
-    igc = psb.ImageGraphCut(data, voxelsize=[1, 1, 1])
+    igc = pspc.ImageGraphCut(data, voxelsize=[1, 1, 1])
     igc.set_seeds(seeds)
     igc.run()
     
