@@ -446,6 +446,21 @@ class ImageGraphCut:
                  debug_images=False,
                  volume_unit='mm3'
                  ):
+        """
+
+        Args:
+            img: input data
+            modelparams: parameters of model
+            segparams: segmentation parameters
+                use_apriori_if_available - set self.apriori to ndimage with same shape as img
+            voxelsize: size of voxel
+            debug_images: use to show debug images with matplotlib
+            volume_unit: define string of volume unit. Default is "mm3"
+
+        Returns:
+
+        """
+
         logger.debug('modelparams: ' + str(modelparams) + ' segparams: ' +
                      str(segparams) + " voxelsize: " + str(voxelsize) +
                      " debug_images: " + str(debug_images))
@@ -461,7 +476,7 @@ class ImageGraphCut:
             'return_only_object_with_seeds': False,
             'use_old_similarity': True,  # New similarity not implemented @TODO
             'use_extra_features_for_training': False,
-            'use_apriori': True,
+            'use_apriori_if_available': True,
         }
         if 'modelparams' in segparams.keys():
             modelparams = segparams['modelparams']
@@ -1107,7 +1122,7 @@ class ImageGraphCut:
 
         dtype = tdata1.dtype
 
-        if self.apriori is not None:
+        if self.segparams['use_apriori_if_available'] and self.apriori is not None:
             tdata1 = (tdata1 * self.apriori).astype(dtype)
             tdata2 = (tdata1 * (1 - self.apriori)).astype(dtype)
 
