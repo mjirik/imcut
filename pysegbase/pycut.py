@@ -453,6 +453,8 @@ class ImageGraphCut:
             modelparams: parameters of model
             segparams: segmentation parameters
                 use_apriori_if_available - set self.apriori to ndimage with same shape as img
+                apriori_gamma: influence of apriory information. 0 means no influence, 1.0 is 100% use of
+                apriori information
             voxelsize: size of voxel
             debug_images: use to show debug images with matplotlib
             volume_unit: define string of volume unit. Default is "mm3"
@@ -477,6 +479,7 @@ class ImageGraphCut:
             'use_old_similarity': True,  # New similarity not implemented @TODO
             'use_extra_features_for_training': False,
             'use_apriori_if_available': True,
+            'apriori_gamma': 0.1,
         }
         if 'modelparams' in segparams.keys():
             modelparams = segparams['modelparams']
@@ -1120,11 +1123,26 @@ class ImageGraphCut:
         tdata1 = (-(self.mdl.likelihood_from_image(data, voxelsize, 1))) * 10
         tdata2 = (-(self.mdl.likelihood_from_image(data, voxelsize, 2))) * 10
 
-        dtype = tdata1.dtype
+        # to spare some memory
+        dtype = np.int16
+        if any(tdata1 > 32760):
+            dtype = np.float32
+        if any(tdata2 > 32760):
+            dtype = np.float32
 
         if self.segparams['use_apriori_if_available'] and self.apriori is not None:
-            tdata1 = (tdata1 * self.apriori).astype(dtype)
-            tdata2 = (tdata1 * (1 - self.apriori)).astype(dtype)
+            logger.debug("using apriori information")
+            gamma = self.segparams['apriori_gamma']
+            a2 = (1 - gamma) + gamma * (1 - self.apriori)
+            a1 = (1 - gamma) + gamma * self.apriori
+            tdata1u = (tdata1 * a1).astype(dtype)
+            tdata2u = (tdata2 * a2).astype(dtype)
+            tdata1 = tdata1u
+            tdata2 = tdata2u
+            del tdata1u
+            del tdata2u
+            del a1
+            del a2
 
         if self.debug_images:
             # Show model parameters
