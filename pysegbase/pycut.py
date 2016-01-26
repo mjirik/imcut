@@ -1125,16 +1125,16 @@ class ImageGraphCut:
 
         # to spare some memory
         dtype = np.int16
-        if any(tdata1 > 32760):
+        if (tdata1 > 32760).any():
             dtype = np.float32
-        if any(tdata2 > 32760):
+        if (tdata2 > 32760).any():
             dtype = np.float32
 
         if self.segparams['use_apriori_if_available'] and self.apriori is not None:
             logger.debug("using apriori information")
             gamma = self.segparams['apriori_gamma']
-            a2 = (1 - gamma) + gamma * (1 - self.apriori)
-            a1 = (1 - gamma) + gamma * self.apriori
+            a2 = (1 - gamma) + gamma * (-np.log(1 - self.apriori)) * 10
+            a1 = (1 - gamma) + gamma * (-np.log(self.apriori)) * 10
             tdata1u = (tdata1 * a1).astype(dtype)
             tdata2u = (tdata2 * a2).astype(dtype)
             tdata1 = tdata1u
