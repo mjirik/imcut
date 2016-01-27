@@ -1133,8 +1133,8 @@ class ImageGraphCut:
         if self.segparams['use_apriori_if_available'] and self.apriori is not None:
             logger.debug("using apriori information")
             gamma = self.segparams['apriori_gamma']
-            a2 = (1 - gamma) + gamma * (-np.log(1 - self.apriori)) * 10
-            a1 = (1 - gamma) + gamma * (-np.log(self.apriori)) * 10
+            a2 = (1 - gamma) + gamma * (-np.log(0.999 - (self.apriori * 0.998))) * 10
+            a1 = (1 - gamma) + gamma * (-np.log(self.apriori*0.998 + 0.001)) * 10
             tdata1u = (tdata1 * a1).astype(dtype)
             tdata2u = (tdata2 * a2).astype(dtype)
             tdata1 = tdata1u
