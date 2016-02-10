@@ -204,6 +204,46 @@ class PycutTest(unittest.TestCase):
 
         os.remove(mdl_stored_file)
 
+    def test_apriori(self):
+        """
+        Test apriori segmentation. Make segmentation twice. First is used with gamma=0.2,
+        second is used with gamma=0.9
+        """
+
+        img, seg, seeds = self.make_data(64, 20)
+        apriori = np.zeros([64,64,64])
+
+        apriori[:20,:20,:20] = 1
+        segparams1 = { 'apriori_gamma':.1 }
+        gc = pycut.ImageGraphCut(img, segparams=segparams1)
+        gc.set_seeds(seeds)
+        gc.apriori = apriori
+        gc.run()
+        # import sed3
+        # ed = sed3.sed3(img, contour=(gc.segmentation==0))
+        # ed.show()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+
+
+
+        segparams2 = { 'apriori_gamma':.9 }
+        gc = pycut.ImageGraphCut(img, segparams=segparams2)
+        gc.set_seeds(seeds)
+        gc.apriori = apriori
+        gc.run()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - apriori.astype(np.int8))
+            ),
+            600)
 
     def test_multiscale_gc_seg(self):
         """

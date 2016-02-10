@@ -1133,12 +1133,23 @@ class ImageGraphCut:
         if self.segparams['use_apriori_if_available'] and self.apriori is not None:
             logger.debug("using apriori information")
             gamma = self.segparams['apriori_gamma']
-            a1 = (1 - gamma) + gamma * (-np.log(0.999 - (self.apriori * 0.998))) * 10
-            a2 = (1 - gamma) + gamma * (-np.log(self.apriori*0.998 + 0.001)) * 10
-            tdata1u = (tdata1 * a1).astype(dtype)
-            tdata2u = (tdata2 * a2).astype(dtype)
+            a1 = (-np.log(self.apriori * 0.998 + 0.001)) * 10
+            a2 = (-np.log(0.999 - (self.apriori * 0.998))) * 10
+            # logger.debug('max ' + str(np.max(tdata1)) + ' min ' + str(np.min(tdata1)))
+            # logger.debug('max ' + str(np.max(tdata2)) + ' min ' + str(np.min(tdata2)))
+            # logger.debug('max ' + str(np.max(a1)) + ' min ' + str(np.min(a1)))
+            # logger.debug('max ' + str(np.max(a2)) + ' min ' + str(np.min(a2)))
+            tdata1u = (((1 - gamma) * tdata1) + (gamma * a1)).astype(dtype)
+            tdata2u = (((1 - gamma) * tdata2) + (gamma * a2)).astype(dtype)
             tdata1 = tdata1u
             tdata2 = tdata2u
+            # logger.debug('   max ' + str(np.max(tdata1)) + ' min ' + str(np.min(tdata1)))
+            # logger.debug('   max ' + str(np.max(tdata2)) + ' min ' + str(np.min(tdata2)))
+            # logger.debug('gamma ' + str(gamma))
+
+            # import sed3
+            # ed = sed3.show_slices(tdata1)
+            # ed = sed3.show_slices(tdata2)
             del tdata1u
             del tdata2u
             del a1
