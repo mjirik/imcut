@@ -108,3 +108,24 @@ More complex example without interactivity
 
 
 ![example_img](https://raw.githubusercontent.com/mjirik/pyseg_base/master/imgs/example_result.png)
+
+
+Configuration
+===
+
+
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                'fv_type': "fv_extern",
+                'fv_extern': fv_function,
+                'adaptation': 'original_data',
+            }
+        }
+        
+*mdl_stored_file*: if this is set, load from file 
