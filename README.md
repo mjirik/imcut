@@ -126,6 +126,9 @@ Configuration
                 'fv_extern': fv_function,
                 'adaptation': 'original_data',
             }
+            'mdl_stored_file': False,
         }
         
-*mdl_stored_file*: if this is set, load from file 
+*mdl_stored_file*: if this is set, load model from file 
+
+[read more about configuration](https://github.com/mjirik/pysegbase/blob/master/pysegbase/pycut.py)

@@ -64,9 +64,18 @@ class Model3D(object):
     is implemented as 'gaussian_kde'. General kernel estimation ('kernel')
     is from scipy version 0.14 and it is not tested.
 
-    fv_type:
+    fv_type: feature vector type is defined with one of fallowing string
         intensity - based on seeds and data the intensity as feature vector is used
         voxel - information in voxel1 and voxel2 is used
+        fv_extern - external feature vector function specified in fv_extern label
+
+    fv_extern:
+        function `fv_function(data, voxelsize, seeds, unique_cls)`. It is used only
+        if fv_type is set to "fv_extern"
+
+    mdl_stored_file:
+        string or False. Default is false. The string is path to file with stored model.
+        This model is loaded and
 
     adaptation:
         - retrain: no adaptatin
@@ -140,6 +149,9 @@ class Model3D(object):
         dill.dump(sv, open(filename, "wb"))
 
     def load(self, mdl_file):
+        """
+        load model from file. fv_type is not set with this function. It is expected to set it before.
+        """
         import dill as pickle
         mdl_file_e = op.expanduser(mdl_file)
 
