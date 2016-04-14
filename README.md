@@ -5,7 +5,7 @@ About
 Segmentation tools based on the graph cut algorithm. You can 
 see video to get an idea.
 
-    [![Graph-Cut segmentation](https://img.youtube.com/vi/bFSyY4jyMHw/0.jpg)](https://www.youtube.com/watch?v=bFSyY4jyMHw)
+[![Graph-Cut segmentation](https://img.youtube.com/vi/bFSyY4jyMHw/0.jpg)](https://www.youtube.com/watch?v=bFSyY4jyMHw)
 
 please cite:
 
