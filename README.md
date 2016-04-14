@@ -1,4 +1,3 @@
-PYSEG_BASE
 
 About
 -----
