@@ -22,13 +22,13 @@ please cite:
 Links
 -----
 
-  https://github.com/mjirik/pyseg_base
+  https://github.com/mjirik/pysegbase
 
 Authors
 -------
 
-Miroslav Jirik
-Vladimir Lukes
+* Miroslav Jirik
+* Vladimir Lukes
 
 License
 -------
@@ -38,7 +38,7 @@ New BSD License, see the LICENSE file.
 Install
 -------
 
-    pip install pyseg_base
+    pip install gcopython pysegbase
 
 See INSTALL file for more information
 
