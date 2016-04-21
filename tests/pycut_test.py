@@ -48,6 +48,16 @@ class PycutTest(unittest.TestCase):
         if sys.version_info.major < 3:
             cls.assertCountEqual = cls.assertItemsEqual
 
+    def test_show_editor(self):
+        import pysegbase.seed_editor_qt
+        import numpy as np
+        from PyQt4.QtGui import QApplication
+        app = QApplication(sys.argv)
+        data = (np.random.rand(30,31,32) * 100).astype(np.int)
+        data[15:40, 13:20, 10:18] += 50
+        se = pysegbase.seed_editor_qt.QTSeedEditor(data)
+        se.exec_()
+
     # @TODO znovu zprovoznit test
 
     # @unittest.skip("Cekame, az to Tomas opravi")

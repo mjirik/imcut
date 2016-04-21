@@ -42,7 +42,7 @@ CONTOURS_COLORS = {
     2: [0, 0, 255],
     3: [0, 255, 255],
     4: [255, 128, 0],
-    5: [255, 128, 0],
+    5: [255, 128, 255],
     6: [255, 0, 128],
     7: [128, 128, 255],
     8: [0, 128, 255],
@@ -50,7 +50,94 @@ CONTOURS_COLORS = {
     10: [255, 255, 0],
     11: [0, 255, 0],
     12: [0, 255, 255],
-    13: [0, 0, 255],
+    13: [128, 0, 0],
+    14: [128, 0, 0],
+    15: [0, 0, 128],
+    16: [0, 128, 128],
+    17: [255, 128, 0],
+    18: [255, 128, 0],
+    19: [128, 0, 128],
+    20: [128, 255, 128],
+    21: [128, 128, 255],
+    22: [128, 255, 128],
+    23: [255, 255, 128],
+    24: [0, 255, 128],
+    25: [128, 255, 255],
+    26: [64, 0, 0],
+    27: [0, 0, 64],
+    28: [0, 64, 64],
+    29: [64, 128, 0],
+    30: [64, 128, 64],
+    31: [64, 0, 128],
+    32: [128, 128, 64],
+    33: [0, 128, 64],
+    34: [128, 0, 64],
+    35: [64, 64, 0],
+    36: [0, 64, 0],
+    37: [0, 64, 64],
+    38: [128, 0, 0],
+    39: [128, 0, 0],
+    40: [0, 0, 128],
+    41: [0, 128, 128],
+    42: [64, 128, 0],
+    43: [64, 128, 0],
+    44: [128, 0, 128],
+    45: [128, 64, 128],
+    46: [128, 128, 64],
+    47: [128, 64, 128],
+    48: [64, 64, 128],
+    49: [0, 64, 128],
+    50: [128, 64, 64],
+    51: [255, 64, 64],
+    52: [64, 64, 255],
+    53: [64, 255, 255],
+    54: [255, 128, 64],
+    55: [255, 128, 255],
+    56: [255, 64, 128],
+    57: [128, 128, 255],
+    58: [64, 128, 255],
+    59: [128, 64, 255],
+    60: [255, 255, 64],
+    61: [64, 255, 64],
+    62: [64, 255, 255],
+    63: [128, 64, 64],
+    64: [128, 64, 64],
+    65: [64, 64, 128],
+    66: [64, 128, 128],
+    67: [255, 128, 64],
+    68: [255, 128, 64],
+    69: [128, 64, 128],
+    70: [128, 255, 128],
+    71: [128, 128, 255],
+    72: [128, 255, 128],
+    73: [255, 255, 128],
+    74: [64, 255, 128],
+    75: [128, 255, 255],
+    76: [64, 255, 255],
+    77: [255, 255, 64],
+    78: [255, 64, 64],
+    79: [64, 128, 255],
+    80: [64, 128, 64],
+    81: [64, 255, 128],
+    82: [128, 128, 64],
+    83: [255, 128, 64],
+    84: [128, 255, 64],
+    85: [64, 64, 255],
+    86: [255, 64, 255],
+    87: [255, 64, 64],
+    88: [128, 255, 255],
+    89: [128, 255, 255],
+    90: [255, 255, 128],
+    91: [255, 128, 128],
+    92: [64, 128, 255],
+    93: [64, 128, 255],
+    94: [128, 255, 128],
+    95: [128, 64, 128],
+    96: [128, 128, 64],
+    97: [128, 64, 128],
+    98: [64, 64, 128],
+    99: [255, 64, 128],
+    100: [128, 64, 64],
 }
 
 CONTOURS_COLORTABLE = np.zeros((256,4), dtype=np.uint8)
@@ -611,6 +698,15 @@ class QTSeedEditor(QDialog):
 
         if mode == 'seed' or mode == 'crop'\
                 or mode == 'mask' or mode == 'draw':
+            combo_seed_label_options = ['all', '1', '2', '3', '4']
+            combo_seed_label= QComboBox(self)
+            combo_seed_label.activated[str].connect(self.changeContourMode)
+            combo_seed_label.addItems(combo_seed_label_options)
+            self.changeFocusedLabel(combo_seed_label_options[combo_seed_label.currentIndex()])
+            vopts.append(QLabel('Label to delete:'))
+            vopts.append(combo_seed_label)
+
+
             btn_del = QPushButton("Delete Seeds", self)
             btn_del.clicked.connect(self.deleteSliceSeeds)
             vmenu.append(None)
@@ -623,6 +719,8 @@ class QTSeedEditor(QDialog):
             self.changeContourMode(combo_contour_options[combo_contour.currentIndex()])
             vopts.append(QLabel('Selection mode:'))
             vopts.append(combo_contour)
+
+
 
 
 
@@ -1304,6 +1402,9 @@ class QTSeedEditor(QDialog):
         self.selectSlice(self.actual_slice)
         self.updateVolume()
         self.showStatus("Done")
+
+    def changeFocusedLabel(self, textlabel):
+        self.textFocusedLabel = textlabel
 
     def deleteSliceSeeds(self, event):
         self.seeds_aview[...,self.actual_slice] = 0
