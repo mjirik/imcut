@@ -703,8 +703,22 @@ class QTSeedEditor(QDialog):
         if mode == 'seed' or mode == 'crop'\
                 or mode == 'mask' or mode == 'draw':
 
-            btn_del = QPushButton("Delete Seeds", self)
+            combo_seed_label_options = ['all', '1', '2', '3', '4']
+            combo_seed_label= QComboBox(self)
+            combo_seed_label.activated[str].connect(self.changeFocusedLabel)
+            combo_seed_label.addItems(combo_seed_label_options)
+            self.changeFocusedLabel(combo_seed_label_options[combo_seed_label.currentIndex()])
+            # vopts.append(QLabel('Label to delete:'))
+            # vopts.append(combo_seed_label)
+            vmenu.append(QLabel('Label to delete:'))
+            vmenu.append(combo_seed_label)
+
+            btn_del = QPushButton("Del Slice Seeds", self)
             btn_del.clicked.connect(self.deleteSliceSeeds)
+            vmenu.append(None)
+            vmenu.append(btn_del)
+            btn_del = QPushButton("Del All Seeds", self)
+            btn_del.clicked.connect(self.deleteSeedsInAllImage)
             vmenu.append(None)
             vmenu.append(btn_del)
 
@@ -715,14 +729,6 @@ class QTSeedEditor(QDialog):
             self.changeContourMode(combo_contour_options[combo_contour.currentIndex()])
             vopts.append(QLabel('Selection mode:'))
             vopts.append(combo_contour)
-
-            combo_seed_label_options = ['all', '1', '2', '3', '4']
-            combo_seed_label= QComboBox(self)
-            combo_seed_label.activated[str].connect(self.changeFocusedLabel)
-            combo_seed_label.addItems(combo_seed_label_options)
-            self.changeFocusedLabel(combo_seed_label_options[combo_seed_label.currentIndex()])
-            vopts.append(QLabel('Label to delete:'))
-            vopts.append(combo_seed_label)
 
         if mode == 'mask':
             btn_recalc_mask = QPushButton("Recalculate mask", self)
@@ -1419,6 +1425,18 @@ class QTSeedEditor(QDialog):
             self.seeds_aview[
                 self.seeds_aview[...,self.actual_slice] == int(self.textFocusedLabel)
                 ,self.actual_slice] = 0
+
+        self.slice_box.setSlice(seeds=self.seeds_aview[...,self.actual_slice])
+        self.slice_box.updateSlice()
+
+    def deleteSeedsInAllImage(self, event):
+        if self.textFocusedLabel == 'all':
+            self.seeds_aview[...] = 0
+        else:
+            # delete only seeds with specific label
+            self.seeds_aview[
+                self.seeds_aview[...] == int(self.textFocusedLabel)
+                ] = 0
 
         self.slice_box.setSlice(seeds=self.seeds_aview[...,self.actual_slice])
         self.slice_box.updateSlice()

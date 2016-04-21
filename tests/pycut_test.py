@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 
-
+from nose.plugins.attrib import attr
 from pysegbase import pycut
 
 def fv_function(data, voxelsize, seeds=None, cls=None):
@@ -48,7 +48,13 @@ class PycutTest(unittest.TestCase):
         if sys.version_info.major < 3:
             cls.assertCountEqual = cls.assertItemsEqual
 
+    @attr('interactive')
     def test_show_editor(self):
+        """
+        just run editor to see what is new
+        Returns:
+
+        """
         import pysegbase.seed_editor_qt
         import numpy as np
         from PyQt4.QtGui import QApplication
