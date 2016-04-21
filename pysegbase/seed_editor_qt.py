@@ -15,6 +15,7 @@ import numpy as np
 import sys
 from scipy.spatial import Delaunay
 
+
 import PyQt4
 from PyQt4.QtCore import Qt, QSize, SIGNAL
 try:
@@ -27,6 +28,9 @@ from PyQt4.QtGui import QImage, QDialog,\
     QLabel, QPixmap, QPainter, qRgba,\
     QComboBox, QIcon, QStatusBar,\
     QHBoxLayout, QVBoxLayout, QFrame, QSizePolicy
+
+import logging
+logger = logging.getLogger(__name__)
 
 # BGRA order
 GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
@@ -698,14 +702,6 @@ class QTSeedEditor(QDialog):
 
         if mode == 'seed' or mode == 'crop'\
                 or mode == 'mask' or mode == 'draw':
-            combo_seed_label_options = ['all', '1', '2', '3', '4']
-            combo_seed_label= QComboBox(self)
-            combo_seed_label.activated[str].connect(self.changeContourMode)
-            combo_seed_label.addItems(combo_seed_label_options)
-            self.changeFocusedLabel(combo_seed_label_options[combo_seed_label.currentIndex()])
-            vopts.append(QLabel('Label to delete:'))
-            vopts.append(combo_seed_label)
-
 
             btn_del = QPushButton("Delete Seeds", self)
             btn_del.clicked.connect(self.deleteSliceSeeds)
@@ -720,9 +716,13 @@ class QTSeedEditor(QDialog):
             vopts.append(QLabel('Selection mode:'))
             vopts.append(combo_contour)
 
-
-
-
+            combo_seed_label_options = ['all', '1', '2', '3', '4']
+            combo_seed_label= QComboBox(self)
+            combo_seed_label.activated[str].connect(self.changeFocusedLabel)
+            combo_seed_label.addItems(combo_seed_label_options)
+            self.changeFocusedLabel(combo_seed_label_options[combo_seed_label.currentIndex()])
+            vopts.append(QLabel('Label to delete:'))
+            vopts.append(combo_seed_label)
 
         if mode == 'mask':
             btn_recalc_mask = QPushButton("Recalculate mask", self)
@@ -943,6 +943,8 @@ class QTSeedEditor(QDialog):
         self.changeW(dul)
 
         self.offset = np.zeros((3,), dtype=np.int16)
+        # set what labels will be deleted by 'delete seeds' button
+        self.textFocusedLabel = "all"
 
     def showStatus(self, msg):
         self.status_bar.showMessage(QString(msg))
@@ -1405,9 +1407,19 @@ class QTSeedEditor(QDialog):
 
     def changeFocusedLabel(self, textlabel):
         self.textFocusedLabel = textlabel
+        # logger
+        # print " lakjlfkj ", textlabel
+        logger.debug(self.textFocusedLabel)
 
     def deleteSliceSeeds(self, event):
-        self.seeds_aview[...,self.actual_slice] = 0
+        if self.textFocusedLabel == 'all':
+            self.seeds_aview[...,self.actual_slice] = 0
+        else:
+            # delete only seeds with specific label
+            self.seeds_aview[
+                self.seeds_aview[...,self.actual_slice] == int(self.textFocusedLabel)
+                ,self.actual_slice] = 0
+
         self.slice_box.setSlice(seeds=self.seeds_aview[...,self.actual_slice])
         self.slice_box.updateSlice()
 
