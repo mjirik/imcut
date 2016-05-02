@@ -385,6 +385,7 @@ class SliceBox(QLabel):
         return cnt.ravel(order='F')
 
     def composeRgba(self, bg, fg, cmap):
+        # TODO here is bug. Should be used nearest neighboor instead of linear interpolation
         idxs = fg.nonzero()[0]
 
         if idxs.shape[0] > 0:
