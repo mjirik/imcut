@@ -584,10 +584,16 @@ class SliceBox(QLabel):
         if self.scroll_fun is not None:
             self.scroll_fun(-nd)
 
+
+# TODO do widget
+# class QTSeedEditorWidget(QWidget):
+
 class QTSeedEditor(QDialog):
     """
     DICOM viewer.
     """
+
+
     @staticmethod
     def get_line(mode='h'):
         line = QFrame()
