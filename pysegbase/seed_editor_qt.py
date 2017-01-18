@@ -36,11 +36,25 @@ logger = logging.getLogger(__name__)
 GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
                            dtype=np.uint8)
 
-SEEDS_COLORTABLE = np.array([[0, 255, 0, 255],
-                             [64, 0, 255, 255],
-                             [0, 200, 128, 255],
-                             [64, 128, 200, 255]], dtype=np.uint8)
+SEEDS_COLORTABLE = np.array([[
+                                 (15 + ii * 41) % 256,
+                                 (47 + ii * 117) % 256,
+                                 (11 + ii * -31) % 256,
+                                 220
+                             ] for ii in range(256)], dtype=np.uint8)
+SEEDS_COLORTABLE[:4] = np.array([[0, 255, 0, 220],
+                             [64, 0, 255, 220],
+                             [0, 200, 128, 220],
+                             [64, 128, 200, 220]], dtype=np.uint8)
 
+
+# In future something like this...
+# CONTOURS_COLORS = np.array([[
+#                                  (15 + ii * 41) % 256,
+#                                  (47 + ii * 117) % 256,
+#                                  (11 + ii * -31) % 256
+#                             ] for ii in range(256)],
+#                             dtype=np.uint8)
 CONTOURS_COLORS = {
     1: [255, 0, 0],
     2: [0, 0, 255],
