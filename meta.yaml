@@ -32,7 +32,7 @@ requirements:
     - setuptools
     - numpy
     - scipy
-    - pyqt
+    - pyqt>=4.11.*
     - pydicom
     - dill
 
@@ -40,7 +40,7 @@ requirements:
     - python
     - numpy
     - scipy
-    - pyqt
+    - pyqt>=4.11.*
     - pydicom
     - dill
 
