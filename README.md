@@ -18,16 +18,20 @@ please cite:
     }
 
 
-Links
------
 
-  https://github.com/mjirik/pysegbase
 
 Authors
 -------
 
 * Miroslav Jirik
 * Vladimir Lukes
+
+Resources
+-----
+
+  https://github.com/mjirik/pysegbase
+  https://github.com/amueller/gco_python
+
 
 License
 -------
