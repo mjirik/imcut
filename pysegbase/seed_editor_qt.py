@@ -624,6 +624,7 @@ class QTSeedEditor(QDialog):
                mode='seed',
                button_text=None,
                button_callback=None,
+               appmenu_text=None,
                ):
         """
         Initialize UI.
@@ -819,6 +820,8 @@ class QTSeedEditor(QDialog):
             vopts.append(QLabel('Volume erase mode:'))
             vopts.append(combo_erase)
 
+        if appmenu_text is not None:
+                appmenu.append(QLabel(appmenu_text))
         hbox = QHBoxLayout()
         vbox = QVBoxLayout()
         vbox_left = QVBoxLayout()
@@ -878,32 +881,38 @@ class QTSeedEditor(QDialog):
                  voxelSize=[1,1,1], volume_unit='mm3',
                  button_text=None,
                  button_callback=None,
+                 appmenu_text=None,
                  ):
         """
         Initiate Editor
 
         Parameters
         ----------
-        img : array
+        :param img: array
             DICOM data matrix.
-        actualSlice : int
+        :param actualSlice : int
             Index of actual slice.
-        seeds : array
+        :param seeds : array
             Seeds, user defined regions of interest.
-        contours : array
+        :param contours : array
             Computed segmentation.
-        mode : str
+        :param mode : str
             Editor modes:
                'seed' - seed editor
                'crop' - manual crop
                'draw' - drawing
                'mask' - mask region
-        modeFun : fun
+        :param modeFun : fun
             Mode function invoked by user button.
-        voxelSize : tuple of float
+        :param voxelSize : tuple of float
             voxel size [mm]
-        volume_unit : allow select output volume in mililiters or mm3
+        :param volume_unit : allow select output volume in mililiters or mm3
             [mm, ml]
+        :param appmenu_text: text which is displayed in the right toolbar
+        :param button_callback: callback function used when button is clicked. Implemented in
+        "mask" mode. If none, default mask function is used.
+        :param button_text: text on the button. Implemented for "mask" mode. If None, default text
+        is used.
         """
 
         QDialog.__init__(self)
@@ -966,6 +975,7 @@ class QTSeedEditor(QDialog):
                     600, mode,
                     button_text=button_text,
                     button_callback=button_callback,
+                    appmenu_text=appmenu_text,
                     )
 
         if mode == 'draw':
