@@ -621,7 +621,10 @@ class QTSeedEditor(QDialog):
         return line
 
     def initUI(self, shape, vscale, height=600,
-               mode='seed'):
+               mode='seed',
+               button_text=None,
+               button_callback=None,
+               ):
         """
         Initialize UI.
 
@@ -752,6 +755,11 @@ class QTSeedEditor(QDialog):
             vopts.append(combo_contour)
 
         if mode == 'mask':
+            if button_text is None:
+                button_text = "Mask region"
+            if button_callback is None:
+                button_callback = self.maskRegion
+
             btn_recalc_mask = QPushButton("Recalculate mask", self)
             btn_recalc_mask.clicked.connect(self.updateMaskRegion_btn)
             btn_all = QPushButton("Select all", self)
@@ -764,8 +772,8 @@ class QTSeedEditor(QDialog):
             btn_add.clicked.connect(self.maskAddSelection)
             btn_rem = QPushButton("Remove selection", self)
             btn_rem.clicked.connect(self.maskRemoveSelection)
-            btn_mask = QPushButton("Mask region", self)
-            btn_mask.clicked.connect(self.maskRegion)
+            btn_mask = QPushButton(button_text, self)
+            btn_mask.clicked.connect(button_callback)
             appmenu.append(QLabel('<b>Mask mode</b><br><br><br>' +
                                   'Select the region to mask<br>' +
                                   'using the left mouse button<br><br>'))
@@ -867,7 +875,10 @@ class QTSeedEditor(QDialog):
     def __init__(self, img, viewPositions=None,
                  seeds=None, contours=None,
                  mode='seed', modeFun=None,
-                 voxelSize=[1,1,1], volume_unit='mm3'):
+                 voxelSize=[1,1,1], volume_unit='mm3',
+                 button_text=None,
+                 button_callback=None,
+                 ):
         """
         Initiate Editor
 
@@ -952,7 +963,10 @@ class QTSeedEditor(QDialog):
 
         self.initUI(self.img_aview.shape,
                     self.voxel_scale[np.array(self.act_transposition)],
-                    600, mode)
+                    600, mode,
+                    button_text=button_text,
+                    button_callback=button_callback,
+                    )
 
         if mode == 'draw':
             self.seeds_orig = self.seeds.copy()
