@@ -343,7 +343,7 @@ class Model(Model3D):
                 # převést na 2d matici
                 clx = clx.reshape(-1, 1)
             gmmparams = self.modelparams['params']
-            self.mdl[cl] = sklearn.mixture.GMM(**gmmparams)
+            self.mdl[cl] = sklearn.mixture.GaussianMixture(**gmmparams)
             self.mdl[cl].fit(clx)
 
         elif self.modelparams['type'] == 'kernel':
