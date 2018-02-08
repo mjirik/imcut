@@ -405,7 +405,7 @@ class Model(Model3D):
         logger.debug("likel " + str(x.shape))
         if self.modelparams['type'] == 'gmmsame':
 
-            px = self.mdl[cl].score(x)
+            px = self.mdl[cl].score_samples(x)
 
         # todo ošetřit více dimenzionální fv
         # px = px.reshape(outsha)
@@ -428,7 +428,9 @@ class Model(Model3D):
             # vždy natrénuje jednu složku v blízkosti nuly
             # patrně to bude mít něco společného s parametrem alpha
             # přenásobí-li se to malým číslem, zázračně to chodí
-            px = self.mdl[cl].score(x * 0.01)
+            logger.warning(".score() replaced with .score_samples() . Check it.")
+            # px = self.mdl[cl].score(x * 0.01)
+            px = self.mdl[cl].score_samples(x * 0.01)
         elif self.modelparams['type'] == 'stored':
             px = self.mdl[cl].score(x)
         return px
