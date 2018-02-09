@@ -30,6 +30,7 @@ import sklearn.mixture
 # version comparison
 from pkg_resources import parse_version
 import scipy.ndimage
+from . import models
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
     # new versions
@@ -1139,9 +1140,9 @@ class ImageGraphCut:
 
         # to spare some memory
         dtype = np.int16
-        if (tdata1 > 32760).any():
+        if np.any(tdata1 > 32760):
             dtype = np.float32
-        if (tdata2 > 32760).any():
+        if np.any(tdata2 > 32760):
             dtype = np.float32
 
         if self.segparams['use_apriori_if_available'] and self.apriori is not None:
@@ -1168,6 +1169,10 @@ class ImageGraphCut:
             del tdata2u
             del a1
             del a2
+        tdata1 = models.softplus(tdata1, max_error=10, keep_dtype=True)
+        tdata2 = models.softplus(tdata2, max_error=10, keep_dtype=True)
+        # if np.any(tdata1 < 0) or np.any(tdata2 <0):
+        #     logger.error("Problem with tlinks. Likelihood is < 0")
 
         if self.debug_images:
             # Show model parameters

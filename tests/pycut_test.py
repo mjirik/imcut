@@ -48,6 +48,33 @@ class PycutTest(unittest.TestCase):
         if sys.version_info.major < 3:
             cls.assertCountEqual = cls.assertItemsEqual
 
+    def test_simple_graph_cut(self):
+        img, seg, seeds = self.make_data(64, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                "n_components": 2,
+                # 'fv_type': "fv_extern",
+                # 'fv_extern': fv_function,
+                # 'adaptation': 'original_data',
+            }
+        }
+        gc = pycut.ImageGraphCut(img , segparams=segparams)
+        gc.set_seeds(seeds)
+
+        gc.run()
+        # import sed3
+        # ed = sed3.sed3((gc.segmentation==0).astype(np.double), contour=seg)
+        # ed.show()
+
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertLess(err, 600)
+
     @attr('interactive')
     def test_show_editor(self):
         """
