@@ -1171,6 +1171,10 @@ class ImageGraphCut:
             del a2
         tdata1 = models.softplus(tdata1, max_error=10, keep_dtype=True)
         tdata2 = models.softplus(tdata2, max_error=10, keep_dtype=True)
+
+        # replace inf with large finite number
+        tdata1 = np.nan_to_num(tdata1)
+        tdata2 = np.nan_to_num(tdata2)
         # if np.any(tdata1 < 0) or np.any(tdata2 <0):
         #     logger.error("Problem with tlinks. Likelihood is < 0")
 
