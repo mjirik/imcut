@@ -1,9 +1,9 @@
 package:
   name: pysegbase
-  version: "1.2.21"
+  version: "1.2.22"
 
 source:
-  git_rev: 1.2.21
+  git_rev: 1.2.22
   git_url: .
 #  git_url: https://github.com/mjirik/pyseg_base.git
 #  patches:
