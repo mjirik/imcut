@@ -31,7 +31,7 @@ install:
       # - "easy_install SimpleITK mahotas"
 #    - pip install -r requirements_pip.txt
     # - if [ ${pack} == "old_mpl" ]; then conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose dateutil pandas statsmodels pil six; fi
-    - conda install nosetests
+    - conda install nose
     - conda list
 #    - apt-cache policy openssl
 #    - conda install --yes paramiko=1.16.0
