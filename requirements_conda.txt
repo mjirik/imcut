@@ -13,3 +13,4 @@ pyqt==4.11.*
 pydicom>=0.9.9
 cython
 pywget
+dill
