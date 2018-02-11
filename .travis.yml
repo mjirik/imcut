@@ -27,9 +27,9 @@ install:
     - conda update --yes conda
     # Install dependencies
     - conda install --yes -c SimpleITK -c luispedro -c mjirik -c conda-forge --file requirements_conda.txt
-    - pip install -r ci/requirements_ci.txt
+#    - pip install -r ci/requirements_ci.txt
       # - "easy_install SimpleITK mahotas"
-    - pip install -r requirements_pip.txt
+#    - pip install -r requirements_pip.txt
     # - if [ ${pack} == "old_mpl" ]; then conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose dateutil pandas statsmodels pil six; fi
     - conda list
 #    - apt-cache policy openssl
