@@ -42,6 +42,21 @@ def fv_function(data, voxelsize, seeds=None, cls=None):
         return fv, sd
     return fv
 
+def box_data(noise_sigma=3):
+    # data
+    img3d = np.random.rand(32, 64, 64) * noise_sigma
+    img3d[4:24, 12:32, 5:25] = img3d[4:24, 12:32, 5:25] + 30
+
+    # seeds
+    seeds = np.zeros([32, 64, 64], np.int8)
+    seeds[9:12, 13:29, 18:25] = 1
+    seeds[9:12, 4:9, 3:32] = 2
+    # [mm]  10 x 10 x 10        # voxelsize_mm = [1, 4, 3]
+    voxelsize_mm = [5, 5, 5]
+    metadata = {'voxelsize_mm': voxelsize_mm}
+    return img3d, seeds, voxelsize_mm
+
+
 class PycutTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -75,6 +90,57 @@ class PycutTest(unittest.TestCase):
         err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
         self.assertLess(err, 600)
 
+    def test_gc_box_overfiting(self):
+        data3d, seeds, voxelsize = box_data(noise_sigma=0.5)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                "n_components": 3,
+                # 'fv_type': "fv_extern",
+                # 'fv_extern': fv_function,
+                # 'adaptation': 'original_data',
+            }
+        }
+        gc = pycut.ImageGraphCut(data3d , segparams=segparams, debug_images=True) # , debug_images=True)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        import sed3
+        ed = sed3.sed3(data3d, contour=(gc.segmentation==0).astype(np.double) * 3)
+        ed.show()
+
+    def test_simple_graph_cut_overfit_with_low_noise(self):
+        img, seg, seeds = self.make_data(64, 20, sigma=20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                "n_components": 3,
+                # 'fv_type': "fv_extern",
+                # 'fv_extern': fv_function,
+                # 'adaptation': 'original_data',
+            }
+        }
+        gc = pycut.ImageGraphCut(img , segparams=segparams, debug_images=True)
+        gc.set_seeds(seeds)
+
+        gc.run()
+        import sed3
+        ed = sed3.sed3(img, contours=(gc.segmentation==0).astype(np.double))
+        ed.show()
+
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertLess(err, 600)
+
     @attr('interactive')
     def test_show_editor(self):
         """
@@ -94,7 +160,7 @@ class PycutTest(unittest.TestCase):
     # @TODO znovu zprovoznit test
 
     # @unittest.skip("Cekame, az to Tomas opravi")
-    def make_data(self, sz=32, offset=0):
+    def make_data(self, sz=32, offset=0, sigma=80):
         seeds = np.zeros([sz, sz, sz], dtype=np.int8)
         seeds[offset + 12, offset + 9:offset + 14, offset + 10] = 1
         seeds[offset + 20, offset + 18:offset + 21, offset + 12] = 1
@@ -107,7 +173,7 @@ class PycutTest(unittest.TestCase):
             offset + 27:offset + 29] = 2
         img = scipy.ndimage.morphology.distance_transform_edt(img)
         segm = img < 7
-        img = (100 * segm + 80 * np.random.random(img.shape)).astype(np.uint8)
+        img = (100 * segm + sigma * np.random.random(img.shape)).astype(np.uint8)
         return img, segm, seeds
 
     def test_remove_repetitive(self):

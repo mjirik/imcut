@@ -1102,6 +1102,70 @@ class ImageGraphCut:
         # diffs.insert(0,
         return filtered
 
+    def __show_debug_(self, unariesalt, suptitle=None):
+        shape = self.img.shape
+        print("unariesalt dtype ", unariesalt.dtype)
+        tdata1 = unariesalt[..., 0].reshape(shape)
+        tdata2 = unariesalt[..., 1].reshape(shape)
+        self.__show_debug_tdata_images(tdata1, tdata2, suptitle=suptitle)
+        pass
+
+
+    def __show_debug_tdata_images(self, tdata1, tdata2, suptitle=None):
+        # Show model parameters
+        logger.debug('tdata1 shape ' + str(tdata1.shape))
+        slice_number = int(tdata1.shape[0] / 2)
+        try:
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            fig.suptitle(suptitle)
+            ax = fig.add_subplot(121)
+            ax.imshow(tdata1[slice_number, :, :])
+
+            # fig = plt.figure()
+            ax = fig.add_subplot(122)
+            ax.imshow(tdata2[slice_number, :, :])
+
+            print('tdata1 max ', np.max(tdata1), ' min ', np.min(tdata1), " dtype ", tdata1.dtype)
+            print('tdata2 max ', np.max(tdata2), ' min ', np.min(tdata2), " dtype ", tdata2.dtype)
+
+
+            # # histogram
+            # fig = plt.figure()
+            # vx1 = data[seeds==1]
+            # vx2 = data[seeds==2]
+            # plt.hist([vx1, vx2], 30)
+
+            # plt.hist(voxels2)
+
+            plt.show()
+        except:
+            import traceback
+            print(traceback.format_exc())
+            logger.debug('problem with showing debug images')
+
+        try:
+            fig = plt.figure()
+            fig.suptitle(suptitle)
+            ax = fig.add_subplot(121)
+            plt.hist(tdata1.flatten())
+            ax = fig.add_subplot(122)
+            plt.hist(tdata2.flatten())
+        except:
+            import traceback
+            print(traceback.format_exc())
+
+        try:
+            fig = plt.figure()
+            fig.suptitle(suptitle)
+            ax = fig.add_subplot(111)
+            hstx = np.linspace(-1000, 1000, 400)
+            ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, self.voxelsize, 1)))
+            ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, self.voxelsize, 2)))
+        except:
+            import traceback
+            print(traceback.format_exc())
+
     def __similarity_for_tlinks_obj_bgr(self,
                                         data,
                                         voxelsize,
@@ -1112,6 +1176,7 @@ class ImageGraphCut:
         Compute edge values for graph cut tlinks based on image intensity
         and texture.
         """
+        # TODO rewrite just for one class and call separatelly for obj and background.
 
         # TODO rename voxels1 and voxels2
         # voxe1s1 and voxels2 are used only in this function for multiscale graphcut
@@ -1169,47 +1234,30 @@ class ImageGraphCut:
             del tdata2u
             del a1
             del a2
-        tdata1 = models.softplus(tdata1, max_error=10, keep_dtype=True)
-        tdata2 = models.softplus(tdata2, max_error=10, keep_dtype=True)
 
-        # replace inf with large finite number
-        tdata1 = np.nan_to_num(tdata1)
-        tdata2 = np.nan_to_num(tdata2)
         # if np.any(tdata1 < 0) or np.any(tdata2 <0):
         #     logger.error("Problem with tlinks. Likelihood is < 0")
 
         if self.debug_images:
-            # Show model parameters
-            logger.debug('tdata1 shape ' + str(tdata1.shape))
-            try:
-                import matplotlib.pyplot as plt
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
-                ax.imshow(tdata1[5, :, :])
-                print('max ', np.max(tdata1), 'min ', np.min(tdata1))
+            self.__show_debug_tdata_images(tdata1, tdata2, suptitle="likelihood")
+        return tdata1, tdata2
 
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
-                ax.imshow(tdata2[5, :, :])
-                print('max ', np.max(tdata2), 'min ', np.min(tdata2))
+    def __limit(self, tdata1, min_limit=0, max_error=10, max_limit=2000):
+        print('before limit max ', np.max(tdata1), 'min ', np.min(tdata1), " dtype ", tdata1.dtype)
+        tdata1[tdata1 > max_limit] = max_limit
+        tdata1[tdata1 < min_limit] = min_limit
+        # tdata1 = models.softplus(tdata1, max_error=max_error, keep_dtype=True)
+        # replace inf with large finite number
+        # tdata1 = np.nan_to_num(tdata1)
+        print('after limit  max ', np.max(tdata1), 'min ', np.min(tdata1))
+        return tdata1
 
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
-                hstx = np.linspace(-1000, 1000, 400)
-                ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, 1)))
-                ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, 2)))
+    def __limit_tlinks(self, tdata1, tdata2):
+        print("pred softplus")
+        tdata1 = self.__limit(tdata1)
+        tdata2 = self.__limit(tdata2)
+        print("po softplus")
 
-                # histogram
-                fig = plt.figure()
-                vx1 = data[seeds==1]
-                vx2 = data[seeds==2]
-                plt.hist([vx1, vx2], 30)
-
-                # plt.hist(voxels2)
-
-                plt.show()
-            except:
-                logger.debug('problem with showing debug images')
         return tdata1, tdata2
 
     def __create_tlinks(self,
@@ -1238,11 +1286,22 @@ class ImageGraphCut:
                                                             tdata2,
                                                             seeds)
 
+        print("1276 pred weight")
+        tdata1 = self.__limit(tdata1)
+        tdata2 = self.__limit(tdata2)
+        if self.debug_images:
+            self.__show_debug_tdata_images(tdata1, tdata2, suptitle="pred weight")
         unariesalt = (0 + (area_weight *
                            np.dstack([tdata1.reshape(-1, 1),
                                       tdata2.reshape(-1, 1)]).copy("C"))
                       ).astype(np.int32)
-
+        print("1276 pred __limit")
+        if self.debug_images:
+            self.__show_debug_(unariesalt, suptitle="pred _limit()")
+        unariesalt = self.__limit(unariesalt)
+        print("1276 po __limit")
+        if self.debug_images:
+            self.__show_debug_(unariesalt, suptitle="po limit")
         return unariesalt
 
     def __create_nlinks(self, data, inds=None, boundary_penalties_fcn=None):
@@ -1376,6 +1435,8 @@ class ImageGraphCut:
         # pairwise)
         import time
         start = time.time()
+        if self.debug_images:
+            self.__show_debug_(unariesalt)
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
