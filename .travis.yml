@@ -31,6 +31,7 @@ install:
       # - "easy_install SimpleITK mahotas"
 #    - pip install -r requirements_pip.txt
     # - if [ ${pack} == "old_mpl" ]; then conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose dateutil pandas statsmodels pil six; fi
+    - conda install nosetests
     - conda list
 #    - apt-cache policy openssl
 #    - conda install --yes paramiko=1.16.0
@@ -39,6 +40,7 @@ install:
 #    - sudo ldconfig -v
     # get sample data for lisa
 #    - python -m io3d.datasets -l lisa
+    - nosetests --help
 
 # command to run tests
 script: nosetests --with-coverage --verbose -d --cover-package=lisa
