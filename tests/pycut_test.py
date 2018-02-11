@@ -309,7 +309,6 @@ class PycutTest(unittest.TestCase):
         #             (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
         #     ),
         #     600)
-        import sed3
 
         os.remove(mdl_stored_file)
 
