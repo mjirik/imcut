@@ -106,13 +106,13 @@ class PycutTest(unittest.TestCase):
                 # 'adaptation': 'original_data',
             }
         }
-        gc = pycut.ImageGraphCut(data3d , segparams=segparams, debug_images=True) # , debug_images=True)
+        gc = pycut.ImageGraphCut(data3d , segparams=segparams, debug_images=False)
         gc.set_seeds(seeds)
         gc.run()
 
-        import sed3
-        ed = sed3.sed3(data3d, contour=(gc.segmentation==0).astype(np.double) * 3)
-        ed.show()
+        # import sed3
+        # ed = sed3.sed3(data3d, contour=(gc.segmentation==0).astype(np.double) * 3)
+        # ed.show()
 
     def test_simple_graph_cut_overfit_with_low_noise(self):
         img, seg, seeds = self.make_data(64, 20, sigma=20)
@@ -130,13 +130,13 @@ class PycutTest(unittest.TestCase):
                 # 'adaptation': 'original_data',
             }
         }
-        gc = pycut.ImageGraphCut(img , segparams=segparams, debug_images=True)
+        gc = pycut.ImageGraphCut(img , segparams=segparams, debug_images=False)
         gc.set_seeds(seeds)
 
         gc.run()
-        import sed3
-        ed = sed3.sed3(img, contours=(gc.segmentation==0).astype(np.double))
-        ed.show()
+        # import sed3
+        # ed = sed3.sed3(img, contour=(gc.segmentation==0).astype(np.double))
+        # ed.show()
 
         err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
         self.assertLess(err, 600)

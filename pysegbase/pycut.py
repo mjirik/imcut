@@ -1018,7 +1018,7 @@ class ImageGraphCut:
             logger.error('Unknown method: ' + self.segparams['method'])
 
     def make_gc(self):
-        res_segm = self.set_data(
+        res_segm = self.prepare_data_and_run_computation(
             # self.img,
             #                      self
                                  # self.voxels1, self.voxels2,
@@ -1243,20 +1243,17 @@ class ImageGraphCut:
         return tdata1, tdata2
 
     def __limit(self, tdata1, min_limit=0, max_error=10, max_limit=2000):
-        print('before limit max ', np.max(tdata1), 'min ', np.min(tdata1), " dtype ", tdata1.dtype)
+        # logger.debug('before limit max ' + np.max(tdata1), 'min ' + np.min(tdata1) + " dtype " +  tdata1.dtype)
         tdata1[tdata1 > max_limit] = max_limit
         tdata1[tdata1 < min_limit] = min_limit
         # tdata1 = models.softplus(tdata1, max_error=max_error, keep_dtype=True)
         # replace inf with large finite number
         # tdata1 = np.nan_to_num(tdata1)
-        print('after limit  max ', np.max(tdata1), 'min ', np.min(tdata1))
         return tdata1
 
     def __limit_tlinks(self, tdata1, tdata2):
-        print("pred softplus")
         tdata1 = self.__limit(tdata1)
         tdata2 = self.__limit(tdata2)
-        print("po softplus")
 
         return tdata1, tdata2
 
@@ -1274,10 +1271,9 @@ class ImageGraphCut:
             seeds
         )
 
-        logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
-        logger.debug('tdata2 min %f , max %f' % (tdata2.min(), tdata2.max()))
+        # logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
+        # logger.debug('tdata2 min %f , max %f' % (tdata2.min(), tdata2.max()))
         if hard_constraints:
-            # pdb.set_trace();
             if (type(seeds) == 'bool'):
                 raise Exception(
                     'Seeds variable  not set',
@@ -1286,22 +1282,15 @@ class ImageGraphCut:
                                                             tdata2,
                                                             seeds)
 
-        print("1276 pred weight")
         tdata1 = self.__limit(tdata1)
         tdata2 = self.__limit(tdata2)
-        if self.debug_images:
-            self.__show_debug_tdata_images(tdata1, tdata2, suptitle="pred weight")
         unariesalt = (0 + (area_weight *
                            np.dstack([tdata1.reshape(-1, 1),
                                       tdata2.reshape(-1, 1)]).copy("C"))
                       ).astype(np.int32)
-        print("1276 pred __limit")
-        if self.debug_images:
-            self.__show_debug_(unariesalt, suptitle="pred _limit()")
         unariesalt = self.__limit(unariesalt)
-        print("1276 po __limit")
         if self.debug_images:
-            self.__show_debug_(unariesalt, suptitle="po limit")
+            self.__show_debug_(unariesalt, suptitle="after weighing and limitation")
         return unariesalt
 
     def __create_nlinks(self, data, inds=None, boundary_penalties_fcn=None):
@@ -1336,10 +1325,8 @@ class ImageGraphCut:
             edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
 
         else:
-            print('use_boundary_penalties')
-            # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
+            logger.info('use_boundary_penalties')
 
-            logger.debug('use_boundary_penalties')
             bpw = self.segparams['boundary_penalties_weight']
 
             bpa = boundary_penalties_fcn(2)
@@ -1377,10 +1364,10 @@ class ImageGraphCut:
         logger.info("__create nlinks time " + str(elapsed))
         return edges
 
-    def set_data(self,
-                 # voxels1, voxels2,
-                 hard_constraints=True,
-                 area_weight=1):
+    def prepare_data_and_run_computation(self,
+                                         # voxels1, voxels2,
+                                         hard_constraints=True,
+                                         area_weight=1):
         """
         Setting of data.
         You need set seeds if you want use hard_constraints.
@@ -1419,15 +1406,6 @@ class ImageGraphCut:
         nlinks = self.__create_nlinks(self.img,
                                       boundary_penalties_fcn=boundary_penalties_fcn)
 
-        # print 'data shape ', data.shape
-        # print 'nlinks sh ', nlinks.shape
-        # print 'tlinks sh ', unariesalt.shape
-        # edges - seznam indexu hran, kteres spolu sousedi
-
-        # print "cut_from_graph"
-        # print "unaries sh ", unariesalt.reshape(-1,2).shape
-        # print "nlinks sh",  nlinks.shape
-
         self.stats['tlinks shape'].append(unariesalt.reshape(-1, 2).shape)
         self.stats['nlinks shape'].append(nlinks.shape)
         # we flatten the unaries
@@ -1444,12 +1422,6 @@ class ImageGraphCut:
         )
         elapsed = (time.time() - start)
         self.stats['gc time'] = elapsed
-        # probably not necessary
-        #        del nlinks
-        #        del unariesalt
-
-        # print "unaries %.3g , %.3g" % (np.max(unariesalt),
-        # np.min(unariesalt))
         result_labeling = result_graph.reshape(self.img.shape)
 
         return result_labeling

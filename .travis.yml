@@ -1,0 +1,48 @@
+language: python
+python:
+  #  - "2.6"
+  - "2.7"
+  # - "3.2"
+  # - "3.3"
+  # - "3.4"
+virtualenv:
+    system_site_packages: true
+before_install:
+    - sudo apt-get update -qq
+#    - sudo apt-get install -qq git g++ sox make curl cmake
+    # - sudo apt-get install -qq python python-dev
+#    - sudo apt-get install -qq libinsighttoolkit3-dev libpng12-dev libgdcm2-dev
+    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+    - chmod +x miniconda.sh
+    - ./miniconda.sh -b
+    - export PATH=/home/travis/miniconda2/bin:$PATH
+    #  Update conda else if will result in a problem when conda updates the repos...
+    - conda update --yes conda
+    # GUI
+    - "export DISPLAY=:99.0"
+    - sh -e /etc/init.d/xvfb start
+# sudo: false
+# command to install dependencies
+install:
+    - conda update --yes conda
+    # Install dependencies
+    - conda install --yes -c SimpleITK -c luispedro -c mjirik -c conda-forge --file requirements_conda.txt
+    - pip install -r ci/requirements_ci.txt
+      # - "easy_install SimpleITK mahotas"
+    - pip install -r requirements_pip.txt
+    # - if [ ${pack} == "old_mpl" ]; then conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose dateutil pandas statsmodels pil six; fi
+    - conda list
+#    - apt-cache policy openssl
+#    - conda install --yes paramiko=1.16.0
+
+#    - 'echo "include /usr/local/lib" | sudo tee -a /etc/ld.so.conf'
+#    - sudo ldconfig -v
+    # get sample data for lisa
+#    - python -m io3d.datasets -l lisa
+
+# command to run tests
+script: nosetests --with-coverage --verbose -d --cover-package=lisa
+# script: nosetests --with-coverage --verbose --nocapture --nologcapture --cover-package=lisa
+# script: nosetests --with-coverage --cover-package=lisa
+after_success:
+    - coveralls
