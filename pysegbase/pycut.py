@@ -1242,7 +1242,7 @@ class ImageGraphCut:
             self.__show_debug_tdata_images(tdata1, tdata2, suptitle="likelihood")
         return tdata1, tdata2
 
-    def __limit(self, tdata1, min_limit=0, max_error=10, max_limit=2000):
+    def __limit(self, tdata1, min_limit=0, max_error=10, max_limit=20000):
         # logger.debug('before limit max ' + np.max(tdata1), 'min ' + np.min(tdata1) + " dtype " +  tdata1.dtype)
         tdata1[tdata1 > max_limit] = max_limit
         tdata1[tdata1 < min_limit] = min_limit
