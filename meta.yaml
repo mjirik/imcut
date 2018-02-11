@@ -35,6 +35,7 @@ requirements:
     - pyqt 4.11.*
     - pydicom
     - dill
+    - pywget
 
   run:
     - python
@@ -43,6 +44,7 @@ requirements:
     - pyqt 4.11.*
     - pydicom
     - dill
+    - pywget
 
 test:
   # Python imports
