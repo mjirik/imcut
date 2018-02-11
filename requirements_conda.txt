@@ -11,3 +11,4 @@ scikit-learn>=0.19.*
 pyqt==4.11.*
 # -c mjirik
 pydicom>=0.9.9
+cython
