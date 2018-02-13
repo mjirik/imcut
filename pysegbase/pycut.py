@@ -1043,7 +1043,7 @@ class ImageGraphCut:
                 logger.warning('Cannot import thresholding_funcions')
                 traceback.print_exc()
 
-        self.segmentation = res_segm
+        self.segmentation = res_segm.astype(np.int8)
 
     def set_hard_hard_constraints(self, tdata1, tdata2, seeds):
         """
@@ -1238,8 +1238,8 @@ class ImageGraphCut:
         # if np.any(tdata1 < 0) or np.any(tdata2 <0):
         #     logger.error("Problem with tlinks. Likelihood is < 0")
 
-        if self.debug_images:
-            self.__show_debug_tdata_images(tdata1, tdata2, suptitle="likelihood")
+        # if self.debug_images:
+        #     self.__show_debug_tdata_images(tdata1, tdata2, suptitle="likelihood")
         return tdata1, tdata2
 
     def __limit(self, tdata1, min_limit=0, max_error=10, max_limit=20000):
@@ -1289,8 +1289,8 @@ class ImageGraphCut:
                                       tdata2.reshape(-1, 1)]).copy("C"))
                       ).astype(np.int32)
         unariesalt = self.__limit(unariesalt)
-        if self.debug_images:
-            self.__show_debug_(unariesalt, suptitle="after weighing and limitation")
+        # if self.debug_images:
+        #     self.__show_debug_(unariesalt, suptitle="after weighing and limitation")
         return unariesalt
 
     def __create_nlinks(self, data, inds=None, boundary_penalties_fcn=None):
