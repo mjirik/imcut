@@ -273,9 +273,9 @@ class PycutTest(unittest.TestCase):
             'mdl_stored_file': mdl_stored_file,
             'fv_extern': fv_function
         }
-        gc = pycut.ImageGraphCut(img, segparams=segparams)
-        gc.set_seeds(seeds)
-        gc.run()
+        # gc = pycut.ImageGraphCut(img, segparams=segparams)
+        # gc.set_seeds(seeds)
+        # gc.run()
 
         err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
         self.assertLess(err, 600)
@@ -327,9 +327,9 @@ class PycutTest(unittest.TestCase):
         gc.set_seeds(seeds)
         gc.apriori = apriori
         gc.run()
-        # import sed3
-        # ed = sed3.sed3(img, contour=(gc.segmentation==0))
-        # ed.show()
+        import sed3
+        ed = sed3.sed3(img, contour=(gc.segmentation==0))
+        ed.show()
 
         self.assertLess(
             np.sum(
@@ -439,6 +439,9 @@ class PycutTest(unittest.TestCase):
         gc = pycut.ImageGraphCut(img)
         gc.set_seeds(seeds)
         gc.run()
+        # import sed3
+        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        # ed.show()
         self.assertLess(
                 np.sum(
                     np.abs(

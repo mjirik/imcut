@@ -4,20 +4,31 @@ python:
   - "2.7"
   # - "3.2"
   # - "3.3"
-  - "3.4"
+  - "3.6"
 virtualenv:
     system_site_packages: true
 before_install:
     - sudo apt-get update -qq
-#    - sudo apt-get install -qq git g++ sox make curl cmake
-    # - sudo apt-get install -qq python python-dev
-#    - sudo apt-get install -qq libinsighttoolkit3-dev libpng12-dev libgdcm2-dev
-    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-    - chmod +x miniconda.sh
-    - ./miniconda.sh -b
-    - export PATH=/home/travis/miniconda2/bin:$PATH
+    # We do this conditionally because it saves us some downloading if the
+    # version is the same.
+    - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+        wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+      else
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      fi
+#    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+#    - chmod +x miniconda.sh
+#    - ./miniconda.sh -b
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda update -q conda
+    # Useful for debugging any issues with conda
+    - conda info -a
+#    - export PATH=/home/travis/miniconda2/bin:$PATH
     #  Update conda else if will result in a problem when conda updates the repos...
-    - conda update --yes conda
+#    - conda update --yes conda
     # GUI
     - "export DISPLAY=:99.0"
     - sh -e /etc/init.d/xvfb start
@@ -26,7 +37,8 @@ before_install:
 install:
     - conda update --yes conda
     # Install dependencies
-    - conda install --yes -c SimpleITK -c luispedro -c mjirik -c conda-forge --file requirements_conda.txt
+
+    - conda install --yes -c SimpleITK -c luispedro -c mjirik -c conda-forge --file requirements_conda.txt python=$TRAVIS_PYTHON_VERSION
     - pip install pygco
 #    - pip install -r ci/requirements_ci.txt
       # - "easy_install SimpleITK mahotas"
@@ -34,6 +46,7 @@ install:
     # - if [ ${pack} == "old_mpl" ]; then conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose dateutil pandas statsmodels pil six; fi
     - conda install -y nose
     - conda list
+    - pip install python-coverage
 #    - apt-cache policy openssl
 #    - conda install --yes paramiko=1.16.0
 
