@@ -273,9 +273,9 @@ class PycutTest(unittest.TestCase):
             'mdl_stored_file': mdl_stored_file,
             'fv_extern': fv_function
         }
-        # gc = pycut.ImageGraphCut(img, segparams=segparams)
-        # gc.set_seeds(seeds)
-        # gc.run()
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
 
         err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
         self.assertLess(err, 600)
@@ -286,8 +286,8 @@ class PycutTest(unittest.TestCase):
         # if we change the data there should be more error (assertMore)
         img = (img * 0.2).astype(np.uint8)
         # segparams['modelparams']['adaptation'] = 'original_data'
-        print(np.max(img))
-        print(np.min(img))
+        # print(np.max(img))
+        # print(np.min(img))
         gc = pycut.ImageGraphCut(img, segparams=segparams)
         gc.set_seeds(seeds)
         gc.run()
@@ -295,7 +295,6 @@ class PycutTest(unittest.TestCase):
         m0 = gc.mdl.mdl[1]
         m1 = gc.mdl.mdl[2]
         logger.debug("model parameters")
-        print("model parameters")
 
         # import sed3
         # ed = sed3.sed3((gc.segmentation==0).astype(np.double), contour=seg)

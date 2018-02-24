@@ -145,7 +145,7 @@ class Model3D(object):
         #
         }
         sss = dill.dumps(self.modelparams)
-        logger.info("pickled " + sss)
+        logger.info("pickled " + str(sss))
 
         dill.dump(sv, open(filename, "wb"))
 
