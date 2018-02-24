@@ -49,7 +49,7 @@ install:
     # - if [ ${pack} == "old_mpl" ]; then conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose dateutil pandas statsmodels pil six; fi
     - conda install -y nose
     - conda list
-    - pip install python-coverage
+    - pip install python-coveralls
 #    - apt-cache policy openssl
 #    - conda install --yes paramiko=1.16.0
 
