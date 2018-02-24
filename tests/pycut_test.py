@@ -327,9 +327,9 @@ class PycutTest(unittest.TestCase):
         gc.set_seeds(seeds)
         gc.apriori = apriori
         gc.run()
-        import sed3
-        ed = sed3.sed3(img, contour=(gc.segmentation==0))
-        ed.show()
+        # import sed3
+        # ed = sed3.sed3(img, contour=(gc.segmentation==0))
+        # ed.show()
 
         self.assertLess(
             np.sum(
