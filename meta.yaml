@@ -45,6 +45,8 @@ requirements:
     - pydicom
     - dill
     - pywget
+    - pyyaml
+    - cython
 
 test:
   # Python imports

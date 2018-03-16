@@ -29,9 +29,7 @@ before_install:
     - conda update -q conda
     # Useful for debugging any issues with conda
     - conda info -a
-#    - export PATH=/home/travis/miniconda2/bin:$PATH
-    #  Update conda else if will result in a problem when conda updates the repos...
-#    - conda update --yes conda
+
     # GUI
     - "export DISPLAY=:99.0"
     - sh -e /etc/init.d/xvfb start

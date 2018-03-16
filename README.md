@@ -26,6 +26,14 @@ Authors
 * Miroslav Jirik
 * Vladimir Lukes
 
+Special requirements
+-----
+
+See third party licenses
+
+ * [gco_python](https://github.com/amueller/gco_python)
+ * [gco-v3.0](http://vision.csd.uwo.ca/code/gco-v3.0.zip) 
+
 Resources
 -----
 
@@ -39,7 +47,13 @@ License
 
 New BSD License, see the LICENSE file.
 
-Install
+Install conda
+----
+
+    conda install -c mjirik -c conda-forge pysegbase
+    pip install pygco
+
+Install pip
 -------
 
     pip install pygco pysegbase
