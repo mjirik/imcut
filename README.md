@@ -42,7 +42,7 @@ New BSD License, see the LICENSE file.
 Install
 -------
 
-    pip install gcopython pysegbase
+    pip install pygco pysegbase
 
 See INSTALL file for more information
 
