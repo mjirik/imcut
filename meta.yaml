@@ -36,6 +36,7 @@ requirements:
     - pydicom
     - dill
     - pywget
+    - scikit-learn
 
   run:
     - python
