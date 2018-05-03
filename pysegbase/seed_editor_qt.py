@@ -296,7 +296,7 @@ class SliceBox(QLabel):
         yy = yy[ii]
 
         
-        self.seeds[yy * self.slice_size[0] + xx] = self.seed_mark
+        self.seeds[int(yy * self.slice_size[0] + xx)] = self.seed_mark
 
     def drawLine(self, p0, p1):
         """
