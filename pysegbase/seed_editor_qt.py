@@ -673,7 +673,7 @@ class QTSeedEditor(QDialog):
         self.voxel_label = QLabel('Voxel size [mm]:\n  %.2f x %.2f x %.2f'\
                                       % tuple(self.voxel_size[np.array(self.act_transposition)]))
 
-        combo_view_options = VIEW_TABLE.keys()
+        combo_view_options = list(VIEW_TABLE)
         combo_view = QComboBox(self)
         combo_view.activated[str].connect(self.setView)
         combo_view.addItems(combo_view_options)
