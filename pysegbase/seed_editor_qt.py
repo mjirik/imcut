@@ -32,6 +32,7 @@ from PyQt4.QtGui import QImage, QDialog,\
 import logging
 logger = logging.getLogger(__name__)
 
+import math
 # BGRA order
 GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
                            dtype=np.uint8)
@@ -284,19 +285,24 @@ class SliceBox(QLabel):
         painter.end()
 
     def drawSeedMark(self, x, y):
-        xx = self.mask_points[0] + x
-        yy = self.mask_points[1] + y
+        if sys.version_info.major == 2:
+            xx = (self.mask_points[0] + x) # .astype(np.int)
+            yy = (self.mask_points[1] + y) # .astype(np.int)
+        else:
+            xx = (self.mask_points[0] + x + 0.5) # .astype(np.int)
+            yy = (self.mask_points[1] + y + 0.5) # .astype(np.int)
         idx = np.arange(len(xx))
         idx[np.where(xx < 0)] = -1
         idx[np.where(xx >= self.slice_size[0])] = -1
         idx[np.where(yy < 0)] = -1
         idx[np.where(yy >= self.slice_size[1])] = -1
         ii = idx[np.where(idx >= 0)]
-        xx = xx[ii]
-        yy = yy[ii]
+        xx_ii = xx[ii]#.round().astype(np.int)
+        yy_ii = yy[ii]#.round().astype(np.int)
 
+        linear_index = (yy_ii * self.slice_size[0] + xx_ii).round().astype(np.int)
         
-        self.seeds[int(yy * self.slice_size[0] + xx)] = self.seed_mark
+        self.seeds[linear_index] = self.seed_mark
 
     def drawLine(self, p0, p1):
         """
@@ -1527,6 +1533,37 @@ class QTSeedEditor(QDialog):
                 cri.append(slice(off, off + ii))
 
         return cri
+
+def old_int(x):
+    """
+    Python 2 style rounding.
+    0.5 is rounded to 0. Not using banker's rounding.
+
+    :param x:
+    :return: rounded value or array
+    """
+
+    if sys.version_info.major == 2:
+        return np.int(x)
+    else:
+        # return np.floor(np.abs(x) + 0.5) * np.sign(x)
+        return np.int(x + .5)
+
+# def old_round(x):
+#     """
+#     Python 2 style rounding.
+#     0.5 is rounded to 0. Not using banker's rounding.
+#
+#     :param x:
+#     :return: rounded value or array
+#     """
+#
+#     if sys.version_info.major == 2:
+#         return round(x)
+#     else:
+#         # return np.floor(np.abs(x) + 0.5) * np.sign(x)
+#         return np.int(x + .5)
+#         # return np.floor(np.abs(x) + 0.5) * np.sign(x)
 
 def gen_test():
     test = {}
