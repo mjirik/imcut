@@ -1165,14 +1165,14 @@ class QTSeedEditor(QDialog):
             contours = None
 
         else:
-            contours = self.contours_aview[...,value]
+            contours = self.contours_aview[..., int(value)]
 
         slider_val = self.n_slices - value
         self.slider.setValue(slider_val)
         self.slider.label.setText('Slice: %d / %d' % (slider_val, self.n_slices))
 
-        self.slice_box.setSlice(self.img_aview[...,value],
-                                self.seeds_aview[...,value],
+        self.slice_box.setSlice(self.img_aview[..., value],
+                                self.seeds_aview[..., value],
                                 contours)
         self.actual_slice = value
 
