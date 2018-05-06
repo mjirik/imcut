@@ -156,6 +156,29 @@ class PycutTest(unittest.TestCase):
         data[15:40, 13:20, 10:18] += 50
         se = pysegbase.seed_editor_qt.QTSeedEditor(data)
         se.exec_()
+        # self.assertTrue(False)
+
+    # @attr('interactive')
+    def test_draw_seed_function(self):
+        """
+        just run editor to see what is new
+        Returns:
+
+        """
+        import pysegbase.seed_editor_qt
+        import numpy as np
+        from PyQt4.QtGui import QApplication
+        app = QApplication(sys.argv)
+        data = (np.random.rand(30,31,32) * 100).astype(np.int)
+        data[15:40, 13:20, 10:18] += 50
+        se = pysegbase.seed_editor_qt.QTSeedEditor(data)
+        se.slice_box.seed_mark = 1 #left mouse button
+        se.slice_box.last_position = [1, 3]
+        se.slice_box.drawSeeds([10, 5])
+        se.slice_box.seed_mark = 2 #left mouse button
+        se.slice_box.last_position = [8, 1]
+        se.slice_box.drawSeeds([7, 5])
+        # se.exec_()
 
     # @TODO znovu zprovoznit test
 
