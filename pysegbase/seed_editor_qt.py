@@ -350,6 +350,11 @@ class SliceBox(QLabel):
                 y0 = y0 + sy
 
     def drawSeeds(self, pos):
+        """
+
+        :param pos: list of two indexes with mouse position
+        :return:
+        """
         if pos[0] < 0 or pos[0] >= self.slice_size[0] \
                 or pos[1] < 0 or pos[1] >= self.slice_size[1]:
             return
@@ -1029,7 +1034,7 @@ class QTSeedEditor(QDialog):
     def saveSliceSeeds(self):
         aux = self.slice_box.getSliceSeeds()
         if aux is not None:
-            self.seeds_aview[...,self.actual_slice] = aux
+            self.seeds_aview[..., self.actual_slice] = aux
             self.seeds_modified = True
 
         else:
@@ -1157,13 +1162,11 @@ class QTSeedEditor(QDialog):
             if self.seeds_modified:
                 if self.mode == 'crop':
                     self.updateCropBounds()
-
                 elif self.mode == 'mask':
                     self.updateMaskRegion()
 
         if self.contours is None:
             contours = None
-
         else:
             contours = self.contours_aview[..., int(value)]
 
@@ -1171,10 +1174,10 @@ class QTSeedEditor(QDialog):
         self.slider.setValue(slider_val)
         self.slider.label.setText('Slice: %d / %d' % (slider_val, self.n_slices))
 
-        self.slice_box.setSlice(self.img_aview[..., value],
-                                self.seeds_aview[..., value],
+        self.slice_box.setSlice(self.img_aview[..., int(value)],
+                                self.seeds_aview[..., int(value)],
                                 contours)
-        self.actual_slice = value
+        self.actual_slice = int(value)
 
     def getSeeds(self):
         return self.seeds
@@ -1534,20 +1537,21 @@ class QTSeedEditor(QDialog):
 
         return cri
 
-def old_int(x):
-    """
-    Python 2 style rounding.
-    0.5 is rounded to 0. Not using banker's rounding.
 
-    :param x:
-    :return: rounded value or array
-    """
-
-    if sys.version_info.major == 2:
-        return np.int(x)
-    else:
-        # return np.floor(np.abs(x) + 0.5) * np.sign(x)
-        return np.int(x + .5)
+# def old_int(x):
+#     """
+#     Python 2 style rounding.
+#     0.5 is rounded to 0. Not using banker's rounding.
+#
+#     :param x:
+#     :return: rounded value or array
+#     """
+#
+#     if sys.version_info.major == 2:
+#         return np.int(x)
+#     else:
+#         # return np.floor(np.abs(x) + 0.5) * np.sign(x)
+#         return np.int(x + .5)
 
 # def old_round(x):
 #     """
