@@ -1,3 +1,4 @@
+[![Coverage Status](https://coveralls.io/repos/github/mjirik/pysegbase/badge.svg?branch=master)](https://coveralls.io/github/mjirik/pysegbase?branch=master)
 
 About
 -----
