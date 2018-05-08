@@ -4,10 +4,10 @@
 #
 # similar list is in meta.yaml
 numpy>=1.13
-scipy>=0.15.*
+scipy>=0.15.0
 matplotlib>=1.4.3
 scikit-image>=0.11.0
-scikit-learn>=0.19.*
+scikit-learn>=0.19.0
 pyqt==4.11.*
 # -c mjirik
 pydicom>=0.9.9
