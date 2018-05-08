@@ -14,3 +14,4 @@ pydicom>=0.9.9
 cython
 # pywget
 dill
+seededitorqt
