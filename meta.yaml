@@ -35,8 +35,9 @@ requirements:
     - pyqt 4.11.*
     - pydicom
     - dill
-    - pywget
+#    - pywget
     - scikit-learn
+    - seededitorqt
 
   run:
     - python
@@ -45,10 +46,11 @@ requirements:
     - pyqt 4.11.*
     - pydicom
     - dill
-    - pywget
+#    - pywget
     - pyyaml
     - cython
     - scikit-learn
+    - seededitorqt
 
 test:
   # Python imports
