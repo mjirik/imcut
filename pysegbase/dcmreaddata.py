@@ -26,7 +26,7 @@ import traceback
 import logging
 logger = logging.getLogger(__name__)
 
-from io3d.dcmreaddata import DicomReader
+from io3d.dcmreaddata import DicomReader, get_dcmdir_qt
 # from io3d.misc import obj_from_file
 
 __version__ = [1, 3]
