@@ -6,4 +6,4 @@ __all__ = ['pycut',
 # TODO remove QTSeedEditor from pysegbase
 # from .pycut import Model, ImageGraphCut
 # from .seed_editor_qt import QTSeedEditor
-from .dcmreaddata import DicomReader
+# from .dcmreaddata import DicomReader
