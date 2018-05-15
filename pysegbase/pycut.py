@@ -25,10 +25,10 @@ import copy
 import pygco
 # from pygco import cut_from_graph
 
-from . import models
+# from . import models
 from .image_manipulation import seed_zoom, zoom_to_shape, resize_to_shape, resize_to_shape_with_zoom, getPriorityObjects
 
-from .models import Model, Model3D, defaultmodelparams
+from .models import Model, Model3D, defaultmodelparams, methods
 
 
 
