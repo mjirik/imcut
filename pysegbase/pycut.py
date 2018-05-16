@@ -193,7 +193,7 @@ class ImageGraphCut:
     def __general_gc(self):
         pass
 
-    def __multiscale_gc_step1_low_resolution_processing(self, start):
+    def __multiscale_gc_step12_low_resolution_segmentation(self, start):
         import scipy
         # ===== low resolution data processing
         # default parameters
@@ -266,40 +266,22 @@ class ImageGraphCut:
 
         self.modelparams = modelparams_hi
         self.voxelsize = voxelsize_orig
+        self.stats["t2"] = (time.time() - start)
         return img_orig, ms_zoom, hiseeds, area_weight, hard_constraints
 
-    def __multiscale_gc(self):  # , pyed):
-        """
-        In first step is performed normal GC on low resolution data
-        Second step construct finer grid on edges of segmentation from first
-        step.
-        There is no option for use without `use_boundary_penalties`
-        """
-        deb = False
-        # deb = True
-        # import py3DSeedEditor as ped
-        start = time.time()
-
-        from PyQt4.QtCore import pyqtRemoveInputHook
-        pyqtRemoveInputHook()
+    def __multiscale_gc_step3_discontinuity_localization(self, start, debug):
         import scipy
-        import scipy.ndimage
-        logger.debug('performing multiscale_gc')
-
-        img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = self.__multiscale_gc_step1_low_resolution_processing(start)
-        # ===== high resolution data processing
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
         # back to normal parameters
-        self.stats["t2"] = (time.time() - start)
         # step 2: discontinuity localization
         # self.segparams = sparams_hi
-        segl = scipy.ndimage.filters.laplace(seg, mode='constant')
-        logger.debug(str(np.max(segl)))
-        logger.debug(str(np.min(segl)))
-        segl[segl != 0] = 1
-        logger.debug(str(np.max(segl)))
-        logger.debug(str(np.min(segl)))
+        seg_border = scipy.ndimage.filters.laplace(seg, mode='constant')
+        logger.debug(str(np.max(seg_border)))
+        logger.debug(str(np.min(seg_border)))
+        seg_border[seg_border != 0] = 1
+        logger.debug(str(np.max(seg_border)))
+        logger.debug(str(np.min(seg_border)))
         # scipy.ndimage.morphology.distance_transform_edt
         boundary_dilatation_distance = self.segparams[
             'boundary_dilatation_distance']
@@ -311,13 +293,36 @@ class ImageGraphCut:
                 (boundary_dilatation_distance * 2) + 1
             ])
         )
-        if deb:
+        if debug:
             import sed3
             pd = sed3.sed3(seg)  # ), contour=seg)
             pd.show()
         # segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
         #                                                order=0).astype('int8')
         self.stats["t3"] = (time.time() - start)
+        return seg
+
+    def __multiscale_gc(self):  # , pyed):
+        """
+        In first step is performed normal GC on low resolution data
+        Second step construct finer grid on edges of segmentation from first
+        step.
+        There is no option for use without `use_boundary_penalties`
+        """
+        debug = False
+        # deb = True
+        # import py3DSeedEditor as ped
+        start = time.time()
+
+        from PyQt4.QtCore import pyqtRemoveInputHook
+        pyqtRemoveInputHook()
+        import scipy
+        import scipy.ndimage
+        logger.debug('performing multiscale_gc')
+
+        img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = self.__multiscale_gc_step12_low_resolution_segmentation(start)
+        # ===== high resolution data processing
+        seg = self.__multiscale_gc_step3_discontinuity_localization(start, debug)
         # step 3: indexes of new dual graph
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
