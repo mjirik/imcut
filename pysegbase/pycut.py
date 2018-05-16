@@ -137,24 +137,9 @@ class ImageGraphCut:
 
         # logger.debug("obj gc   " + str(sys.getsizeof(self)))
 
-        if self.segparams['method'] in ('graphcut'):
-
-            self.set_seeds(pyed.getSeeds())
-            # self.seeds = pyed.getSeeds()
-            # self.voxels1 = pyed.getSeedsVal(1)
-            # self.voxels2 = pyed.getSeedsVal(2)
-
-            self.make_gc()
-
-            pyed.setContours(1 - self.segmentation.astype(np.int8))
-
-        elif self.segparams['method'] in ('multiscale_gc', 'multiscale_graphcut'):
-            self.set_seeds(pyed.getSeeds())
-            # self.__multiscale_gc(pyed)
-            self.__multiscale_gc()
-            pyed.setContours(1 - self.segmentation.astype(np.int8))
-        else:
-            logger.error('Unknown segmentation method')
+        self.set_seeds(pyed.getSeeds())
+        self.run()
+        pyed.setContours(1 - self.segmentation.astype(np.int8))
 
 
         if self.interactivity_loop_finish_funcion is None:
@@ -615,10 +600,10 @@ class ImageGraphCut:
     def run(self):
         if self.segparams['method'] in ('graphcut', 'GC'):
             self.make_gc()
-        elif self.segparams['method'] in ('multiscale_graphcut'):
+        elif self.segparams['method'] in ('multiscale_graphcut', "multiscale_gc"):
             self.__multiscale_gc()
         else:
-            logger.error('Unknown method: ' + self.segparams['method'])
+            logger.error('Unknown segmentation method: ' + self.segparams['method'])
 
     def make_gc(self):
         res_segm = self.prepare_data_and_run_computation(
