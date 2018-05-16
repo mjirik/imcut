@@ -1,5 +1,11 @@
-import numpy as nm
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+import logging
+# import os.path as op
+
+logger = logging.getLogger(__name__)
+import numpy as nm
 
 data = nm.array([[0,0,0,0,1,1,0],
                  [0,1,1,0,1,0,1],
@@ -250,6 +256,7 @@ class Graph(object):
 
         self.finish()
         self.write_vtk('graf.vtk')
+
 
 if __name__ == "__main__":
     g = Graph(data, (0.1, 0.12, 0.0))
