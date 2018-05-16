@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 from scipy.io import loadmat
 import numpy as np
+import time
 import copy
 import pygco
 # from pygco import cut_from_graph
@@ -149,9 +150,6 @@ class ImageGraphCut:
 
         if self.interactivity_loop_finish_funcion is not None:
             self.interactivity_loop_finish_funcion()
-        # try:
-        # except:
-        #     print("cannot open audiosupport")
 
         self.interactivity_counter += 1
         logger.debug('interactivity counter: ' +
@@ -195,24 +193,9 @@ class ImageGraphCut:
     def __general_gc(self):
         pass
 
-    def __multiscale_gc(self):  # , pyed):
-        """
-        In first step is performed normal GC.
-        Second step construct finer grid on edges of segmentation from first
-        step.
-        There is no option for use without `use_boundary_penalties`
-        """
-        deb = False
-        # deb = True
-        # import py3DSeedEditor as ped
-        import time
-        start = time.time()
-
-        from PyQt4.QtCore import pyqtRemoveInputHook
-        pyqtRemoveInputHook()
+    def __multiscale_gc_step1_low_resolution_processing(self, start):
         import scipy
-        import scipy.ndimage
-        logger.debug('performing multiscale_gc')
+        # ===== low resolution data processing
         # default parameters
         # TODO segparams_lo and segparams_hi je tam asi zbytecně
         sparams_lo = {
@@ -226,7 +209,7 @@ class ImageGraphCut:
         sparams_lo.update(self.segparams)
         sparams_hi = copy.copy(sparams_lo)
         # sparams_lo['boundary_penalties_weight'] = (
-        #         sparams_lo['boundary_penalties_weight'] * 
+        #         sparams_lo['boundary_penalties_weight'] *
         #         sparams_lo['block_size'])
         self.segparams = sparams_lo
 
@@ -281,12 +264,34 @@ class ImageGraphCut:
             )
         )
 
+        self.modelparams = modelparams_hi
+        self.voxelsize = voxelsize_orig
+        return img_orig, ms_zoom, hiseeds, area_weight, hard_constraints
+
+    def __multiscale_gc(self):  # , pyed):
+        """
+        In first step is performed normal GC on low resolution data
+        Second step construct finer grid on edges of segmentation from first
+        step.
+        There is no option for use without `use_boundary_penalties`
+        """
+        deb = False
+        # deb = True
+        # import py3DSeedEditor as ped
+        start = time.time()
+
+        from PyQt4.QtCore import pyqtRemoveInputHook
+        pyqtRemoveInputHook()
+        import scipy
+        import scipy.ndimage
+        logger.debug('performing multiscale_gc')
+
+        img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = self.__multiscale_gc_step1_low_resolution_processing(start)
+        # ===== high resolution data processing
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
         # back to normal parameters
-        self.modelparams = modelparams_hi
         self.stats["t2"] = (time.time() - start)
-        self.voxelsize = voxelsize_orig
         # step 2: discontinuity localization
         # self.segparams = sparams_hi
         segl = scipy.ndimage.filters.laplace(seg, mode='constant')
@@ -400,7 +405,6 @@ class ImageGraphCut:
         self.stats["t9"] = (time.time() - start)
         self.stats['tlinks shape'].append(unariesalt.reshape(-1, 2).shape)
         self.stats['nlinks shape'].append(nlinks.shape)
-        import time
         start = time.time()
         # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
@@ -900,7 +904,6 @@ class ImageGraphCut:
         """
         # use the gerneral graph algorithm
         # first, we construct the grid graph
-        import time
         start = time.time()
         if inds is None:
             inds = np.arange(data.size).reshape(data.shape)
@@ -999,7 +1002,6 @@ class ImageGraphCut:
         # we flatten the unaries
         # result_graph = cut_from_graph(nlinks, unaries.reshape(-1, 2),
         # pairwise)
-        import time
         start = time.time()
         if self.debug_images:
             self.__show_debug_(unariesalt)
