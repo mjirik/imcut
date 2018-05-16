@@ -33,7 +33,7 @@ requirements:
     - numpy
     - scipy
     - pyqt 4.11.*
-    - pydicom
+#    - pydicom
     - dill
 #    - pywget
     - scikit-learn
@@ -44,10 +44,10 @@ requirements:
     - numpy
     - scipy
     - pyqt 4.11.*
-    - pydicom
+#    - pydicom
     - dill
 #    - pywget
-    - pyyaml
+#    - pyyaml
     - cython
     - scikit-learn
     - seededitorqt
