@@ -7,11 +7,6 @@ import logging
 logger = logging.getLogger(__name__)
 import numpy as nm
 
-data = nm.array([[0,0,0,0,1,1,0],
-                 [0,1,1,0,1,0,1],
-                 [0,1,1,0,1,0,0],
-                 [1,1,1,0,0,0,0],
-                 [0,0,0,0,0,0,1]])
 
 # data = nm.array([[0,0,0],
 #                  [0,1,1],
@@ -258,5 +253,3 @@ class Graph(object):
         self.write_vtk('graf.vtk')
 
 
-if __name__ == "__main__":
-    g = Graph(data, (0.1, 0.12, 0.0))
