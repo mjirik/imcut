@@ -142,10 +142,10 @@ class ImageGraphCut:
         pyed.setContours(1 - self.segmentation.astype(np.int8))
 
 
-        if self.interactivity_loop_finish_funcion is None:
-            # TODO remove this statement after lisa package update (12.5.2018)
-            from lisa import audiosupport
-            self.interactivity_loop_finish_funcion = audiosupport.beep
+        # if self.interactivity_loop_finish_funcion is None:
+        #     # TODO remove this statement after lisa package update (12.5.2018)
+        #     from lisa import audiosupport
+        #     self.interactivity_loop_finish_funcion = audiosupport.beep
 
         if self.interactivity_loop_finish_funcion is not None:
             self.interactivity_loop_finish_funcion()
