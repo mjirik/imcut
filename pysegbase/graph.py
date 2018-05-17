@@ -7,7 +7,12 @@ import logging
 logger = logging.getLogger(__name__)
 import numpy as nm
 
-
+# TODO zpětná indexace původních pixelů (v add_nodes())
+# TODO nastavení velikosti bloku (v sr_tab)
+# TODO funguje to ve 3D?
+# TODO možnost vypínání zápisu do VTK (mjirik)
+# TODO možnost kontroly jmena souborů do VTK(mjirik)
+#
 # data = nm.array([[0,0,0],
 #                  [0,1,1],
 #                  [0,1,1],
