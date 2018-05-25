@@ -6,6 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 import numpy as nm
+import numpy as np
 
 # TODO zpětná indexace původních pixelů (v add_nodes())
 # TODO nastavení velikosti bloku (v sr_tab)
@@ -257,4 +258,29 @@ class Graph(object):
         self.finish()
         self.write_vtk('graf.vtk')
 
+
+class SRTab(object):
+    """
+    Table connection on transition between low resolution and high resolution
+    """
+    def __init__(self, shape):
+        self.shape = shape
+        self.sr_tab = {}
+        if len(shape) not in (2, 3):
+            logger.error("2D or 3D shape expected")
+        pass
+
+    def get_sr_subtab(self):
+        direction_order = [0, 1, 2, 3, 4, 5, 6]
+        inds = np.array(range(np.prod(self.shape)))
+        reshaped = inds.reshape(self.shape)
+
+        tab = []
+        for i in range(len(self.shape) - 1, -1, -1):
+            direction = direction_order[i]
+            tab.append(reshaped.take(0, direction))
+        for i in range(len(self.shape) - 1, -1, -1):
+            direction = direction_order[i]
+            tab.append(reshaped.take(-1, direction))
+        return np.asarray(tab)
 

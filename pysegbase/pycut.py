@@ -302,6 +302,8 @@ class ImageGraphCut:
         self.stats["t3"] = (time.time() - start)
         return seg
 
+    def __multiscale_gc_step45_construct_graph(self, start, debug):
+        pass
     def __multiscale_gc(self):  # , pyed):
         """
         In first step is performed normal GC on low resolution data
@@ -323,7 +325,8 @@ class ImageGraphCut:
         img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = self.__multiscale_gc_step12_low_resolution_segmentation(start)
         # ===== high resolution data processing
         seg = self.__multiscale_gc_step3_discontinuity_localization(start, debug)
-        # step 3: indexes of new dual graph
+        # step 4: indexes of new dual graph
+
         msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
@@ -343,17 +346,17 @@ class ImageGraphCut:
         # this is not nice hack.
         # @TODO reorganise segparams and create_nlinks function
         self.img = img_orig  # not necessary
-        orig_shape = img_orig.shape
+        # orig_shape = img_orig.shape
 
+        self.stats["t4"] = (time.time() - start)
         def local_ms_npenalty(x):
-            return self.__ms_npenalty_fcn(x, seg, ms_zoom, orig_shape)
+            return self.__ms_npenalty_fcn(x, seg, ms_zoom, img_orig.shape)
             # return self.__uniform_npenalty_fcn(orig_shape)
 
         # ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
         #                                                    orig_shape)
 
 
-        self.stats["t4"] = (time.time() - start)
         # here are not unique couples of nodes
         nlinks_not_unique = self.__create_nlinks(
             ms_img,

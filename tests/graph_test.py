@@ -19,6 +19,11 @@ sys.path.append(os.path.join(path_to_script, "../src/"))
 from nose.plugins.attrib import attr
 from pysegbase import graph
 
+orig_sr_tab = {
+    2: np.array([(0,2), (0,1), (1,3), (2,3)]),
+    3: np.array([(0,3,6), (0,1,2), (2,5,8), (6,7,8)]),
+    4: np.array([(0,4,8,12), (0,1,2,3), (3,7,11,15), (12,13,14,15)]),
+}
 
 class GraphTest(unittest.TestCase):
     # @classmethod
@@ -76,6 +81,27 @@ class GraphTest(unittest.TestCase):
         )
         g = graph.Graph(data, (0.1, 0.12, 0.05))
         g
+
+    def _test_automatic_ms_indexes_2d_same_as_orig(self, size):
+        shape = [size, size]
+        srt = graph.SRTab(shape)
+        subtab = srt.get_sr_subtab()
+
+        err = np.sum(np.abs(subtab - orig_sr_tab[size]))
+        self.assertEqual(err, 0)
+
+    def test_automatic_ms_indexes_2d_same_as_orig_2(self):
+        size = 2
+        self._test_ms_indexes_2d_same_as_orig(size)
+
+    def test_automatic_ms_indexes_2d_same_as_orig_3(self):
+        size = 3
+        self._test_ms_indexes_2d_same_as_orig(size)
+
+    def test_automatic_ms_indexes_2d_same_as_orig_4(self):
+        size = 4
+        self._test_ms_indexes_2d_same_as_orig(size)
+
 
 
 if __name__ == "__main__":
