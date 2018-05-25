@@ -271,16 +271,16 @@ class SRTab(object):
         pass
 
     def get_sr_subtab(self):
-        direction_order = [0, 1, 2, 3, 4, 5, 6]
+        # direction_order = [0, 1, 2, 3, 4, 5, 6]
         inds = np.array(range(np.prod(self.shape)))
         reshaped = inds.reshape(self.shape)
 
         tab = []
-        for i in range(len(self.shape) - 1, -1, -1):
-            direction = direction_order[i]
-            tab.append(reshaped.take(0, direction))
-        for i in range(len(self.shape) - 1, -1, -1):
-            direction = direction_order[i]
-            tab.append(reshaped.take(-1, direction))
-        return np.asarray(tab)
+        for direction in range(len(self.shape) - 1, -1, -1):
+            # direction = direction_order[i]
+            tab.append(reshaped.take(0, direction).flatten())
+        for direction in range(len(self.shape) - 1, -1, -1):
+            # direction = direction_order[i]
+            tab.append(reshaped.take(-1, direction).flatten())
+        return tab
 

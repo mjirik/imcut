@@ -92,17 +92,25 @@ class GraphTest(unittest.TestCase):
 
     def test_automatic_ms_indexes_2d_same_as_orig_2(self):
         size = 2
-        self._test_ms_indexes_2d_same_as_orig(size)
+        self._test_automatic_ms_indexes_2d_same_as_orig(size)
 
     def test_automatic_ms_indexes_2d_same_as_orig_3(self):
         size = 3
-        self._test_ms_indexes_2d_same_as_orig(size)
+        self._test_automatic_ms_indexes_2d_same_as_orig(size)
 
     def test_automatic_ms_indexes_2d_same_as_orig_4(self):
         size = 4
-        self._test_ms_indexes_2d_same_as_orig(size)
+        self._test_automatic_ms_indexes_2d_same_as_orig(size)
 
 
+    def test_automatic_ms_indexes_3d(self):
+        shape = [3, 3, 3]
+        srt = graph.SRTab(shape)
+        subtab = srt.get_sr_subtab()
+        subtab
+
+        # err = np.sum(np.abs(subtab - orig_sr_tab[size]))
+        # self.assertEqual(err, 0)
 
 if __name__ == "__main__":
     unittest.main()
