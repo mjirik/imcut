@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 import numpy as nm
 import numpy as np
+import copy
 
 # TODO zpětná indexace původních pixelů (v add_nodes())
 # TODO nastavení velikosti bloku (v sr_tab)
@@ -72,16 +73,31 @@ class Graph(object):
         self.lastedge += nadd
         self.nedges += nadd
 
+    def gen_base_graph_new(self, shape, voxelsize=None, inds=None):
+        edges, edge_dir = grid_edges(shape, inds, return_directions=True)
+        # nodes coordinates
+        nodes = grid_nodes(shape)
+        return nodes, edges, edge_dir
+
     def gen_base_graph(self, shape, voxelsize):
         """
         Generate base grid.
         """
         nr, nc = shape
         nrm1, ncm1 = nr - 1, nc - 1
+        # sh = nm.asarray(shape)
+        # calculate number of edges, in 2D: (nrows * (ncols - 1)) + ((nrows - 1) * ncols)
+        nedges = 0
+        for direction in range(len(shape)):
+            sh = copy.copy(list(shape))
+            sh[direction] += -1
+            nedges += nm.prod(sh)
 
-        edges = nm.zeros((ncm1 * nr + nrm1 * nc, 2), dtype=nm.int16)
+
+        nedges_old = ncm1 * nr + nrm1 * nc
+        edges = nm.zeros((nedges, 2), dtype=nm.int16)
         edge_dir = nm.zeros((ncm1 * nr + nrm1 * nc, ), dtype=nm.bool)
-        nodes = nm.zeros((nr * nc, 3), dtype=nm.float32)
+        nodes = nm.zeros((nm.prod(shape), 3), dtype=nm.float32)
 
         # edges
         idx = 0
@@ -182,7 +198,9 @@ class Graph(object):
 
         # connect subgrid
         ed_remove = []
-        sr_tab = self.sr_tab[nsplit]
+        # sr_tab_old = self.sr_tab[nsplit]
+        srt = SRTab([nsplit, nsplit])
+        sr_tab = srt.get_sr_subtab()
         idxs = nm.where(self.edge_flag > 0)[0]
 
         # edges "into" node?
@@ -282,5 +300,55 @@ class SRTab(object):
         for direction in range(len(self.shape) - 1, -1, -1):
             # direction = direction_order[i]
             tab.append(reshaped.take(-1, direction).flatten())
-        return tab
+        return np.array(tab)
 
+def grid_edges(shape, inds=None, return_directions=True):
+    """
+    Get list of grid edges
+    :param shape:
+    :param inds:
+    :param return_directions:
+    :return:
+    """
+    if inds is None:
+        inds = np.arange(np.prod(shape)).reshape(shape)
+    # if not self.segparams['use_boundary_penalties'] and \
+    #         boundary_penalties_fcn is None :
+    if len(shape) == 2:
+        edgx = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
+        edgy = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
+
+        edges = [ edgx, edgy]
+
+        directions = [
+            np.ones([edgx.shape[0]], dtype=np.int8) * 0,
+            np.ones([edgy.shape[0]], dtype=np.int8) * 1,
+            ]
+
+
+    elif len(shape) == 3:
+        # This is faster for some specific format
+        edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
+        edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
+        edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
+        edges = [ edgx, edgy, edgz]
+    else:
+        logger.error("Expected 2D or 3D data")
+
+    # for all edges along first direction put 0, for second direction put 1, for third direction put 3
+    if return_directions:
+        directions = []
+        for idirection in range(len(shape)):
+            directions.append(
+                np.ones([edges[idirection].shape[0]], dtype=np.int8) * idirection
+            )
+
+    if return_directions:
+        edge_dir = np.concatenate(directions)
+        return edges, edge_dir
+    else:
+        return edges
+
+def grid_nodes(shape):
+    nodes = np.moveaxis(np.indices(shape), 0, -1).reshape(-1, len(shape))
+    return nodes
