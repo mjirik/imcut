@@ -73,65 +73,6 @@ class Graph(object):
         self.lastedge += nadd
         self.nedges += nadd
 
-    def gen_base_graph_new(self, shape, voxelsize=None, inds=None):
-        edges, edge_dir = grid_edges(shape, inds, return_directions=True)
-        # nodes coordinates
-        nodes = grid_nodes(shape)
-        return nodes, edges, edge_dir
-
-    def gen_base_graph(self, shape, voxelsize):
-        """
-        Generate base grid.
-        """
-        nr, nc = shape
-        nrm1, ncm1 = nr - 1, nc - 1
-        # sh = nm.asarray(shape)
-        # calculate number of edges, in 2D: (nrows * (ncols - 1)) + ((nrows - 1) * ncols)
-        nedges = 0
-        for direction in range(len(shape)):
-            sh = copy.copy(list(shape))
-            sh[direction] += -1
-            nedges += nm.prod(sh)
-
-
-        nedges_old = ncm1 * nr + nrm1 * nc
-        edges = nm.zeros((nedges, 2), dtype=nm.int16)
-        edge_dir = nm.zeros((ncm1 * nr + nrm1 * nc, ), dtype=nm.bool)
-        nodes = nm.zeros((nm.prod(shape), 3), dtype=nm.float32)
-
-        # edges
-        idx = 0
-        row = nm.zeros((ncm1, 2), dtype=nm.int16)
-        row[:,0] = nm.arange(ncm1)
-        row[:,1] = nm.arange(ncm1) + 1
-        for ii in range(nr):
-            edges[slice(idx, idx + ncm1),:] = row + nc * ii
-            idx += ncm1
-
-        edge_dir[slice(0, idx)] = 0 # horizontal dir
-
-        idx0 = idx
-        col = nm.zeros((nrm1, 2), dtype=nm.int16)
-        col[:,0] = nm.arange(nrm1) * nc
-        col[:,1] = nm.arange(nrm1) * nc + nc
-        for ii in range(nc):
-            edges[slice(idx, idx + nrm1),:] = col + ii
-            idx += nrm1
-
-        edge_dir[slice(idx0, idx)] = 1 # vertical dir
-
-        # nodes
-        idx = 0
-        row = nm.zeros((nc, 3), dtype=nm.float32)
-        row[:,0] = voxelsize[0] * (nm.arange(nc) + 0.5)
-        row[:,1] = voxelsize[1] * 0.5
-        for ii in range(nr):
-            nodes[slice(idx, idx + nc),:] = row
-            row[:,1] += voxelsize[1]
-            idx += nc
-
-        return nodes, edges, edge_dir
-
     def finish(self):
         ndidxs = nm.where(self.node_flag)[0]
         aux = - nm.ones((self.nodes.shape[0],), dtype=nm.int16)
@@ -152,27 +93,7 @@ class Graph(object):
         self.edge_flag = nm.ones((edges.shape[0],), dtype=nm.bool)
 
     def write_vtk(self, fname):
-        f = open(fname, 'w')
-        f.write('# vtk DataFile Version 2.6\n')
-        f.write('output file\nASCII\nDATASET UNSTRUCTURED_GRID\n')
-
-        idxs = nm.where(self.node_flag > 0)[0]
-        nnd = len(idxs)
-        aux = -nm.ones(self.node_flag.shape, dtype=nm.int32)
-        aux[idxs] = nm.arange(nnd, dtype=nm.int32)
-        f.write('\nPOINTS %d float\n' % nnd)
-        for ndi in idxs:
-            f.write('%.6f %.6f %.6f\n' % tuple(self.nodes[ndi,:]))
-
-        idxs = nm.where(self.edge_flag > 0)[0]
-        ned = len(idxs)
-        f.write('\nCELLS %d %d\n' % (ned, ned * 3))
-        for edi in idxs:
-            f.write('2 %d %d\n' % tuple(aux[self.edges[edi,:]]))
-
-        f.write('\nCELL_TYPES %d\n' % ned)
-        for edi in idxs:
-            f.write('3\n')
+        write_grid_to_vtk(self.nodes, self.edges, self.node_flag, self.edge_flag)
 
     def edges_by_group(self, idxs):
         ed = self.edge_group[idxs]
@@ -189,7 +110,7 @@ class Graph(object):
         if key in self.cache:
             nd, ed, ed_dir = self.cache[key]
         else:
-            nd, ed, ed_dir = self.gen_base_graph(key, self.voxelsize / nsplit)
+            nd, ed, ed_dir = gen_base_graph(key, self.voxelsize / nsplit)
             self.cache[key] = nd, ed, ed_dir
 
         ndoffset = self.lastnode
@@ -238,6 +159,45 @@ class Graph(object):
         # remove edges
         self.edge_flag[ed_remove] = False
 
+    def generate_base_grid(self, vtk_filename=None):
+        """
+        Run first step of algorithm. Next step is split_voxels
+        :param vtk_filename:
+        :return:
+        """
+        nd, ed, ed_dir = gen_base_graph(self.data.shape, self.voxelsize)
+        self.add_nodes(nd)
+        self.add_edges(ed, ed_dir)
+
+        if vtk_filename is not None:
+            self.write_vtk(vtk_filename)
+
+    def split_voxels(self, vtk_filename):
+        """
+        Second step of algorithm
+        :return:
+        """
+        self.cache = {}
+        idxs = nm.where(self.data)
+        nr, nc = self.data.shape
+        for k, (ir, ic) in enumerate(zip(*idxs)):
+            ndid = ic + ir * nc
+            self.split_voxel(ndid, 4)
+
+        self.finish()
+        if vtk_filename is not None:
+            self.write_vtk(vtk_filename)
+
+    def run(self):
+        # cache dict.
+        self.cache = {}
+
+        # generate base grid
+        self.generate_base_grid("base_grid.vtk")
+        # split voxels
+        self.split_voxels("final_grid.vtk")
+
+
     def __init__(self, data, voxelsize, dim=2, ndmax=400):
         self.dim = dim
         self.voxelsize = nm.asarray(voxelsize)
@@ -257,24 +217,6 @@ class Graph(object):
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
         self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
 
-        # generate base grid
-        nd, ed, ed_dir = self.gen_base_graph(data.shape, voxelsize)
-        self.add_nodes(nd)
-        self.add_edges(ed, ed_dir)
-
-        self.write_vtk('graf0.vtk')
-        # cache dict.
-        self.cache = {}
-
-        # split voxels
-        idxs = nm.where(data)
-        nr, nc = data.shape
-        for k, (ir, ic) in enumerate(zip(*idxs)):
-            ndid = ic + ir * nc
-            self.split_voxel(ndid, 4)
-
-        self.finish()
-        self.write_vtk('graf.vtk')
 
 
 class SRTab(object):
@@ -349,6 +291,92 @@ def grid_edges(shape, inds=None, return_directions=True):
     else:
         return edges
 
-def grid_nodes(shape):
+def grid_nodes(shape, voxelsize=None):
+    voxelsize = np.asarray(voxelsize)
     nodes = np.moveaxis(np.indices(shape), 0, -1).reshape(-1, len(shape))
+    if voxelsize is not None:
+        nodes = (nodes * voxelsize) + (0.5 * voxelsize)
     return nodes
+
+def gen_base_graph_new(shape, voxelsize=None, inds=None):
+    edges, edge_dir = grid_edges(shape, inds, return_directions=True)
+    # nodes coordinates
+    nodes = grid_nodes(shape, voxelsize)
+    return nodes, edges, edge_dir
+
+def gen_base_graph(shape, voxelsize):
+    """
+    Generate list of edges for a base grid.
+    """
+    nr, nc = shape
+    nrm1, ncm1 = nr - 1, nc - 1
+    # sh = nm.asarray(shape)
+    # calculate number of edges, in 2D: (nrows * (ncols - 1)) + ((nrows - 1) * ncols)
+    nedges = 0
+    for direction in range(len(shape)):
+        sh = copy.copy(list(shape))
+        sh[direction] += -1
+        nedges += nm.prod(sh)
+
+
+    nedges_old = ncm1 * nr + nrm1 * nc
+    edges = nm.zeros((nedges, 2), dtype=nm.int16)
+    edge_dir = nm.zeros((ncm1 * nr + nrm1 * nc, ), dtype=nm.bool)
+    nodes = nm.zeros((nm.prod(shape), 3), dtype=nm.float32)
+
+    # edges
+    idx = 0
+    row = nm.zeros((ncm1, 2), dtype=nm.int16)
+    row[:,0] = nm.arange(ncm1)
+    row[:,1] = nm.arange(ncm1) + 1
+    for ii in range(nr):
+        edges[slice(idx, idx + ncm1),:] = row + nc * ii
+        idx += ncm1
+
+    edge_dir[slice(0, idx)] = 0 # horizontal dir
+
+    idx0 = idx
+    col = nm.zeros((nrm1, 2), dtype=nm.int16)
+    col[:,0] = nm.arange(nrm1) * nc
+    col[:,1] = nm.arange(nrm1) * nc + nc
+    for ii in range(nc):
+        edges[slice(idx, idx + nrm1),:] = col + ii
+        idx += nrm1
+
+    edge_dir[slice(idx0, idx)] = 1 # vertical dir
+
+    # nodes
+    idx = 0
+    row = nm.zeros((nc, 3), dtype=nm.float32)
+    row[:,0] = voxelsize[0] * (nm.arange(nc) + 0.5)
+    row[:,1] = voxelsize[1] * 0.5
+    for ii in range(nr):
+        nodes[slice(idx, idx + nc),:] = row
+        row[:,1] += voxelsize[1]
+        idx += nc
+
+    return nodes, edges, edge_dir
+
+def write_grid_to_vtk(fname, nodes, edges, node_flag, edge_flag):
+    f = open(fname, 'w')
+    f.write('# vtk DataFile Version 2.6\n')
+    f.write('output file\nASCII\nDATASET UNSTRUCTURED_GRID\n')
+
+    idxs = nm.where(node_flag > 0)[0]
+    nnd = len(idxs)
+    aux = -nm.ones(node_flag.shape, dtype=nm.int32)
+    aux[idxs] = nm.arange(nnd, dtype=nm.int32)
+    f.write('\nPOINTS %d float\n' % nnd)
+    for ndi in idxs:
+        f.write('%.6f %.6f %.6f\n' % tuple(nodes[ndi,:]))
+
+    idxs = nm.where(edge_flag > 0)[0]
+    ned = len(idxs)
+    f.write('\nCELLS %d %d\n' % (ned, ned * 3))
+    for edi in idxs:
+        f.write('2 %d %d\n' % tuple(aux[edges[edi,:]]))
+
+    f.write('\nCELL_TYPES %d\n' % ned)
+    for edi in idxs:
+        f.write('3\n')
+

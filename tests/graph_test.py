@@ -38,7 +38,7 @@ class GraphTest(unittest.TestCase):
                          [1,1,1,0,0,0,0],
                          [0,0,0,0,0,0,1]])
         g = graph.Graph(data, (0.1, 0.12, 0.0))
-        g
+        g.run()
 
     unittest.skip("waiting for fix")
     def test_graph_3d_two_slices(self):
@@ -58,7 +58,7 @@ class GraphTest(unittest.TestCase):
             ]
         )
         g = graph.Graph(data, (0.1, 0.12, 0.05))
-        g
+        g.run()
 
     unittest.skip("waiting for fix")
     def test_graph_3d(self):
@@ -80,7 +80,7 @@ class GraphTest(unittest.TestCase):
             ]
         )
         g = graph.Graph(data, (0.1, 0.12, 0.05))
-        g
+        g.run()
 
     def _test_automatic_ms_indexes_2d_same_as_orig(self, size):
         shape = [size, size]
@@ -111,6 +111,15 @@ class GraphTest(unittest.TestCase):
 
         # err = np.sum(np.abs(subtab - orig_sr_tab[size]))
         # self.assertEqual(err, 0)
+
+    def test_gen_base_graph_2d(self):
+        shape = [2, 3]
+        voxelsize = [1., .7 ]
+        # srt = graph.Graph(shape)
+
+        gr1 = graph.gen_base_graph(shape, voxelsize)
+        gr2 = graph.gen_base_graph_new(shape, voxelsize)
+        gr1
 
 if __name__ == "__main__":
     unittest.main()
