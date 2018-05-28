@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 import numpy as nm
 import numpy as np
 import copy
-from io import open
+# from io import open
 
 # TODO zpětná indexace původních pixelů (v add_nodes())
 # TODO nastavení velikosti bloku (v sr_tab)
@@ -102,7 +102,7 @@ class Graph(object):
         self.edge_flag = nm.ones((edges.shape[0],), dtype=nm.bool)
 
     def write_vtk(self, fname):
-        write_grid_to_vtk(self.nodes, self.edges, self.node_flag, self.edge_flag)
+        write_grid_to_vtk(fname, self.nodes, self.edges, self.node_flag, self.edge_flag)
 
     def edges_by_group(self, idxs):
         """
@@ -125,10 +125,10 @@ class Graph(object):
         :param tile_shape:
         :return:
         """
+        # TODO use tile_shape instead of nsplit
         # nsplit - was size of split square, tiles_shape = [nsplit, nsplit]
         # generate subgrid
         # tile_shape = tuple(tile_shape)
-        # TODO remove
         # nsplit = tile_shape[0]
         tile_shape = (nsplit, nsplit)
         if tile_shape in self.cache:
@@ -139,7 +139,7 @@ class Graph(object):
             self.cache[tile_shape] = nd, ed, ed_dir
 
         ndoffset = self.lastnode
-        self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize / 2))
+        self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize / nsplit))
         self.add_edges(ed + ndoffset, ed_dir)
 
         # connect subgrid
@@ -213,16 +213,16 @@ class Graph(object):
         if vtk_filename is not None:
             self.write_vtk(vtk_filename)
 
-    def run(self):
+    def run(self, base_grid_vtk_fn=None, final_grid_vtk_fn=None):
         # cache dict.
         self.cache = {}
 
         # generate base grid
-        # self.generate_base_grid("base_grid.vtk")
-        self.generate_base_grid()
+        self.generate_base_grid(base_grid_vtk_fn)
+        # self.generate_base_grid()
         # split voxels
-        # self.split_voxels("final_grid.vtk")
-        self.split_voxels()
+        self.split_voxels(final_grid_vtk_fn)
+        # self.split_voxels()
 
 
     def __init__(self, data, voxelsize, dim=2, ndmax=400):
@@ -406,7 +406,8 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     if nodes.shape[1] == 2:
         zeros = np.zeros([nodes.shape[0], 1], dtype=nodes.dtype)
         nodes = np.concatenate([nodes, zeros], axis=1)
-    f = open(fname, 'w', encoding="utf-8")
+    f = open(fname, 'w')
+
     f.write('# vtk DataFile Version 2.6\n')
     f.write('output file\nASCII\nDATASET UNSTRUCTURED_GRID\n')
 

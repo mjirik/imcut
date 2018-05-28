@@ -38,7 +38,7 @@ class GraphTest(unittest.TestCase):
                          [1,1,1,0,0,0,0],
                          [0,0,0,0,0,0,1]])
         g = graph.Graph(data, (0.1, 0.12, 0.0))
-        g.run()
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
 
     @unittest.skip("waiting for fix")
     def test_graph_3d_two_slices(self):
