@@ -114,12 +114,15 @@ class GraphTest(unittest.TestCase):
 
     def test_gen_base_graph_2d(self):
         shape = [2, 3]
-        voxelsize = [1., .7 ]
+        voxelsize = [1., .6]
         # srt = graph.Graph(shape)
 
-        gr1 = graph.gen_base_graph(shape, voxelsize)
-        gr2 = graph.gen_base_graph_new(shape, voxelsize)
-        gr1
+        nodes1, edges1, edg_dir1 = graph.gen_base_graph(shape, voxelsize)
+        nodes2, edges2, edg_dir2 = graph.gen_base_graph_new(shape, voxelsize)
+
+        graph.write_grid_to_vtk("grid1.vtk", nodes1, edges1)
+        graph.write_grid_to_vtk("grid2.vtk", nodes2, edges2)
+        nodes1
 
 if __name__ == "__main__":
     unittest.main()

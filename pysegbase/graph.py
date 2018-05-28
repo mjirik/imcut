@@ -206,6 +206,7 @@ class Graph(object):
         self.nnodes = 0
         self.lastnode = 0
         self.nodes = nm.zeros((ndmax, 3), dtype=nm.float32)
+        # node_flag: if true, this node is used in final output
         self.node_flag = nm.zeros((ndmax,), dtype=nm.bool)
 
         # init edges
@@ -213,6 +214,7 @@ class Graph(object):
         self.nedges = 0
         self.lastedge = 0
         self.edges = - nm.ones((edmax, 2), dtype=nm.int16)
+        # edge_flag: if true, this edge is used in final output
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
         self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
@@ -284,7 +286,7 @@ def grid_edges(shape, inds=None, return_directions=True):
             directions.append(
                 np.ones([edges[idirection].shape[0]], dtype=np.int8) * idirection
             )
-
+    edges = np.concatenate(edges)
     if return_directions:
         edge_dir = np.concatenate(directions)
         return edges, edge_dir
@@ -357,7 +359,24 @@ def gen_base_graph(shape, voxelsize):
 
     return nodes, edges, edge_dir
 
-def write_grid_to_vtk(fname, nodes, edges, node_flag, edge_flag):
+def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
+    """
+    Write nodes and edges to VTK file
+    :param fname: VTK filename
+    :param nodes:
+    :param edges:
+    :param node_flag: set if this node is really used in output
+    :param edge_flag: set if this flag is used in output
+    :return:
+    """
+    if node_flag is None:
+        node_flag = np.ones([nodes.shape[0]], dtype=np.bool)
+    if edge_flag is None:
+        edge_flag = np.ones([edges.shape[0]], dtype=np.bool)
+
+    if nodes.shape[1] == 2:
+        zeros = np.zeros([nodes.shape[0], 1], dtype=nodes.dtype)
+        nodes = np.concatenate([nodes, zeros], axis=1)
     f = open(fname, 'w')
     f.write('# vtk DataFile Version 2.6\n')
     f.write('output file\nASCII\nDATASET UNSTRUCTURED_GRID\n')

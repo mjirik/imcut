@@ -327,7 +327,7 @@ class ImageGraphCut:
         seg = self.__multiscale_gc_step3_discontinuity_localization(start, debug)
         # step 4: indexes of new dual graph
 
-        msinds = self.__multiscale_indexes(seg, img_orig.shape, ms_zoom)
+        msinds = self.__multiscale_indexes(seg, img_orig.shape)#, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
         #     import sed3
@@ -506,7 +506,7 @@ class ImageGraphCut:
 
         return data
 
-    def __multiscale_indexes(self, mask, orig_shape, zoom):
+    def __multiscale_indexes(self, mask, orig_shape): # , zoom):
         """
         Function computes multiscale indexes of ndarray.
 
