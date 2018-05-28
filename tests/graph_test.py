@@ -40,7 +40,7 @@ class GraphTest(unittest.TestCase):
         g = graph.Graph(data, (0.1, 0.12, 0.0))
         g.run()
 
-    unittest.skip("waiting for fix")
+    @unittest.skip("waiting for fix")
     def test_graph_3d_two_slices(self):
 
         data = np.array(
@@ -60,7 +60,7 @@ class GraphTest(unittest.TestCase):
         g = graph.Graph(data, (0.1, 0.12, 0.05))
         g.run()
 
-    unittest.skip("waiting for fix")
+    @unittest.skip("waiting for fix")
     def test_graph_3d(self):
 
         data = np.array(
