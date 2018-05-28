@@ -112,7 +112,7 @@ class Graph(object):
 
         return out
 
-    def split_voxel(self, ndid, tile_shape):
+    def split_voxel(self, ndid, nsplit):
         """
 
         :param ndid:
@@ -121,13 +121,15 @@ class Graph(object):
         """
         # nsplit - was size of split square, tiles_shape = [nsplit, nsplit]
         # generate subgrid
-        tile_shape = tuple(tile_shape)
+        # tile_shape = tuple(tile_shape)
         # TODO remove
-        nsplit = tile_shape[0]
+        # nsplit = tile_shape[0]
+        tile_shape = (nsplit, nsplit)
         if tile_shape in self.cache:
             nd, ed, ed_dir = self.cache[tile_shape]
         else:
-            nd, ed, ed_dir = gen_base_graph(tile_shape, self.voxelsize / tile_shape)
+            nd, ed, ed_dir = gen_base_graph(tile_shape, self.voxelsize / nsplit)
+            # nd, ed, ed_dir = gen_base_graph(tile_shape, self.voxelsize / tile_shape)
             self.cache[tile_shape] = nd, ed, ed_dir
 
         ndoffset = self.lastnode
@@ -189,7 +191,7 @@ class Graph(object):
         if vtk_filename is not None:
             self.write_vtk(vtk_filename)
 
-    def split_voxels(self, vtk_filename):
+    def split_voxels(self, vtk_filename=None):
         """
         Second step of algorithm
         :return:
@@ -210,9 +212,11 @@ class Graph(object):
         self.cache = {}
 
         # generate base grid
-        self.generate_base_grid("base_grid.vtk")
+        # self.generate_base_grid("base_grid.vtk")
+        self.generate_base_grid()
         # split voxels
-        self.split_voxels("final_grid.vtk")
+        # self.split_voxels("final_grid.vtk")
+        self.split_voxels()
 
 
     def __init__(self, data, voxelsize, dim=2, ndmax=400):
