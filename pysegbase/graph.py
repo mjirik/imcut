@@ -218,6 +218,7 @@ class Graph(object):
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
         self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
+        self.data = data
 
 
 

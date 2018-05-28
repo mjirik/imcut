@@ -511,9 +511,9 @@ class PycutTest(unittest.TestCase):
         mask = np.zeros([1, 3, 3], dtype=np.int16)
         mask[0, 1:, 1] = 1
         orig_shape = [2, 6, 6]
-        zoom = 2
+        # zoom = 2
 
-        inds = gc._ImageGraphCut__multiscale_indexes(mask, orig_shape, zoom)
+        inds = gc._ImageGraphCut__multiscale_indexes(mask, orig_shape)
 
         expected_result = [[[0, 0,  1,  1, 2, 2],
                             [0, 0,  1,  1, 2, 2],
