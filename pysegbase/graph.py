@@ -406,7 +406,7 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     if nodes.shape[1] == 2:
         zeros = np.zeros([nodes.shape[0], 1], dtype=nodes.dtype)
         nodes = np.concatenate([nodes, zeros], axis=1)
-    f = open(fname, 'w')
+    f = open(fname, 'w', encoding="utf-8")
     f.write('# vtk DataFile Version 2.6\n')
     f.write('output file\nASCII\nDATASET UNSTRUCTURED_GRID\n')
 
