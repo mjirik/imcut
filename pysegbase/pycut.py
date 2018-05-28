@@ -548,20 +548,6 @@ class ImageGraphCut:
 
         return inds
 
-    def __merge_indexes_by_mask(self, mask, inds1, inds2):
-        """
-        Return array of indexes.
-
-        inds1: Array with numbers starting from 0
-        inds2: Array with numbers starting from 0
-        mask: array of same size as inds1 and inds2 with 0 where should be
-            inds1 and 1 where sould be inds2
-
-        To values of inds2 is added maximal value of inds1.
-
-        """
-        inds1[mask == 1]
-
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
         Interactive seed setting with 3d seed editor
