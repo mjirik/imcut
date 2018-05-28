@@ -15,6 +15,14 @@ import copy
 # TODO možnost vypínání zápisu do VTK (mjirik)
 # TODO možnost kontroly jmena souborů do VTK(mjirik)
 #
+# TODO Jeden nový uzel reprezentuje více voxelů v původním obrázku
+# TODO indexy vytvářet ve split_voxel()?
+# TODO co je igrp? split_voxel()
+# TODO Uzly se jen přidávají, při odběru se nastaví flag na False? Dořešuje se to ve finish()
+# TODO co je ndid ve split_voxel()
+# TODO Přidat relabeling ve finish
+# TODO zápis do VTK souboru? line 381, #  f = open(fname, 'w') # UnicodeDecodeError: 'ascii' codec can't decode byte 0xcd in position 0: ordinal not in range(128)
+#
 # data = nm.array([[0,0,0],
 #                  [0,1,1],
 #                  [0,1,1],
@@ -104,14 +112,23 @@ class Graph(object):
 
         return out
 
-    def split_voxel(self, ndid, nsplit=2):
+    def split_voxel(self, ndid, tile_shape):
+        """
+
+        :param ndid:
+        :param tile_shape:
+        :return:
+        """
+        # nsplit - was size of split square, tiles_shape = [nsplit, nsplit]
         # generate subgrid
-        key = (nsplit, nsplit)
-        if key in self.cache:
-            nd, ed, ed_dir = self.cache[key]
+        tile_shape = tuple(tile_shape)
+        # TODO remove
+        nsplit = tile_shape[0]
+        if tile_shape in self.cache:
+            nd, ed, ed_dir = self.cache[tile_shape]
         else:
-            nd, ed, ed_dir = gen_base_graph(key, self.voxelsize / nsplit)
-            self.cache[key] = nd, ed, ed_dir
+            nd, ed, ed_dir = gen_base_graph(tile_shape, self.voxelsize / tile_shape)
+            self.cache[tile_shape] = nd, ed, ed_dir
 
         ndoffset = self.lastnode
         self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize / 2))
@@ -120,7 +137,7 @@ class Graph(object):
         # connect subgrid
         ed_remove = []
         # sr_tab_old = self.sr_tab[nsplit]
-        srt = SRTab([nsplit, nsplit])
+        srt = SRTab(tile_shape)
         sr_tab = srt.get_sr_subtab()
         idxs = nm.where(self.edge_flag > 0)[0]
 
