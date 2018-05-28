@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 import numpy as nm
 import numpy as np
 import copy
+from io import open
 
 # TODO zpětná indexace původních pixelů (v add_nodes())
 # TODO nastavení velikosti bloku (v sr_tab)
@@ -104,6 +105,11 @@ class Graph(object):
         write_grid_to_vtk(self.nodes, self.edges, self.node_flag, self.edge_flag)
 
     def edges_by_group(self, idxs):
+        """
+
+        :param idxs: množina hran
+        :return:
+        """
         ed = self.edge_group[idxs]
         ugrps = nm.unique(ed)
         out = []
@@ -391,6 +397,7 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     :param edge_flag: set if this flag is used in output
     :return:
     """
+
     if node_flag is None:
         node_flag = np.ones([nodes.shape[0]], dtype=np.bool)
     if edge_flag is None:
