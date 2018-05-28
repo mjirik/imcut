@@ -32,11 +32,11 @@ import copy
 class Graph(object):
 
     # spliting reconnection table
-    sr_tab = {
-        2: nm.array([(0,2), (0,1), (1,3), (2,3)]),
-        3: nm.array([(0,3,6), (0,1,2), (2,5,8), (6,7,8)]),
-        4: nm.array([(0,4,8,12), (0,1,2,3), (3,7,11,15), (12,13,14,15)]),
-    }
+    # sr_tab = {
+    #     2: nm.array([(0,2), (0,1), (1,3), (2,3)]),
+    #     3: nm.array([(0,3,6), (0,1,2), (2,5,8), (6,7,8)]),
+    #     4: nm.array([(0,4,8,12), (0,1,2,3), (3,7,11,15), (12,13,14,15)]),
+    # }
 
     def add_nodes(self, coors):
         """
@@ -52,8 +52,8 @@ class Graph(object):
         else:
             nadd = 1
             idx = self.lastnode
-
-        self.nodes[idx,:] = coors
+        right_dimension = coors.shape[1]
+        self.nodes[idx, :right_dimension] = coors
         self.node_flag[idx] = True
         self.lastnode += nadd
         self.nnodes += nadd
@@ -107,8 +107,8 @@ class Graph(object):
     def edges_by_group(self, idxs):
         """
 
-        :param idxs: množina hran
-        :return:
+        :param idxs: low resolution edge id
+        :return: multiscale edges. If this part remain in low resolution the output is just one number
         """
         ed = self.edge_group[idxs]
         ugrps = nm.unique(ed)
@@ -117,6 +117,25 @@ class Graph(object):
             out.append(idxs[nm.where(ed == igrp)[0]])
 
         return out
+
+    def _edge_group_substitution(self, ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from):
+        eidxs = idxs[nm.where(self.edges[idxs, 1 - into_or_from] == ndid)[0]]
+        for igrp in self.edges_by_group(eidxs):
+            if igrp.shape[0] > 1:
+                self.edges[igrp,1] = sr_tab[self.edge_dir[igrp[0]],:].T.flatten() \
+                                     + ndoffset
+            else:
+                ed_remove.append(igrp[0])
+                # number of new edges is equal to number of pixels on one side of the box (in 2D and D too)
+                nnewed = np.power(nsplit, self.data.ndim - 1)
+                muleidxs = nm.tile(igrp, nnewed)
+                newed = self.edges[muleidxs, :]
+                neweddir = self.edge_dir[muleidxs]
+                local_node_ids = sr_tab[self.edge_dir[igrp] + self.data.ndim * into_or_from,:].T.flatten()
+                newed[:,1] = local_node_ids \
+                             + ndoffset
+                self.add_edges(newed, neweddir, self.edge_group[igrp])
+        return ed_remove
 
     def split_voxel(self, ndid, nsplit):
         """
@@ -130,16 +149,21 @@ class Graph(object):
         # generate subgrid
         # tile_shape = tuple(tile_shape)
         # nsplit = tile_shape[0]
-        tile_shape = (nsplit, nsplit)
+        # tile_shape = (nsplit, nsplit)
+        tile_shape = tuple(np.tile(nsplit, self.data.ndim))
         if tile_shape in self.cache:
             nd, ed, ed_dir = self.cache[tile_shape]
         else:
-            nd, ed, ed_dir = gen_base_graph(tile_shape, self.voxelsize / nsplit)
+            nd, ed, ed_dir = self.gen_grid_fcn(tile_shape, self.voxelsize / nsplit)
             # nd, ed, ed_dir = gen_base_graph(tile_shape, self.voxelsize / tile_shape)
             self.cache[tile_shape] = nd, ed, ed_dir
 
         ndoffset = self.lastnode
-        self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize / nsplit))
+        # in new implementation nodes are 2D on 2D shape and 3D in 3D shape
+        # in old implementation nodes are always 3D
+        # right_voxelsize = self.voxelsize3[:nd.shape[1]]
+        nd = make_nodes_3d(nd)
+        self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize3 / nsplit))
         self.add_edges(ed + ndoffset, ed_dir)
 
         # connect subgrid
@@ -150,34 +174,23 @@ class Graph(object):
         idxs = nm.where(self.edge_flag > 0)[0]
 
         # edges "into" node?
-        eidxs = idxs[nm.where(self.edges[idxs,1] == ndid)[0]]
-        for igrp in self.edges_by_group(eidxs):
-            if igrp.shape[0] > 1:
-                self.edges[igrp,1] = sr_tab[self.edge_dir[igrp[0]],:].T.flatten()\
-                    + ndoffset
-            else:
-                ed_remove.append(igrp[0])
-                muleidxs = nm.tile(igrp, nsplit)
-                newed = self.edges[muleidxs,:]
-                neweddir = self.edge_dir[muleidxs]
-                newed[:,1] = sr_tab[self.edge_dir[igrp],:].T.flatten()\
-                    + ndoffset
-                self.add_edges(newed, neweddir, self.edge_group[igrp])
+        ed_remove = self._edge_group_substitution( ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=0)
 
         # edges "from" node?
-        eidxs = idxs[nm.where(self.edges[idxs,0] == ndid)[0]]
-        for igrp in self.edges_by_group(eidxs):
-            if igrp.shape[0] > 1:
-                self.edges[igrp,1] = sr_tab[self.edge_dir[igrp[0]],:].T.flatten()\
-                + ndoffset
-            else:
-                ed_remove.append(igrp[0])
-                muleidxs = nm.tile(igrp, nsplit)
-                newed = self.edges[muleidxs,:]
-                neweddir = self.edge_dir[muleidxs]
-                newed[:,0] = sr_tab[self.edge_dir[igrp] + 2,:].T.flatten()\
-                    + ndoffset
-                self.add_edges(newed, neweddir, self.edge_group[igrp])
+        ed_remove = self._edge_group_substitution( ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=1)
+        # eidxs = idxs[nm.where(self.edges[idxs,0] == ndid)[0]]
+        # for igrp in self.edges_by_group(eidxs):
+        #     if igrp.shape[0] > 1:
+        #         self.edges[igrp,1] = sr_tab[self.edge_dir[igrp[0]],:].T.flatten()\
+        #         + ndoffset
+        #     else:
+        #         ed_remove.append(igrp[0])
+        #         muleidxs = nm.tile(igrp, nsplit)
+        #         newed = self.edges[muleidxs,:]
+        #         neweddir = self.edge_dir[muleidxs]
+        #         newed[:,0] = sr_tab[self.edge_dir[igrp] + 2,:].T.flatten()\
+        #             + ndoffset
+        #         self.add_edges(newed, neweddir, self.edge_group[igrp])
 
         # remove node
         self.node_flag[ndid] = False
@@ -190,7 +203,7 @@ class Graph(object):
         :param vtk_filename:
         :return:
         """
-        nd, ed, ed_dir = gen_base_graph(self.data.shape, self.voxelsize)
+        nd, ed, ed_dir = self.gen_grid_fcn(self.data.shape, self.voxelsize)
         self.add_nodes(nd)
         self.add_edges(ed, ed_dir)
 
@@ -203,11 +216,17 @@ class Graph(object):
         :return:
         """
         self.cache = {}
-        idxs = nm.where(self.data)
-        nr, nc = self.data.shape
-        for k, (ir, ic) in enumerate(zip(*idxs)):
-            ndid = ic + ir * nc
-            self.split_voxel(ndid, 4)
+
+        # old implementation
+        # idxs = nm.where(self.data)
+        # nr, nc = self.data.shape
+        # for k, (ir, ic) in enumerate(zip(*idxs)):
+        #     ndid = ic + ir * nc
+        #     self.split_voxel(ndid, self.nsplit)
+
+        # new_implementation
+        for ndid in np.flatnonzero(self.data):
+            self.split_voxel(ndid, self.nsplit)
 
         self.finish()
         if vtk_filename is not None:
@@ -225,9 +244,18 @@ class Graph(object):
         # self.split_voxels()
 
 
-    def __init__(self, data, voxelsize, dim=2, ndmax=400):
-        self.dim = dim
+    def __init__(self, data, voxelsize, ndmax=400, grid_function=None, nsplit=3):
+        # same dimension as data
         self.voxelsize = nm.asarray(voxelsize)
+        # always 3D
+        self.voxelsize3 = np.zeros([3])
+        self.voxelsize3[:len(voxelsize)] = voxelsize
+
+        if self.voxelsize.size != len(data.shape):
+            logger.error("Datashape should be the same as voxelsize")
+            import sys
+            sys.exit(-1)
+
 
         # init nodes
         self.nnodes = 0
@@ -244,8 +272,14 @@ class Graph(object):
         # edge_flag: if true, this edge is used in final output
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
+        # list of edges on low resolution
         self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
         self.data = data
+        self.nsplit = nsplit
+        if grid_function in (None, "nd"):
+            self.gen_grid_fcn=gen_grid_nd
+        else:
+            self.gen_grid_fcn=gen_grid_2d
 
 
 
@@ -322,19 +356,19 @@ def grid_edges(shape, inds=None, return_directions=True):
         return edges
 
 def grid_nodes(shape, voxelsize=None):
-    voxelsize = np.asarray(voxelsize)
+    voxelsize = np.asarray(voxelsize) # [:len(shape)]
     nodes = np.moveaxis(np.indices(shape), 0, -1).reshape(-1, len(shape))
     if voxelsize is not None:
         nodes = (nodes * voxelsize) + (0.5 * voxelsize)
     return nodes
 
-def gen_base_graph_new(shape, voxelsize=None, inds=None):
+def gen_grid_nd(shape, voxelsize=None, inds=None):
     edges, edge_dir = grid_edges(shape, inds, return_directions=True)
     # nodes coordinates
     nodes = grid_nodes(shape, voxelsize)
     return nodes, edges, edge_dir
 
-def gen_base_graph(shape, voxelsize):
+def gen_grid_2d(shape, voxelsize):
     """
     Generate list of edges for a base grid.
     """
@@ -387,6 +421,12 @@ def gen_base_graph(shape, voxelsize):
 
     return nodes, edges, edge_dir
 
+def make_nodes_3d(nodes):
+    if nodes.shape[1] == 2:
+        zeros = np.zeros([nodes.shape[0], 1], dtype=nodes.dtype)
+        nodes = np.concatenate([nodes, zeros], axis=1)
+    return nodes
+
 def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     """
     Write nodes and edges to VTK file
@@ -402,10 +442,7 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
         node_flag = np.ones([nodes.shape[0]], dtype=np.bool)
     if edge_flag is None:
         edge_flag = np.ones([edges.shape[0]], dtype=np.bool)
-
-    if nodes.shape[1] == 2:
-        zeros = np.zeros([nodes.shape[0], 1], dtype=nodes.dtype)
-        nodes = np.concatenate([nodes, zeros], axis=1)
+    nodes = make_nodes_3d(nodes)
     f = open(fname, 'w')
 
     f.write('# vtk DataFile Version 2.6\n')

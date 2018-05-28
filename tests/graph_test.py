@@ -30,14 +30,26 @@ class GraphTest(unittest.TestCase):
     # def setUpClass(cls):
     #     if sys.version_info.major < 3:
     #         cls.assertCountEqual = cls.assertItemsEqual
-    def test_graph(self):
+    def test_graph_2d_implementation(self):
 
         data = np.array([[0,0,0,0,1,1,0],
                          [0,1,1,0,1,0,1],
                          [0,1,1,0,1,0,0],
                          [1,1,1,0,0,0,0],
                          [0,0,0,0,0,0,1]])
-        g = graph.Graph(data, (0.1, 0.12, 0.0))
+        g = graph.Graph(data, (0.1, 0.12), grid_function="2d", nsplit=3)
+        # g = graph.Graph(data, (0.1, 0.12), grid_function="nd", nsplit=5)
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+
+    def test_graph_3d_implementation(self):
+
+        data = np.array([[0,0,0,0,1,1,0],
+                         [0,1,1,0,1,0,1],
+                         [0,1,1,0,1,0,0],
+                         [1,1,1,0,0,0,0],
+                         [0,0,0,0,0,0,1]])
+        # g = graph.Graph(data, (0.1, 0.12), grid_function="2d", nsplit=3)
+        g = graph.Graph(data, (0.1, 0.12), grid_function="nd", nsplit=5)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
 
     @unittest.skip("waiting for fix")
@@ -60,7 +72,7 @@ class GraphTest(unittest.TestCase):
         g = graph.Graph(data, (0.1, 0.12, 0.05))
         g.run()
 
-    @unittest.skip("waiting for fix")
+    # @unittest.skip("waiting for fix")
     def test_graph_3d(self):
 
         data = np.array(
@@ -79,8 +91,9 @@ class GraphTest(unittest.TestCase):
                  [0,0,0,0,1]],
             ]
         )
-        g = graph.Graph(data, (0.1, 0.12, 0.05))
-        g.run()
+        g = graph.Graph(data, (0.1, 0.12, 0.05), grid_function="nd", nsplit=2)
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        # g.run()
 
     def _test_automatic_ms_indexes_2d_same_as_orig(self, size):
         shape = [size, size]
@@ -117,8 +130,8 @@ class GraphTest(unittest.TestCase):
         voxelsize = [1., .6]
         # srt = graph.Graph(shape)
 
-        nodes1, edges1, edg_dir1 = graph.gen_base_graph(shape, voxelsize)
-        nodes2, edges2, edg_dir2 = graph.gen_base_graph_new(shape, voxelsize)
+        nodes1, edges1, edg_dir1 = graph.gen_grid_2d(shape, voxelsize)
+        nodes2, edges2, edg_dir2 = graph.gen_grid_nd(shape, voxelsize)
 
         graph.write_grid_to_vtk("grid1.vtk", nodes1, edges1)
         graph.write_grid_to_vtk("grid2.vtk", nodes2, edges2)
