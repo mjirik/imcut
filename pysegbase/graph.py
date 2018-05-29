@@ -276,10 +276,12 @@ class Graph(object):
         self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
         self.data = data
         self.nsplit = nsplit
-        if grid_function in (None, "nd"):
+        if grid_function in (None, "nd", "ND"):
             self.gen_grid_fcn=gen_grid_nd
-        else:
+        elif grid_function in ("2d", "2D"):
             self.gen_grid_fcn=gen_grid_2d
+        else:
+            self.gen_grid_fcn=grid_function
 
 
 
