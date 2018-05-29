@@ -95,6 +95,19 @@ class GraphTest(unittest.TestCase):
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         # g.run()
 
+    def test_small_graph_3d(self):
+
+        data = np.array(
+            [
+                [[0,0,],
+                 [0,1,]],
+                [[0,0,],
+                 [0,0,]],
+            ]
+        )
+        g = graph.Graph(data, (0.1, 0.12, 0.05), grid_function="nd", nsplit=2)
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+
     def _test_automatic_ms_indexes_2d_same_as_orig(self, size):
         shape = [size, size]
         srt = graph.SRTab(shape)
