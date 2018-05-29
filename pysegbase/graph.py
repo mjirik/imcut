@@ -119,20 +119,37 @@ class Graph(object):
         return out
 
     def _edge_group_substitution(self, ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from):
+        """
+        Reconnect edges.
+        :param ndid: id of low resolution edges
+        :param nsplit: number of split
+        :param idxs: indexes of low resolution
+        :param sr_tab:
+        :param ndoffset:
+        :param ed_remove:
+        :param into_or_from: if zero, connection of input edges is done. If one, connection of output edges
+        is performed.
+        :return:
+        """
         eidxs = idxs[nm.where(self.edges[idxs, 1 - into_or_from] == ndid)[0]]
         for igrp in self.edges_by_group(eidxs):
             if igrp.shape[0] > 1:
+                # high resolution block to high resolution block
                 self.edges[igrp,1] = sr_tab[self.edge_dir[igrp[0]],:].T.flatten() \
                                      + ndoffset
             else:
+                # low res block to hi res block, if into_or_from is set to 0
+                # hi res block to low res block, if into_or_from is set to 1
                 ed_remove.append(igrp[0])
                 # number of new edges is equal to number of pixels on one side of the box (in 2D and D too)
                 nnewed = np.power(nsplit, self.data.ndim - 1)
                 muleidxs = nm.tile(igrp, nnewed)
+                # copy the low-res edge multipletime
                 newed = self.edges[muleidxs, :]
                 neweddir = self.edge_dir[muleidxs]
                 local_node_ids = sr_tab[self.edge_dir[igrp] + self.data.ndim * into_or_from,:].T.flatten()
-                newed[:,1] = local_node_ids \
+                # first or second (the actual) node id is substitued by new node indexes
+                newed[:, 1 - into_or_from] = local_node_ids \
                              + ndoffset
                 self.add_edges(newed, neweddir, self.edge_group[igrp])
         return ed_remove
@@ -140,8 +157,9 @@ class Graph(object):
     def split_voxel(self, ndid, nsplit):
         """
 
-        :param ndid:
-        :param tile_shape:
+        :param ndid: int-like, low resolution edge ID
+        :param nsplit: int-like number
+        :param tile_shape: this parameter will be used in future
         :return:
         """
         # TODO use tile_shape instead of nsplit
@@ -178,6 +196,7 @@ class Graph(object):
 
         # edges "from" node?
         ed_remove = self._edge_group_substitution( ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=1)
+
         # eidxs = idxs[nm.where(self.edges[idxs,0] == ndid)[0]]
         # for igrp in self.edges_by_group(eidxs):
         #     if igrp.shape[0] > 1:
