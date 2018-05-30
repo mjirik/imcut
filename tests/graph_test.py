@@ -170,5 +170,29 @@ class GraphTest(unittest.TestCase):
         graph.write_grid_to_vtk("grid2.vtk", nodes2, edges2)
         nodes1
 
+
+    def test_multiscale_index_set_lowres(self):
+        shape = [2, 3]
+        block_size = 2
+        msi = graph.MultiscaleIndex(shape, block_size=block_size)
+        # set first block
+        msi.set_block_higres(0, 5)
+        self.assertEqual(msi.msindex[0, 0], 5)
+        # set last block
+        msi.set_block_lowres(np.prod(shape) - 1, 3)
+        self.assertEqual(msi.msindex[-1, -1], 3)
+
+
+    def test_multiscale_index_set_higres(self):
+        shape = [2, 3]
+        block_size = 2
+        msi = graph.MultiscaleIndex(shape, block_size=block_size)
+        # set last block
+        msi.set_block_higres(np.prod(shape) - 1, [11, 12, 13, 14])
+        self.assertEqual(msi.msindex[-1, -1], 14)
+
+
+
+
 if __name__ == "__main__":
     unittest.main()

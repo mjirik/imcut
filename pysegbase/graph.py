@@ -135,7 +135,7 @@ class Graph(object):
         for igrp in self.edges_by_group(eidxs):
             if igrp.shape[0] > 1:
                 # high resolution block to high resolution block
-                self.edges[igrp,1] = sr_tab[self.edge_dir[igrp[0]],:].T.flatten() \
+                self.edges[igrp, 1] = sr_tab[self.edge_dir[igrp[0]], :].T.flatten() \
                                      + ndoffset
             else:
                 # low res block to hi res block, if into_or_from is set to 0
@@ -235,6 +235,7 @@ class Graph(object):
         :return:
         """
         self.cache = {}
+        self.msi = MultiscaleIndex(self.data.shape, block_size=self.nsplit)
 
         # old implementation
         # idxs = nm.where(self.data)
@@ -244,8 +245,16 @@ class Graph(object):
         #     self.split_voxel(ndid, self.nsplit)
 
         # new_implementation
-        for ndid in np.flatnonzero(self.data):
-            self.split_voxel(ndid, self.nsplit)
+        # for ndid in np.flatnonzero(self.data):
+        #     self.split_voxel(ndid, self.nsplit)
+
+        # even newer implementation
+        for ndid, val in enumerate(self.data.ravel()):
+            if val == 0:
+                if self.compute_msindex:
+                    self.msi.set_block_lowres(ndid, val)
+            else:
+                self.split_voxel(ndid, self.nsplit)
 
         self.finish()
         if vtk_filename is not None:
@@ -263,7 +272,16 @@ class Graph(object):
         # self.split_voxels()
 
 
-    def __init__(self, data, voxelsize, ndmax=400, grid_function=None, nsplit=3):
+    def __init__(self, data, voxelsize, ndmax=400, grid_function=None, nsplit=3, compute_msindex=True):
+        """
+
+        :param data:
+        :param voxelsize:
+        :param ndmax:
+        :param grid_function: '2d' or 'nd'. Use '2d' for former implementation
+        :param nsplit: size of low resolution block
+        :param compute_msindex: compute indexes of nodes arranged in a ndarray with the same shape as higres image
+        """
         # same dimension as data
         self.voxelsize = nm.asarray(voxelsize)
         # always 3D
@@ -295,6 +313,9 @@ class Graph(object):
         self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
         self.data = data
         self.nsplit = nsplit
+        self.compute_msindex = compute_msindex
+        # indexes of nodes arranged in ndimage
+        self.msindex = None
         if grid_function in (None, "nd", "ND"):
             self.gen_grid_fcn=gen_grid_nd
         elif grid_function in ("2d", "2D"):
@@ -486,4 +507,28 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     f.write('\nCELL_TYPES %d\n' % ned)
     for edi in idxs:
         f.write('3\n')
+
+class MultiscaleIndex(object):
+    def __init__(self, shape, block_size):
+        self.shape = np.asarray(shape)
+        self.msindex = np.zeros(self.shape * block_size, dtype=int)
+        self.block_size = block_size
+        self.block_shape = [block_size] * self.msindex.ndim
+        self.cache_slice = [None] * self.msindex.ndim
+
+    def _prepare_cache_slice(self, index):
+        coords = np.unravel_index(index, self.shape)
+
+        for ax, single_ax_coord in enumerate(coords):
+            coord_higres_start = single_ax_coord * self.block_size
+            self.cache_slice[ax] = slice(coord_higres_start, coord_higres_start + self.block_size)
+
+    def set_block_lowres(self, index, val):
+        self._prepare_cache_slice(index)
+        self.msindex[self.cache_slice] = val
+
+    def set_block_higres(self, index, val):
+        self._prepare_cache_slice(index)
+        self.msindex[self.cache_slice] = np.asarray(val).reshape(self.block_shape)
+
 
