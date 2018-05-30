@@ -45,7 +45,7 @@ class Graph(object):
         last = self.lastnode
         if type(coors) is nm.ndarray:
             if len(coors.shape) == 1:
-                coors = coors.reshape((1,3))
+                coors = coors.reshape((1, self.data.ndim))
 
             nadd = coors.shape[0]
             idx = slice(last, last + nadd)
@@ -181,7 +181,7 @@ class Graph(object):
         # in old implementation nodes are always 3D
         # right_voxelsize = self.voxelsize3[:nd.shape[1]]
         nd = make_nodes_3d(nd)
-        self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize3 / nsplit))
+        self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize3 / 2))
         self.add_edges(ed + ndoffset, ed_dir)
 
         # connect subgrid
