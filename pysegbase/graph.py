@@ -45,7 +45,7 @@ class Graph(object):
         last = self.lastnode
         if type(coors) is nm.ndarray:
             if len(coors.shape) == 1:
-                coors = coors.reshape((1, self.data.ndim))
+                coors = coors.reshape((1, coors.size))
 
             nadd = coors.shape[0]
             idx = slice(last, last + nadd)
@@ -88,6 +88,9 @@ class Graph(object):
         aux[ndidxs] = nm.arange(ndidxs.shape[0])
         edges = aux[self.edges[self.edge_flag]]
         nodes = self.nodes[ndidxs]
+
+        if self.compute_msindex:
+            self.msindex = self.msi.msindex
 
         del self.nodes
         del self.node_flag
@@ -154,10 +157,10 @@ class Graph(object):
                 self.add_edges(newed, neweddir, self.edge_group[igrp])
         return ed_remove
 
-    def split_voxel(self, ndid, nsplit):
+    def split_voxel(self, ndid):
         """
 
-        :param ndid: int-like, low resolution edge ID
+        :param ndid: int-like, low resolution voxel_id
         :param nsplit: int-like number
         :param tile_shape: this parameter will be used in future
         :return:
@@ -168,7 +171,8 @@ class Graph(object):
         # tile_shape = tuple(tile_shape)
         # nsplit = tile_shape[0]
         # tile_shape = (nsplit, nsplit)
-        tile_shape = tuple(np.tile(nsplit, self.data.ndim))
+        nsplit = self.nsplit
+        tile_shape = self._tile_shape
         if tile_shape in self.cache:
             nd, ed, ed_dir = self.cache[tile_shape]
         else:
@@ -179,7 +183,9 @@ class Graph(object):
         ndoffset = self.lastnode
         # in new implementation nodes are 2D on 2D shape and 3D in 3D shape
         # in old implementation nodes are always 3D
-        # right_voxelsize = self.voxelsize3[:nd.shape[1]]
+        sr_tab = self.srt.get_sr_subtab(tile_shape)
+        if self.compute_msindex:
+            self.msi.set_block_higres(ndid, self.srt.inds + ndoffset)
         nd = make_nodes_3d(nd)
         self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize3 / 2))
         self.add_edges(ed + ndoffset, ed_dir)
@@ -187,8 +193,7 @@ class Graph(object):
         # connect subgrid
         ed_remove = []
         # sr_tab_old = self.sr_tab[nsplit]
-        srt = SRTab(tile_shape)
-        sr_tab = srt.get_sr_subtab()
+
         idxs = nm.where(self.edge_flag > 0)[0]
 
         # edges "into" node?
@@ -254,7 +259,7 @@ class Graph(object):
                 if self.compute_msindex:
                     self.msi.set_block_lowres(ndid, val)
             else:
-                self.split_voxel(ndid, self.nsplit)
+                self.split_voxel(ndid)
 
         self.finish()
         if vtk_filename is not None:
@@ -323,23 +328,26 @@ class Graph(object):
         else:
             self.gen_grid_fcn=grid_function
 
+        self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
+        self.srt = SRTab()
 
 
 class SRTab(object):
     """
-    Table connection on transition between low resolution and high resolution
+    Table of connection on transition between low resolution and high resolution
     """
-    def __init__(self, shape):
-        self.shape = shape
+    def __init__(self):
         self.sr_tab = {}
+        # self.set_new_shape(shape)
+
+    def set_new_shape(self, shape):
+        self.shape = shape
         if len(shape) not in (2, 3):
             logger.error("2D or 3D shape expected")
-        pass
 
-    def get_sr_subtab(self):
+        self.inds = np.array(range(np.prod(self.shape)))
         # direction_order = [0, 1, 2, 3, 4, 5, 6]
-        inds = np.array(range(np.prod(self.shape)))
-        reshaped = inds.reshape(self.shape)
+        reshaped = self.inds.reshape(self.shape)
 
         tab = []
         for direction in range(len(self.shape) - 1, -1, -1):
@@ -348,7 +356,15 @@ class SRTab(object):
         for direction in range(len(self.shape) - 1, -1, -1):
             # direction = direction_order[i]
             tab.append(reshaped.take(-1, direction).flatten())
-        return np.array(tab)
+        self.sr_tab[tuple(shape)] = np.array(tab)
+
+
+    def get_sr_subtab(self, shape):
+        shape = tuple(shape)
+        if shape not in self.sr_tab:
+            self.set_new_shape(shape)
+        return self.sr_tab[shape]
+
 
 def grid_edges(shape, inds=None, return_directions=True):
     """

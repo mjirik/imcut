@@ -128,10 +128,42 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(g.edges.shape[1], 2)
         self.assertEqual(g.nodes.shape[0], 15)
 
+    def test_from_edges_reconnetcion_onsmall_graph_3d_higres_neighborhood(self):
+
+        data = np.array(
+            [
+                [[1,1,],
+                 [1,0,]],
+                [[1,0,],
+                 [0,0,]],
+            ]
+        )
+        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        # self.assertEqual(g.edges.shape[0], 33)
+        # self.assertEqual(g.edges.shape[1], 2)
+        # self.assertEqual(g.nodes.shape[0], 15)
+
+    def test_into_edges_reconnetcion_onsmall_graph_3d_higres_neighborhood(self):
+
+        data = np.array(
+            [
+                [[0,0,],
+                 [0,1,]],
+                [[0,1,],
+                 [1,1,]],
+            ]
+        )
+        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        # self.assertEqual(g.edges.shape[0], 33)
+        # self.assertEqual(g.edges.shape[1], 2)
+        # self.assertEqual(g.nodes.shape[0], 15)
+
     def _test_automatic_ms_indexes_2d_same_as_orig(self, size):
         shape = [size, size]
-        srt = graph.SRTab(shape)
-        subtab = srt.get_sr_subtab()
+        srt = graph.SRTab()
+        subtab = srt.get_sr_subtab(shape)
 
         err = np.sum(np.abs(subtab - orig_sr_tab[size]))
         self.assertEqual(err, 0)
@@ -151,8 +183,8 @@ class GraphTest(unittest.TestCase):
 
     def test_automatic_ms_indexes_3d(self):
         shape = [3, 3, 3]
-        srt = graph.SRTab(shape)
-        subtab = srt.get_sr_subtab()
+        srt = graph.SRTab()
+        subtab = srt.get_sr_subtab(shape)
         subtab
 
         # err = np.sum(np.abs(subtab - orig_sr_tab[size]))
