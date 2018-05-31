@@ -208,7 +208,7 @@ class GraphTest(unittest.TestCase):
         block_size = 2
         msi = graph.MultiscaleIndex(shape, block_size=block_size)
         # set first block
-        msi.set_block_higres(0, 5)
+        msi.set_block_lowres(0, 5)
         self.assertEqual(msi.msindex[0, 0], 5)
         # set last block
         msi.set_block_lowres(np.prod(shape) - 1, 3)
