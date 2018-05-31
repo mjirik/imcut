@@ -37,9 +37,13 @@ class GraphTest(unittest.TestCase):
                          [0,1,1,0,1,0,0],
                          [1,1,1,0,0,0,0],
                          [0,0,0,0,0,0,1]])
-        g = graph.Graph(data, (0.1, 0.12), grid_function="2d", nsplit=3)
+        g = graph.Graph(data, (0.1, 0.12), grid_function="2d", nsplit=7)
         # g = graph.Graph(data, (0.1, 0.12), grid_function="nd", nsplit=5)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        # 2d edge number diff= nsplit:(g.lastedge - g.edmax_debug)
+        #
+        # 2: 6, 3:15, 4:24
+        g
 
     def test_graph_3d_implementation(self):
 
@@ -49,8 +53,12 @@ class GraphTest(unittest.TestCase):
                          [1,1,1,0,0,0,0],
                          [0,0,0,0,0,0,1]])
         # g = graph.Graph(data, (0.1, 0.12), grid_function="2d", nsplit=3)
-        g = graph.Graph(data, (0.1, 0.12), grid_function="nd", nsplit=5)
+        # 3d 2:0,
+        # diff 3d 2:6, 3:15, 4:24, 5:33 6:42 7:51
+        g = graph.Graph(data, (0.1, 0.12), grid_function="nd", nsplit=7)
+
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        g.lastnode
 
     @unittest.skip("waiting for fix")
     def test_graph_3d_two_slices(self):
@@ -91,7 +99,7 @@ class GraphTest(unittest.TestCase):
                  [0,0,0,0,1]],
             ]
         )
-        g = graph.Graph(data, (0.1, 0.12, 0.05), grid_function="nd", nsplit=2)
+        g = graph.Graph(data, (0.1, 0.12, 0.05), grid_function="nd", nsplit=4)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         # g.run()
 

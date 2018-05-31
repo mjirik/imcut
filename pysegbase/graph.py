@@ -71,11 +71,11 @@ class Graph(object):
         else:
             nadd = 1
             idx = nm.array([last])
-            conn = nm.array(conn).reshape((1,2))
+            conn = nm.array(conn).reshape((1, 2))
             if edge_group is None:
                 edge_group = idx
 
-        self.edges[idx,:] = conn
+        self.edges[idx, :] = conn
         self.edge_flag[idx] = True
         self.edge_dir[idx] = vert_flag
         self.edge_group[idx] = edge_group
@@ -277,7 +277,7 @@ class Graph(object):
         # self.split_voxels()
 
 
-    def __init__(self, data, voxelsize, ndmax=400, grid_function=None, nsplit=3, compute_msindex=True):
+    def __init__(self, data, voxelsize, ndmax_del=400, grid_function=None, nsplit=3, compute_msindex=True):
         """
 
         :param data:
@@ -293,21 +293,27 @@ class Graph(object):
         self.voxelsize3 = np.zeros([3])
         self.voxelsize3[:len(voxelsize)] = voxelsize
 
+        self.data = np.asarray(data)
         if self.voxelsize.size != len(data.shape):
             logger.error("Datashape should be the same as voxelsize")
             import sys
             sys.exit(-1)
-
-
+        # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
+        # 2d (nsplit, req) 2:3, 3:8, 4:12
+        # 3D
+        self.ndmax_debug = data.size + np.count_nonzero(self.data) * np.power(nsplit, self.data.ndim)
+        self.ndmax = data.size + np.count_nonzero(self.data) * np.power(nsplit, self.data.ndim)
         # init nodes
         self.nnodes = 0
         self.lastnode = 0
-        self.nodes = nm.zeros((ndmax, 3), dtype=nm.float32)
+        self.nodes = nm.zeros((self.ndmax, 3), dtype=nm.float32)
         # node_flag: if true, this node is used in final output
-        self.node_flag = nm.zeros((ndmax,), dtype=nm.bool)
+        self.node_flag = nm.zeros((self.ndmax,), dtype=nm.bool)
 
         # init edges
-        edmax = 2 * ndmax
+        # estimate maximum number of dges as number of nodes multiplied by number of directions
+        # the rest part is based on experiment
+        edmax = self.data.ndim * self.ndmax + (9 * nsplit - 12)
         self.nedges = 0
         self.lastedge = 0
         self.edges = - nm.ones((edmax, 2), dtype=nm.int16)
@@ -316,7 +322,6 @@ class Graph(object):
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
         # list of edges on low resolution
         self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
-        self.data = data
         self.nsplit = nsplit
         self.compute_msindex = compute_msindex
         # indexes of nodes arranged in ndimage
@@ -330,6 +335,7 @@ class Graph(object):
 
         self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
         self.srt = SRTab()
+
 
 
 class SRTab(object):
