@@ -99,8 +99,12 @@ class GraphTest(unittest.TestCase):
                  [0,0,0,0,1]],
             ]
         )
-        g = graph.Graph(data, (0.1, 0.12, 0.05), grid_function="nd", nsplit=4)
+        g = graph.Graph(data, (0.1, 0.12, 0.05), grid_function="nd", nsplit=6)
+        # 2:-21, 3:10, 4:57 5:120 6:199
+        31, 47, 63, 79
+        16, 16, 16
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        g.lastnode
         # g.run()
 
     def test_into_edges_reconnetcion_onsmall_graph_3d(self):

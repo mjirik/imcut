@@ -312,8 +312,17 @@ class Graph(object):
 
         # init edges
         # estimate maximum number of dges as number of nodes multiplied by number of directions
-        # the rest part is based on experiment
-        edmax = self.data.ndim * self.ndmax + (9 * nsplit - 12)
+        # the rest part is
+        self.edmax_debug = self.data.ndim * self.ndmax + (9 * nsplit - 12)
+        if self.data.ndim == 2:
+            edmax_rest = (9 * nsplit - 12)
+        elif self.data.ndim == 3:
+            # edmax_rest = (9 * nsplit - 12) + 8 * nsplit**2 - 9 * nsplit - 35
+            edmax_rest = 8 * nsplit**2 - 47
+        else:
+            # this is not so efficient but should work
+            edmax_rest = 9 * nsplit**(self.data.ndim - 1)
+        edmax = self.data.ndim * self.ndmax + edmax_rest
         self.nedges = 0
         self.lastedge = 0
         self.edges = - nm.ones((edmax, 2), dtype=nm.int16)
