@@ -140,6 +140,20 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(g.edges.shape[1], 2)
         self.assertEqual(g.nodes.shape[0], 15)
 
+    def test_into_maximum_edge_number(self):
+
+        # data = np.random.random([50, 50, 8])
+        data = np.random.random([5, 10, 15])
+        data = data < 0.98
+        # data = np.random.random_integers(0,1, [10,10,10])
+        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=6)
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        unused_edges = g.edmax - g.lastnode
+        efectivity = 1 - float(unused_edges) / g.edmax
+        print("Memory efectivity: ", efectivity, " (", g.edmax, ")")
+        g
+
+
     def test_from_edges_reconnetcion_onsmall_graph_3d_higres_neighborhood(self):
 
         data = np.array(

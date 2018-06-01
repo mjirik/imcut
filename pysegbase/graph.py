@@ -138,11 +138,16 @@ class Graph(object):
         for igrp in self.edges_by_group(eidxs):
             if igrp.shape[0] > 1:
                 # high resolution block to high resolution block
-                self.edges[igrp, 1] = sr_tab[self.edge_dir[igrp[0]], :].T.flatten() \
+                directions = self.edge_dir[igrp[0]]
+                edge_indexes = sr_tab[directions, :].T.flatten() \
                                      + ndoffset
+                # debug code
+                # if len(igrp) != len(edge_indexes):
+                #     print("Problem ")
+                self.edges[igrp, 1] = edge_indexes
             else:
                 # low res block to hi res block, if into_or_from is set to 0
-                # hi res block to low res block, if into_or_from is set to 1
+                # hig res block to low res block, if into_or_from is set to 1
                 ed_remove.append(igrp[0])
                 # number of new edges is equal to number of pixels on one side of the box (in 2D and D too)
                 nnewed = np.power(nsplit, self.data.ndim - 1)
@@ -301,8 +306,9 @@ class Graph(object):
         # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
         # 2d (nsplit, req) 2:3, 3:8, 4:12
         # 3D
-        self.ndmax_debug = data.size + np.count_nonzero(self.data) * np.power(nsplit, self.data.ndim)
-        self.ndmax = data.size + np.count_nonzero(self.data) * np.power(nsplit, self.data.ndim)
+        number_of_resized_nodes = np.count_nonzero(self.data)
+        self.ndmax_debug = data.size + number_of_resized_nodes* np.power(nsplit, self.data.ndim)
+        self.ndmax = data.size + number_of_resized_nodes * np.power(nsplit, self.data.ndim)
         # init nodes
         self.nnodes = 0
         self.lastnode = 0
@@ -313,24 +319,31 @@ class Graph(object):
         # init edges
         # estimate maximum number of dges as number of nodes multiplied by number of directions
         # the rest part is
-        self.edmax_debug = self.data.ndim * self.ndmax + (9 * nsplit - 12)
-        if self.data.ndim == 2:
-            edmax_rest = (9 * nsplit - 12)
-        elif self.data.ndim == 3:
-            # edmax_rest = (9 * nsplit - 12) + 8 * nsplit**2 - 9 * nsplit - 35
-            edmax_rest = 8 * nsplit**2 - 47
-        else:
-            # this is not so efficient but should work
-            edmax_rest = 9 * nsplit**(self.data.ndim - 1)
-        edmax = self.data.ndim * self.ndmax + edmax_rest
+        # if self.data.ndim == 2:
+        #     edmax_rest = (9 * nsplit - 12)
+        # elif self.data.ndim == 3:
+        #     # edmax_rest = (9 * nsplit - 12) + 8 * nsplit**2 - 9 * nsplit - 35
+        #     edmax_rest = 8 * nsplit**2 - 47
+        # else:
+        #     # this is not so efficient but should work
+        #     edmax_rest = 9 * nsplit**(self.data.ndim - 1)
+        # number of edges from every node
+        edmax_from_node = self.data.ndim * self.ndmax
+        # edges from lowres node to higres node from all directions
+        edmax_into_node = number_of_resized_nodes * self.data.ndim * nsplit**(self.data.ndim - 1)
+        self.edmax = edmax_from_node + edmax_into_node
+        edmax = self.edmax
+        # self.edmax_debug = edmax_from_node + edmax_into_node
         self.nedges = 0
         self.lastedge = 0
-        self.edges = - nm.ones((edmax, 2), dtype=nm.int16)
+        eddtype = get_efficient_signed_int_type(self.ndmax)
+        self.edges = - nm.ones((edmax, 2), dtype=eddtype)
         # edge_flag: if true, this edge is used in final output
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
         # list of edges on low resolution
-        self.edge_group = - nm.ones((edmax,), dtype=nm.int16)
+        edgrdtype = get_efficient_signed_int_type(edmax)
+        self.edge_group = - nm.ones((edmax,), dtype=edgrdtype)
         self.nsplit = nsplit
         self.compute_msindex = compute_msindex
         # indexes of nodes arranged in ndimage
@@ -345,6 +358,19 @@ class Graph(object):
         self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
         self.srt = SRTab()
 
+def get_efficient_signed_int_type(number):
+    if number < np.iinfo(np.int16).max:
+        eddtype = np.int16
+    elif number < np.iinfo(np.int32).max:
+        eddtype = np.int32
+    elif number < np.iinfo(np.int64).max:
+        eddtype = np.int64
+    elif number < np.iinfo(np.int128).max:
+        eddtype = np.int128
+    else:
+        logger.error("Edge number higher than int128.")
+
+    return eddtype
 
 
 class SRTab(object):
