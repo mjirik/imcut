@@ -107,6 +107,20 @@ class GraphTest(unittest.TestCase):
         g.lastnode
         # g.run()
 
+    def test_just_two_blocks(self):
+
+        data = np.array(
+            [
+                [[0, 1]]
+            ]
+        )
+        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
+        g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        g
+        # self.assertEqual(g.edges.shape[0], 33)
+        # self.assertEqual(g.edges.shape[1], 2)
+        # self.assertEqual(g.nodes.shape[0], 15)
+
     def test_into_edges_reconnetcion_onsmall_graph_3d(self):
 
         data = np.array(
@@ -143,14 +157,18 @@ class GraphTest(unittest.TestCase):
     def test_into_maximum_edge_number(self):
 
         # data = np.random.random([50, 50, 8])
-        data = np.random.random([5, 10, 15])
-        data = data < 0.98
+        data = np.random.random([5, 3, 3])
+        data = data < 0.08
         # data = np.random.random_integers(0,1, [10,10,10])
         g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=6)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
-        unused_edges = g.edmax - g.lastnode
-        efectivity = 1 - float(unused_edges) / g.edmax
-        print("Memory efectivity: ", efectivity, " (", g.edmax, ")")
+        unused_edges = g.edmax - g.lastedge
+        unused_nodes = g.ndmax - g.lastnode
+        edge_efectivity = 1 - float(unused_edges) / g.edmax
+        node_efectivity = 1 - float(unused_nodes) / g.ndmax
+        logger.info("Memory node efficiency: {} ({})".format(node_efectivity, g.ndmax))
+        logger.info("Memory edge efficiency: {} ({})".format(edge_efectivity, g.edmax))
+
         g
 
 

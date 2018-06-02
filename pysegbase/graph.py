@@ -90,7 +90,9 @@ class Graph(object):
         nodes = self.nodes[ndidxs]
 
         if self.compute_msindex:
-            self.msindex = self.msi.msindex
+            # self.msindex = self.msi.msindex
+            # relabel
+            self.msindex = aux[self.msi.msindex]
 
         del self.nodes
         del self.node_flag
@@ -98,6 +100,7 @@ class Graph(object):
         del self.edge_flag
         del self.edge_dir
         del self.edge_group
+        del self.msi
 
         self.nodes = nodes
         self.edges = edges
@@ -589,3 +592,7 @@ class MultiscaleIndex(object):
         self.msindex[self.cache_slice] = np.asarray(val).reshape(self.block_shape)
 
 
+# def relabel(arr, forward_indexes=None):
+#     # for x in np.nditer(arr, op_flags=["readwrite"]):
+#     #     x[...] = forward_indexes[x]
+#     pass
