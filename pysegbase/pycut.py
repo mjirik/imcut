@@ -304,6 +304,7 @@ class ImageGraphCut:
 
     def __multiscale_gc_step45_construct_graph(self, start, debug):
         pass
+
     def __multiscale_gc(self):  # , pyed):
         """
         In first step is performed normal GC on low resolution data
@@ -322,7 +323,8 @@ class ImageGraphCut:
         import scipy.ndimage
         logger.debug('performing multiscale_gc')
 
-        img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = self.__multiscale_gc_step12_low_resolution_segmentation(start)
+        img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = \
+            self.__multiscale_gc_step12_low_resolution_segmentation(start)
         # ===== high resolution data processing
         seg = self.__multiscale_gc_step3_discontinuity_localization(start, debug)
         # step 4: indexes of new dual graph
@@ -489,22 +491,6 @@ class ImageGraphCut:
 
         return values
 
-    def __relabel(self, data):
-        """  Makes relabeling of data if there are unused values.  """
-        palette, index = np.unique(data, return_inverse=True)
-        data = index.reshape(data.shape)
-        # realy slow solution
-        #        unq = np.unique(data)
-        #        actual_label = 0
-        #        for lab in unq:
-        #            data[data == lab] = actual_label
-        #            actual_label += 1
-
-        # one another solution probably slower
-        # arr = data
-        # data = (np.digitize(arr.reshape(-1,),np.unique(arr))-1).reshape(arr.shape)
-
-        return data
 
     def __multiscale_indexes(self, mask, orig_shape): # , zoom):
         """
@@ -539,7 +525,7 @@ class ImageGraphCut:
         inds = inds_small_in_orig
         # print np.max(inds)
         # print np.min(inds)
-        inds = self.__relabel(inds)
+        inds = relabel_squeeze(inds)
         logger.debug("Maximal index after relabeling: " + str(np.max(inds)))
         logger.debug("Minimal index after relabeling: " + str(np.min(inds)))
         # inds_orig[mask_orig==True] = 0
@@ -1067,6 +1053,22 @@ help = {
 }
 
 
+def relabel_squeeze(data):
+    """  Makes relabeling of data if there are unused values.  """
+    palette, index = np.unique(data, return_inverse=True)
+    data = index.reshape(data.shape)
+    # realy slow solution
+    #        unq = np.unique(data)
+    #        actual_label = 0
+    #        for lab in unq:
+    #            data[data == lab] = actual_label
+    #            actual_label += 1
+
+    # one another solution probably slower
+    # arr = data
+    # data = (np.digitize(arr.reshape(-1,),np.unique(arr))-1).reshape(arr.shape)
+
+    return data
 # @profile
 
 

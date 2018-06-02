@@ -17,6 +17,7 @@ path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 
 from nose.plugins.attrib import attr
+from nose.tools import raises
 from pysegbase import graph
 
 orig_sr_tab = {
@@ -268,7 +269,22 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(msi.msindex[-1, -1], 14)
 
 
+    @raises(ValueError)
+    def test_raise_exception_on_different_input_shapes(self):
 
+        data = np.array(
+            [
+                [[1,1,],
+                 [1,0,]],
+                [[1,0,],
+                 [0,0,]],
+            ]
+        )
+        g = graph.Graph(data, (0.1, 0.2), grid_function="nd", nsplit=2)
+        # g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
+        # self.assertEqual(g.edges.shape[0], 33)
+        # self.assertEqual(g.edges.shape[1], 2)
+        # self.assertEqual(g.nodes.shape[0], 15)
 
 if __name__ == "__main__":
     unittest.main()

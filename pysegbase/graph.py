@@ -304,8 +304,7 @@ class Graph(object):
         self.data = np.asarray(data)
         if self.voxelsize.size != len(data.shape):
             logger.error("Datashape should be the same as voxelsize")
-            import sys
-            sys.exit(-1)
+            raise ValueError("Datashape should be the same as voxelsize")
         # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
         # 2d (nsplit, req) 2:3, 3:8, 4:12
         # 3D
