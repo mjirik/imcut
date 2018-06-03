@@ -678,29 +678,32 @@ class ImageGraphCut:
         # diffs.insert(0,
         return filtered
 
-    def __show_debug_(self, unariesalt, suptitle=None):
+    def __show_debug_unariesalt(self, unariesalt, suptitle=None, slice_number=None, show=True):
         shape = self.img.shape
-        print("unariesalt dtype ", unariesalt.dtype)
+        # print("unariesalt dtype ", unariesalt.dtype)
         tdata1 = unariesalt[..., 0].reshape(shape)
         tdata2 = unariesalt[..., 1].reshape(shape)
-        self.__show_debug_tdata_images(tdata1, tdata2, suptitle=suptitle)
-        pass
+        self.__show_debug_tdata_images(tdata1, tdata2, suptitle=suptitle, slice_number=slice_number, show=show)
 
 
-    def __show_debug_tdata_images(self, tdata1, tdata2, suptitle=None):
+    def __show_debug_tdata_images(self, tdata1, tdata2, suptitle=None, slice_number=None, show=True, bins=20):
         # Show model parameters
         logger.debug('tdata1 shape ' + str(tdata1.shape))
-        slice_number = int(tdata1.shape[0] / 2)
+        if slice_number is None:
+            slice_number = int(tdata1.shape[0] / 2)
         try:
             import matplotlib.pyplot as plt
             fig = plt.figure()
-            fig.suptitle(suptitle)
+            if suptitle is not None:
+                fig.suptitle(suptitle)
             ax = fig.add_subplot(121)
             ax.imshow(tdata1[slice_number, :, :])
+            # plt.colorbar(ax=ax)
 
             # fig = plt.figure()
             ax = fig.add_subplot(122)
             ax.imshow(tdata2[slice_number, :, :])
+            # plt.colorbar(ax=ax)
 
             print('tdata1 max ', np.max(tdata1), ' min ', np.min(tdata1), " dtype ", tdata1.dtype)
             print('tdata2 max ', np.max(tdata2), ' min ', np.min(tdata2), " dtype ", tdata2.dtype)
@@ -714,7 +717,6 @@ class ImageGraphCut:
 
             # plt.hist(voxels2)
 
-            plt.show()
         except:
             import traceback
             print(traceback.format_exc())
@@ -722,25 +724,33 @@ class ImageGraphCut:
 
         try:
             fig = plt.figure()
-            fig.suptitle(suptitle)
+            if suptitle is not None:
+                fig.suptitle(suptitle)
             ax = fig.add_subplot(121)
-            plt.hist(tdata1.flatten())
+            plt.hist(tdata1.flatten(), bins=bins)
             ax = fig.add_subplot(122)
-            plt.hist(tdata2.flatten())
+            plt.hist(tdata2.flatten(), bins=bins)
         except:
             import traceback
             print(traceback.format_exc())
 
-        try:
-            fig = plt.figure()
+        if show:
+            plt.show()
+        return fig
+
+    def show_model(self, suptitle=None, start=-1000, stop=1000, nsteps=400, show=True):
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure()
+        if suptitle is not None:
             fig.suptitle(suptitle)
-            ax = fig.add_subplot(111)
-            hstx = np.linspace(-1000, 1000, 400)
-            ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, self.voxelsize, 1)))
-            ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, self.voxelsize, 2)))
-        except:
-            import traceback
-            print(traceback.format_exc())
+        ax = fig.add_subplot(111)
+        hstx = np.linspace(start, stop, nsteps)
+        ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, self.voxelsize, 1)))
+        ax.plot(hstx, np.exp(self.mdl.likelihood_from_image(hstx, self.voxelsize, 2)))
+        if show:
+            plt.show()
+        return fig
 
     def fit_model(self, data=None, voxelsize=None, seeds=None):
         if data is None:
@@ -774,7 +784,7 @@ class ImageGraphCut:
                                         voxelsize,
                                         #voxels1, voxels2,
 
-                                        seeds, otherfeatures=None
+                                        #seeds, otherfeatures=None
                                         ):
         """
         Compute edge values for graph cut tlinks based on image intensity
@@ -854,7 +864,7 @@ class ImageGraphCut:
             data,
             voxelsize,
             # voxels1, voxels2,
-            seeds
+            # seeds
         )
 
         # logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
@@ -949,6 +959,22 @@ class ImageGraphCut:
         logger.info("__create nlinks time " + str(elapsed))
         return edges
 
+    def show_similarity(self, data3d=None, voxelsize=None, seeds=None, area_weight=1, hard_constraints=True, show=True):
+        if data3d is None:
+            data3d = self.img
+        if voxelsize is None:
+            voxelsize = self.voxelsize
+        if seeds is None:
+            seeds=self.seeds
+
+        unariesalt = self.__create_tlinks(data3d,
+                                          voxelsize,
+                                          # voxels1, voxels2,
+                                          seeds,
+                                          area_weight, hard_constraints)
+
+        self.__show_debug_unariesalt(unariesalt, show=show)
+
     def _ssgc_prepare_data_and_run_computation(self,
                                                # voxels1, voxels2,
                                                hard_constraints=True,
@@ -998,7 +1024,7 @@ class ImageGraphCut:
         # pairwise)
         start = time.time()
         if self.debug_images:
-            self.__show_debug_(unariesalt)
+            self.__show_debug_unariesalt(unariesalt)
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
