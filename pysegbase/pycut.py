@@ -678,12 +678,12 @@ class ImageGraphCut:
         # diffs.insert(0,
         return filtered
 
-    def __show_debug_unariesalt(self, unariesalt, suptitle=None, slice_number=None, show=True):
+    def __show_debug_unariesalt(self, unariesalt, suptitle=None, slice_number=None, show=True, bins=20):
         shape = self.img.shape
         # print("unariesalt dtype ", unariesalt.dtype)
         tdata1 = unariesalt[..., 0].reshape(shape)
         tdata2 = unariesalt[..., 1].reshape(shape)
-        self.__show_debug_tdata_images(tdata1, tdata2, suptitle=suptitle, slice_number=slice_number, show=show)
+        self.__show_debug_tdata_images(tdata1, tdata2, suptitle=suptitle, slice_number=slice_number, show=show, bins=bins)
 
 
     def __show_debug_tdata_images(self, tdata1, tdata2, suptitle=None, slice_number=None, show=True, bins=20):
@@ -959,7 +959,8 @@ class ImageGraphCut:
         logger.info("__create nlinks time " + str(elapsed))
         return edges
 
-    def show_similarity(self, data3d=None, voxelsize=None, seeds=None, area_weight=1, hard_constraints=True, show=True):
+    def show_similarity(self, data3d=None, voxelsize=None, seeds=None, area_weight=1, hard_constraints=True, show=True,
+                        bins=20):
         if data3d is None:
             data3d = self.img
         if voxelsize is None:
@@ -973,7 +974,7 @@ class ImageGraphCut:
                                           seeds,
                                           area_weight, hard_constraints)
 
-        self.__show_debug_unariesalt(unariesalt, show=show)
+        self.__show_debug_unariesalt(unariesalt, show=show, bins=bins)
 
     def _ssgc_prepare_data_and_run_computation(self,
                                                # voxels1, voxels2,
