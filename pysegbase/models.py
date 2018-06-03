@@ -197,14 +197,15 @@ class Model(Model3D):
         keywords "intensity", "voxels", "fv001", "fv_extern"  can be used.
         modelparams['fv_type'] = 'fv_extern' allows to use external fv function
 
-        def fv_function(data, seeds=None, cl=None):
-            if seeds is None:
-                fv = np.asarray(data).reshape(-1,1)
-            else:
-                fv = np.asarray(data[seeds==cl]).reshape(-1,1)
-            return fv
+        Example of exter feature function. For easier implementation of return values use function return_fv_by_seeds().
 
-        modelparams['fv_exter'] = fv_function
+        def fv_function(data, voxelsize, seeds=None, cl=None):
+            data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
+            arrs = [data.reshape(-1, 1), data2.reshape(-1, 1)]
+            fv = np.concatenate(arrs, axis=1)
+            return pysegbase.features.return_fv_by_seeds(fv, seeds, unique_cls)
+
+        modelparams['fv_extern'] = fv_function
         """
 
         fv_type = self.modelparams['fv_type']
