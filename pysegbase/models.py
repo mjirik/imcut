@@ -11,6 +11,7 @@ import sklearn.mixture
 # version comparison
 from pkg_resources import parse_version
 import scipy.ndimage
+from . import features
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
     # new versions
@@ -61,6 +62,7 @@ class Model3D(object):
         intensity - based on seeds and data the intensity as feature vector is used
         voxel - information in voxel1 and voxel2 is used
         fv_extern - external feature vector function specified in fv_extern label
+        fv001 - pixel and gaussian blur
 
     fv_extern:
         function `fv_function(data, voxelsize, seeds, unique_cls)`. It is used only
@@ -227,24 +229,10 @@ class Model(Model3D):
         #     else:
         #         fv = data
         #         fv = fv.reshape(-1, 1)
-        elif fv_type == 'fv001':
-            # intensity in pixel, gaussian blur intensity
-            data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
-            data2 = data2 - data
-            if seeds is not None:
+        elif fv_type in ('fv001', "FV001", "intensity_and_blur"):
 
-                for cl in unique_cls:
-                    fv1 = data[seeds == cl].reshape(-1, 1)
-                    fv2 = data2[seeds == cl].reshape(-1, 1)
-                    fvi = np.hstack((fv1, fv2))
-                    fvi = fvi.reshape(-1, 2)
-                    fv.append(fvi)
-            else:
-                fv1 = data.reshape(-1, 1)
-                fv2 = data2.reshape(-1, 1)
-                fv = np.hstack((fv1, fv2))
-                fv = fv.reshape(-1, 2)
-                logger.debug(str(fv[:10, :]))
+            # intensity in pixel, gaussian blur intensity
+            return features.fv_function_intensity_and_smoothing(data, voxelsize, seeds, unique_cls)
 
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
@@ -427,3 +415,5 @@ class Model(Model3D):
         elif self.modelparams['type'] == 'stored':
             px = self.mdl[cl].score(x)
         return px
+
+
