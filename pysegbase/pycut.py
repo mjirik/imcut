@@ -256,7 +256,7 @@ class ImageGraphCut:
 
         # self.img = resize_to_shape_with_zoom(img_orig, loseeds.shape, 1.0 / ms_zoom, order=0)
 
-        self.make_gc()
+        self.__single_scale_gc_run()
         logger.debug(
             'segmentation - max: %d min: %d' % (
                 np.max(self.segmentation),
@@ -305,7 +305,7 @@ class ImageGraphCut:
     def __multiscale_gc_step45_construct_graph(self, start, debug):
         pass
 
-    def __multiscale_gc(self):  # , pyed):
+    def __multiscale_gc_run(self):  # , pyed):
         """
         In first step is performed normal GC on low resolution data
         Second step construct finer grid on edges of segmentation from first
@@ -581,16 +581,20 @@ class ImageGraphCut:
         self.voxels1 = self.img[self.seeds == 1]
         self.voxels2 = self.img[self.seeds == 2]
 
-    def run(self):
+    def run(self, run_fit_model=True):
+
+        if run_fit_model:
+            self.fit_model(self.img, self.voxelsize, self.seeds)
+
         if self.segparams['method'] in ('graphcut', 'GC'):
-            self.make_gc()
+            self.__single_scale_gc_run()
         elif self.segparams['method'] in ('multiscale_graphcut', "multiscale_gc"):
-            self.__multiscale_gc()
+            self.__multiscale_gc_run()
         else:
             logger.error('Unknown segmentation method: ' + self.segparams['method'])
 
-    def make_gc(self):
-        res_segm = self.prepare_data_and_run_computation(
+    def __single_scale_gc_run(self):
+        res_segm = self._ssgc_prepare_data_and_run_computation(
             # self.img,
             #                      self
                                  # self.voxels1, self.voxels2,
@@ -617,7 +621,7 @@ class ImageGraphCut:
 
         self.segmentation = res_segm.astype(np.int8)
 
-    def set_hard_hard_constraints(self, tdata1, tdata2, seeds):
+    def __set_hard_hard_constraints(self, tdata1, tdata2, seeds):
         """
         it works with seed labels:
         0: nothing
@@ -636,7 +640,7 @@ class ImageGraphCut:
 
         return tdata1, tdata2
 
-    def boundary_penalties_array(self, axis, sigma=None):
+    def __boundary_penalties_array(self, axis, sigma=None):
 
         import scipy.ndimage.filters as scf
 
@@ -738,16 +742,13 @@ class ImageGraphCut:
             import traceback
             print(traceback.format_exc())
 
-    def __similarity_for_tlinks_obj_bgr(self,
-                                        data,
-                                        voxelsize,
-                                        #voxels1, voxels2,
-
-                                        seeds, otherfeatures=None):
-        """
-        Compute edge values for graph cut tlinks based on image intensity
-        and texture.
-        """
+    def fit_model(self, data=None, voxelsize=None, seeds=None):
+        if data is None:
+            data = self.img
+        if voxelsize is None:
+            voxelsize = self.img
+        if seeds is None:
+            seeds = self.seeds
         # TODO rewrite just for one class and call separatelly for obj and background.
 
         # TODO rename voxels1 and voxels2
@@ -767,6 +768,19 @@ class ImageGraphCut:
             self.mdl.fit_from_image(data, voxelsize, seeds, [1, 2]),
         # as we convert to int, we need to multipy to get sensible values
 
+
+    def __similarity_for_tlinks_obj_bgr(self,
+                                        data,
+                                        voxelsize,
+                                        #voxels1, voxels2,
+
+                                        seeds, otherfeatures=None
+                                        ):
+        """
+        Compute edge values for graph cut tlinks based on image intensity
+        and texture.
+        """
+        # self.fit_model(data, voxelsize, seeds)
         # There is a need to have small vaues for good fit
         # R(obj) = -ln( Pr (Ip | O) )
         # R(bck) = -ln( Pr (Ip | B) )
@@ -850,9 +864,9 @@ class ImageGraphCut:
                 raise Exception(
                     'Seeds variable  not set',
                     'There is need set seed if you want use hard constraints')
-            tdata1, tdata2 = self.set_hard_hard_constraints(tdata1,
-                                                            tdata2,
-                                                            seeds)
+            tdata1, tdata2 = self.__set_hard_hard_constraints(tdata1,
+                                                              tdata2,
+                                                              seeds)
 
         tdata1 = self.__limit(tdata1)
         tdata2 = self.__limit(tdata2)
@@ -935,10 +949,10 @@ class ImageGraphCut:
         logger.info("__create nlinks time " + str(elapsed))
         return edges
 
-    def prepare_data_and_run_computation(self,
-                                         # voxels1, voxels2,
-                                         hard_constraints=True,
-                                         area_weight=1):
+    def _ssgc_prepare_data_and_run_computation(self,
+                                               # voxels1, voxels2,
+                                               hard_constraints=True,
+                                               area_weight=1):
         """
         Setting of data.
         You need set seeds if you want use hard_constraints.
@@ -971,7 +985,7 @@ class ImageGraphCut:
             # set boundary penalties function
             # Default are penalties based on intensity differences
             boundary_penalties_fcn = lambda ax: \
-                self.boundary_penalties_array(axis=ax, sigma=sigma)
+                self.__boundary_penalties_array(axis=ax, sigma=sigma)
         else:
             boundary_penalties_fcn = None
         nlinks = self.__create_nlinks(self.img,
