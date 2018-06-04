@@ -9,7 +9,7 @@ import os.path
 import unittest
 import scipy
 import numpy as np
-import pysegbase.dcmreaddata
+# import pysegbase.dcmreaddata
 
 import logging
 logger = logging.getLogger(__name__)
