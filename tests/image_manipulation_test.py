@@ -56,7 +56,7 @@ class ImageManipulationTest(unittest.TestCase):
         data[-5:, :7, :6] = value2
 
         expected_shape = [15, 15, 15]
-        zoom = data.shape / np.array(expected_shape)
+        zoom = data.shape / np.array(expected_shape, dtype=float)
         resized = imma.resize_to_shape_with_zoom(data, expected_shape, zoom=zoom)
         unique = np.unique(resized)
 
