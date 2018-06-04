@@ -11,17 +11,11 @@ $ dcmreaddata -d sample_data -o head.mat
 
 from __future__ import print_function
 
-# import sys
 import os
-# try:
-#     import pydicom as dicom
-# except:
-#     import dicom
 import numpy as np
 from optparse import OptionParser
 from scipy.io import savemat
 
-import traceback
 
 import logging
 logger = logging.getLogger(__name__)
@@ -29,7 +23,7 @@ logger = logging.getLogger(__name__)
 from io3d.dcmreaddata import DicomReader, get_dcmdir_qt
 # from io3d.misc import obj_from_file
 
-__version__ = [1, 3]
+# __version__ = [1, 3]
 
 #
 # def obj_from_file(filename='annotation.yaml', filetype='yaml'):
