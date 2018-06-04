@@ -47,6 +47,29 @@ class ImageManipulationTest(unittest.TestCase):
         self.assertEqual(unique[1], 1)
         self.assertEqual(unique[2], 2)
 
+    def test_resize_to_shape_wiht_zoom_no_new_unique_values(self):
+
+        data = np.zeros([10, 15, 12])
+        value1 = 1
+        value2 = 2
+        data[:5, :7, :6] = value1
+        data[-5:, :7, :6] = value2
+
+        expected_shape = [15, 15, 15]
+        zoom = data.shape / np.array(expected_shape)
+        resized = imma.resize_to_shape_with_zoom(data, expected_shape, zoom=zoom)
+        unique = np.unique(resized)
+
+        self.assertEqual(resized.shape[0], expected_shape[0])
+        self.assertEqual(resized.shape[1], expected_shape[1])
+        self.assertEqual(resized.shape[2], expected_shape[2])
+        self.assertEqual(resized[1, 1, 1], value1)
+        self.assertEqual(resized[-2, 1, 1], value2)
+        self.assertEqual(len(unique), 3)
+        self.assertEqual(unique[0], 0)
+        self.assertEqual(unique[1], 1)
+        self.assertEqual(unique[2], 2)
+
     def test_get_priority_objects(self):
         shape = [10, 15, 12]
         data = np.zeros(shape)
