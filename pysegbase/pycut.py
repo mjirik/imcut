@@ -27,7 +27,7 @@ import pygco
 # from pygco import cut_from_graph
 
 # from . import models
-from .image_manipulation import seed_zoom, zoom_to_shape, resize_to_shape, resize_to_shape_with_zoom, getPriorityObjects
+from .image_manipulation import seed_zoom, zoom_to_shape, resize_to_shape, resize_to_shape_with_zoom, select_objects_by_seeds
 
 from .models import Model, Model3D, defaultmodelparams, methods
 
@@ -607,12 +607,13 @@ class ImageGraphCut:
                 # as 0 is segmented foreground
                 # import thresholding_functions
                 # newData = thresholding_functions.getPriorityObjects(
-                newData = getPriorityObjects(
-                    (1 - res_segm),
-                    nObj=-1,
-                    seeds=(self.seeds == 1).nonzero(),
-                    debug=False
-                )
+                # newData = get_priority_objects(
+                #     (1 - res_segm),
+                #     nObj=-1,
+                #     seeds=(self.seeds == 1).nonzero(),
+                #     debug=False
+                # )
+                newData = select_objects_by_seeds(1 - res_segm)
                 res_segm = 1 - newData
             except:
                 import traceback

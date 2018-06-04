@@ -46,3 +46,25 @@ class ImageManipulationTest(unittest.TestCase):
         self.assertEqual(unique[0], 0)
         self.assertEqual(unique[1], 1)
         self.assertEqual(unique[2], 2)
+
+    def test_get_priority_objects(self):
+        shape = [10, 15, 12]
+        data = np.zeros(shape)
+        value1 = 1
+        value2 = 2
+        data[:5, :7, :6] = value1
+        data[-5:, :7, :6] = value2
+
+        seeds = np.zeros(shape)
+        seeds[9,3:6, 3] = 1
+
+        selected = imma.select_objects_by_seeds(data, seeds)
+        unique = np.unique(selected)
+        #
+        self.assertEqual(selected.shape[0], shape[0])
+        self.assertEqual(selected.shape[1], shape[1])
+        self.assertEqual(selected.shape[2], shape[2])
+        self.assertEqual(selected[1, 1, 1], 1)
+        self.assertEqual(selected[-2, 1, 1], 0)
+        self.assertEqual(len(unique), 2)
+        self.assertGreater(np.count_nonzero(data), np.count_nonzero(selected))

@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 import numpy as np
 import scipy
+import scipy.ndimage
 
 
 def resize_to_shape(data, shape, zoom=None, mode='nearest', order=0):
@@ -140,144 +141,201 @@ def zoom_to_shape(data, shape, dtype=None):
                                                   :shpmin[0], :shpmin[1], :shpmin[2]]
     return datares
 
+def select_objects_by_seeds(data, seeds):
+    labeled_data, length = scipy.ndimage.label(data)
+    selected_labels = labeled_data[seeds > 0]
+    output = np.zeros_like(data)
+    for label in selected_labels:
+        output[data==label] = 1
+    return output
 
-def getPriorityObjects(data, nObj=1, seeds=None, debug=False):
-    """
 
-    Vraceni N nejvetsich objektu.
-        input:
-            data - data, ve kterych chceme zachovat pouze nejvetsi objekty
-            nObj - pocet nejvetsich objektu k vraceni
-            seeds - dvourozmerne pole s umistenim pixelu, ktere chce uzivatel
-                vratit (odpovidaji matici "data")
-
-        returns:
-            data s nejvetsimi objekty
-
-    """
-
-    # Oznaceni dat.
-    # labels - oznacena data.
-    # length - pocet rozdilnych oznaceni.
-    dataLabels, length = scipy.ndimage.label(data)
-
-    logger.info('Olabelovano oblasti: ' + str(length))
-
-    if debug:
-        logger.debug('data labels: ' + str(dataLabels))
-
-    # Uzivatel si nevybral specificke objekty.
-    if (seeds == None):
-
-        logger.info('Vraceni bez seedu')
-        logger.debug('Objekty: ' + str(nObj))
-
-        # Zjisteni nejvetsich objektu.
-        arrayLabelsSum, arrayLabels = areaIndexes(dataLabels, length)
-        # Serazeni labelu podle velikosti oznacenych dat (prvku / ploch).
-        arrayLabelsSum, arrayLabels = selectSort(arrayLabelsSum, arrayLabels)
-
-        returning = None
-        label = 0
-        stop = nObj - 1
-
-        # Budeme postupne prochazet arrayLabels a postupne pridavat jednu
-        # oblast za druhou (od te nejvetsi - mimo nuloveho pozadi) dokud
-        # nebudeme mit dany pocet objektu (nObj).
-        while label <= stop:
-
-            if label >= len(arrayLabels):
-                break
-
-            if arrayLabels[label] != 0:
-                if returning == None:
-                    # "Prvni" iterace
-                    returning = data * (dataLabels == arrayLabels[label])
-                else:
-                    # Jakakoli dalsi iterace
-                    returning = returning + data * \
-                                (dataLabels == arrayLabels[label])
-            else:
-                # Musime prodlouzit hledany interval, protoze jsme narazili na
-                # nulove pozadi.
-                stop = stop + 1
-
-            label = label + 1
-
-            if debug:
-                logger.debug(str(label - 1) + ': ' + str(returning))
-
-        if returning == None:
-            logger.info(
-                'Zadna validni olabelovana data! (DEBUG: returning == None)')
-
-        return returning
-
-    # Uzivatel si vybral specificke objekty (seeds != None).
-    else:
-
-        logger.info('Vraceni se seedy')
-
-        # Zalozeni pole pro ulozeni seedu
-        arrSeed = []
-        # Zjisteni poctu seedu.
-        stop = seeds[0].size
-        tmpSeed = 0
-        dim = np.ndim(dataLabels)
-        for index in range(0, stop):
-            # Tady se ukladaji labely na mistech, ve kterych kliknul uzivatel.
-            if dim == 3:
-                # 3D data.
-                tmpSeed = dataLabels[
-                    seeds[0][index], seeds[1][index], seeds[2][index]]
-            elif dim == 2:
-                # 2D data.
-                tmpSeed = dataLabels[seeds[0][index], seeds[1][index]]
-
-            # Tady opet pocitam s tim, ze oznaceni nulou pripada cerne oblasti
-            # (pozadi).
-            if tmpSeed != 0:
-                # Pokud se nejedna o pozadi (cernou oblast), tak se novy seed
-                # ulozi do pole "arrSeed"
-                arrSeed.append(tmpSeed)
-
-        # Pokud existuji vhodne labely, vytvori se nova data k vraceni.
-        # Pokud ne, vrati se "None" typ. { Deprecated: Pokud ne, vrati se cela
-        # nafiltrovana data, ktera do funkce prisla (nedojde k vraceni
-        # specifickych objektu). }
-        if len(arrSeed) > 0:
-
-            # Zbaveni se duplikatu.
-            arrSeed = list(set(arrSeed))
-            if debug:
-                logger.debug('seed list:' + str(arrSeed))
-
-            logger.info(
-                'Ruznych prioritnich objektu k vraceni: ' +
-                str(len(arrSeed))
-            )
-
-            # Vytvoreni vystupu - postupne pricitani dat prislunych specif.
-            # labelu.
-            returning = None
-            for index in range(0, len(arrSeed)):
-
-                if returning == None:
-                    returning = data * (dataLabels == arrSeed[index])
-                else:
-                    returning = returning + data * \
-                                (dataLabels == arrSeed[index])
-
-                if debug:
-                    logger.debug((str(index)) + ':' + str(returning))
-
-            return returning
-
-        else:
-
-            logger.info(
-                'Zadna validni data k vraceni - zadne prioritni objekty ' +
-                'nenalezeny (DEBUG: function getPriorityObjects:' +
-                str(len(arrSeed) == 0))
-            return None
-
+# def getPriorityObjects(*args, **kwargs):
+#     logger.warning("Function getPriorityObjects has been renamed. Use get_priority_objects().")
+#     DeprecationWarning("Function getPriorityObjects has been renamed. Use get_priority_objects().")
+#     return get_priority_objects(*args, **kwargs)
+#
+# def get_priority_objects(data, nObj=1, seeds=None, debug=False):
+#     """
+#     Get N biggest objects from the selection or the object with seed.
+#
+#     :param data:  labeled ndarray
+#     :param nObj:  number of objects
+#     :param seeds: ndarray. Objects on non zero positions are returned
+#     :param debug: bool.
+#     :return: binar image with selected objects
+#     """
+#
+#     # Oznaceni dat.
+#     # labels - oznacena data.
+#     # length - pocet rozdilnych oznaceni.
+#     dataLabels, length = scipy.ndimage.label(data)
+#
+#     logger.info('Olabelovano oblasti: ' + str(length))
+#
+#     if debug:
+#         logger.debug('data labels: ' + str(dataLabels))
+#
+#     # Uzivatel si nevybral specificke objekty.
+#     if (seeds == None):
+#
+#         logger.info('Vraceni bez seedu')
+#         logger.debug('Objekty: ' + str(nObj))
+#
+#         # Zjisteni nejvetsich objektu.
+#         arrayLabelsSum, arrayLabels = areaIndexes(dataLabels, length)
+#         # Serazeni labelu podle velikosti oznacenych dat (prvku / ploch).
+#         arrayLabelsSum, arrayLabels = selectSort(arrayLabelsSum, arrayLabels)
+#
+#         returning = None
+#         label = 0
+#         stop = nObj - 1
+#
+#         # Budeme postupne prochazet arrayLabels a postupne pridavat jednu
+#         # oblast za druhou (od te nejvetsi - mimo nuloveho pozadi) dokud
+#         # nebudeme mit dany pocet objektu (nObj).
+#         while label <= stop:
+#
+#             if label >= len(arrayLabels):
+#                 break
+#
+#             if arrayLabels[label] != 0:
+#                 if returning == None:
+#                     # "Prvni" iterace
+#                     returning = data * (dataLabels == arrayLabels[label])
+#                 else:
+#                     # Jakakoli dalsi iterace
+#                     returning = returning + data * \
+#                                 (dataLabels == arrayLabels[label])
+#             else:
+#                 # Musime prodlouzit hledany interval, protoze jsme narazili na
+#                 # nulove pozadi.
+#                 stop = stop + 1
+#
+#             label = label + 1
+#
+#             if debug:
+#                 logger.debug(str(label - 1) + ': ' + str(returning))
+#
+#         if returning == None:
+#             logger.info(
+#                 'Zadna validni olabelovana data! (DEBUG: returning == None)')
+#
+#         return returning
+#
+#     # Uzivatel si vybral specificke objekty (seeds != None).
+#     else:
+#
+#         logger.info('Vraceni se seedy')
+#
+#         # Zalozeni pole pro ulozeni seedu
+#         arrSeed = []
+#         # Zjisteni poctu seedu.
+#         stop = seeds[0].size
+#         tmpSeed = 0
+#         dim = np.ndim(dataLabels)
+#         for index in range(0, stop):
+#             # Tady se ukladaji labely na mistech, ve kterych kliknul uzivatel.
+#             if dim == 3:
+#                 # 3D data.
+#                 tmpSeed = dataLabels[
+#                     seeds[0][index], seeds[1][index], seeds[2][index]]
+#             elif dim == 2:
+#                 # 2D data.
+#                 tmpSeed = dataLabels[seeds[0][index], seeds[1][index]]
+#
+#             # Tady opet pocitam s tim, ze oznaceni nulou pripada cerne oblasti
+#             # (pozadi).
+#             if tmpSeed != 0:
+#                 # Pokud se nejedna o pozadi (cernou oblast), tak se novy seed
+#                 # ulozi do pole "arrSeed"
+#                 arrSeed.append(tmpSeed)
+#
+#         # Pokud existuji vhodne labely, vytvori se nova data k vraceni.
+#         # Pokud ne, vrati se "None" typ. { Deprecated: Pokud ne, vrati se cela
+#         # nafiltrovana data, ktera do funkce prisla (nedojde k vraceni
+#         # specifickych objektu). }
+#         if len(arrSeed) > 0:
+#
+#             # Zbaveni se duplikatu.
+#             arrSeed = list(set(arrSeed))
+#             if debug:
+#                 logger.debug('seed list:' + str(arrSeed))
+#
+#             logger.info(
+#                 'Ruznych prioritnich objektu k vraceni: ' +
+#                 str(len(arrSeed))
+#             )
+#
+#             # Vytvoreni vystupu - postupne pricitani dat prislunych specif.
+#             # labelu.
+#             returning = None
+#             for index in range(0, len(arrSeed)):
+#
+#                 if returning == None:
+#                     returning = data * (dataLabels == arrSeed[index])
+#                 else:
+#                     returning = returning + data * \
+#                                 (dataLabels == arrSeed[index])
+#
+#                 if debug:
+#                     logger.debug((str(index)) + ':' + str(returning))
+#
+#             return returning
+#
+#         else:
+#
+#             logger.info(
+#                 'Zadna validni data k vraceni - zadne prioritni objekty ' +
+#                 'nenalezeny (DEBUG: function getPriorityObjects:' +
+#                 str(len(arrSeed) == 0))
+#             return None
+#
+# def areaIndexes(labels, num):
+#     """
+#
+#     Zjisti cetnosti jednotlivych oznacenych ploch (labeled areas)
+#         input:
+#             labels - data s aplikovanymi oznacenimi
+#             num - pocet pouzitych oznaceni
+#
+#         returns:
+#             dve pole - prvni sumy, druhe indexy
+#
+#     """
+#
+#     arrayLabelsSum = []
+#     arrayLabels = []
+#     for index in range(0, num + 1):
+#         arrayLabels.append(index)
+#         sumOfLabel = numpy.sum(labels == index)
+#         arrayLabelsSum.append(sumOfLabel)
+#
+#     return arrayLabelsSum, arrayLabels
+#
+#
+# def selectSort(list1, list2):
+#     """
+#     Razeni 2 poli najednou (list) pomoci metody select sort
+#         input:
+#             list1 - prvni pole (hlavni pole pro razeni)
+#             list2 - druhe pole (vedlejsi pole) (kopirujici pozice pro razeni
+#                 podle hlavniho pole list1)
+#
+#         returns:
+#             dve serazena pole - hodnoty se ridi podle prvniho pole, druhe
+#                 "kopiruje" razeni
+#     """
+#
+#     length = len(list1)
+#     for index in range(0, length):
+#         min = index
+#         for index2 in range(index + 1, length):
+#             if list1[index2] > list1[min]:
+#                 min = index2
+#         # Prohozeni hodnot hlavniho pole
+#         list1[index], list1[min] = list1[min], list1[index]
+#         # Prohozeni hodnot vedlejsiho pole
+#         list2[index], list2[min] = list2[min], list2[index]
+#
+#     return list1, list2
