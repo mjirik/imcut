@@ -193,7 +193,7 @@ class ImageGraphCut:
     def __general_gc(self):
         pass
 
-    def __multiscale_gc_step12_low_resolution_segmentation(self, start):
+    def __msgc_step12_low_resolution_segmentation(self, start):
         import scipy
         # ===== low resolution data processing
         # default parameters
@@ -269,7 +269,7 @@ class ImageGraphCut:
         self.stats["t2"] = (time.time() - start)
         return img_orig, ms_zoom, hiseeds, area_weight, hard_constraints
 
-    def __multiscale_gc_step3_discontinuity_localization(self, start, debug):
+    def __msgc_step3_discontinuity_localization(self, start, debug):
         import scipy
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
@@ -302,7 +302,7 @@ class ImageGraphCut:
         self.stats["t3"] = (time.time() - start)
         return seg
 
-    def __multiscale_gc_step45_construct_graph(self, start, debug):
+    def __msgc_step45_construct_graph(self, start, debug):
         pass
 
     def __multiscale_gc_run(self):  # , pyed):
@@ -324,9 +324,9 @@ class ImageGraphCut:
         logger.debug('performing multiscale_gc')
 
         img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = \
-            self.__multiscale_gc_step12_low_resolution_segmentation(start)
+            self.__msgc_step12_low_resolution_segmentation(start)
         # ===== high resolution data processing
-        seg = self.__multiscale_gc_step3_discontinuity_localization(start, debug)
+        seg = self.__msgc_step3_discontinuity_localization(start, debug)
         # step 4: indexes of new dual graph
 
         msinds = self.__multiscale_indexes(seg, img_orig.shape)#, ms_zoom)
