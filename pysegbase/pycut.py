@@ -193,8 +193,9 @@ class ImageGraphCut:
     def __general_gc(self):
         pass
 
-    def __msgc_step12_low_resolution_segmentation(self, start):
+    def __msgc_step12_low_resolution_segmentation(self):
         import scipy
+        start = self._start_time
         # ===== low resolution data processing
         # default parameters
         # TODO segparams_lo and segparams_hi je tam asi zbytecně
@@ -269,8 +270,9 @@ class ImageGraphCut:
         self.stats["t2"] = (time.time() - start)
         return img_orig, ms_zoom, hiseeds, area_weight, hard_constraints
 
-    def __msgc_step3_discontinuity_localization(self, start, debug):
+    def __msgc_step3_discontinuity_localization(self, debug):
         import scipy
+        start = self._start_time
         seg = 1 - self.segmentation.astype(np.int8)
         # in seg is now stored low resolution segmentation
         # back to normal parameters
@@ -305,7 +307,7 @@ class ImageGraphCut:
     def __msgc_step45_construct_graph(self, start, debug):
         pass
 
-    def __multiscale_gc_run(self):  # , pyed):
+    def __multiscale_gc_hi2lo_run(self):  # , pyed):
         """
         In first step is performed normal GC on low resolution data
         Second step construct finer grid on edges of segmentation from first
@@ -315,8 +317,7 @@ class ImageGraphCut:
         debug = False
         # deb = True
         # import py3DSeedEditor as ped
-        start = time.time()
-
+        start = self._start_time
         from PyQt4.QtCore import pyqtRemoveInputHook
         pyqtRemoveInputHook()
         import scipy
@@ -324,9 +325,9 @@ class ImageGraphCut:
         logger.debug('performing multiscale_gc')
 
         img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = \
-            self.__msgc_step12_low_resolution_segmentation(start)
+            self.__msgc_step12_low_resolution_segmentation()
         # ===== high resolution data processing
-        seg = self.__msgc_step3_discontinuity_localization(start, debug)
+        seg = self.__msgc_step3_discontinuity_localization(debug)
         # step 4: indexes of new dual graph
 
         msinds = self.__multiscale_indexes(seg, img_orig.shape)#, ms_zoom)
@@ -398,6 +399,12 @@ class ImageGraphCut:
                                           area_weight=area_weight,
                                           hard_constraints=hard_constraints)
 
+        unariesalt2 = unariesalt.reshape(-1, 2)
+
+        self.__msgc_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
+
+    def __msgc_finish_perform_gc_and_reshape(self, nlinks, unariesalt2, msinds):
+        start = self._start_time
         self.stats["t8"] = (time.time() - start)
         # create potts pairwise
         # pairwiseAlpha = -10
@@ -413,13 +420,13 @@ class ImageGraphCut:
         # print "unaries sh ", unariesalt.reshape(-1,2).shape
         # print "nlinks sh",  nlinks.shape
         self.stats["t9"] = (time.time() - start)
-        self.stats['tlinks shape'].append(unariesalt.reshape(-1, 2).shape)
+        self.stats['tlinks shape'].append(unariesalt2.shape)
         self.stats['nlinks shape'].append(nlinks.shape)
         start = time.time()
         # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
             nlinks,
-            unariesalt.reshape(-1, 2),
+            unariesalt2,
             pairwise
         )
 
@@ -586,10 +593,13 @@ class ImageGraphCut:
         if run_fit_model:
             self.fit_model(self.img, self.voxelsize, self.seeds)
 
-        if self.segparams['method'] in ('graphcut', 'GC'):
+        self._start_time = time.time()
+        if self.segparams['method'].lower() in ('graphcut', 'gc'):
             self.__single_scale_gc_run()
-        elif self.segparams['method'] in ('multiscale_graphcut', "multiscale_gc"):
-            self.__multiscale_gc_run()
+        elif self.segparams['method'].lower() in ('multiscale_graphcut', "multiscale_gc", "msgc", "msgc_lo2hi", "lo2hi"):
+            self.__multiscale_gc_hi2lo_run()
+        elif self.segparams['method'].lower() in ("msgc_hi2lo", "hi2lo"):
+            self.__multiscale_gc_hi2lo_run()
         else:
             logger.error('Unknown segmentation method: ' + self.segparams['method'])
 
