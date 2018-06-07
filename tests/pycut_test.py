@@ -493,7 +493,7 @@ class PycutTest(unittest.TestCase):
             ),
             600)
 
-    @unittest.skip("Cekame, az to Mire opravi")
+    # @unittest.skip("Cekame, az to Mire opravi")
     def test_ms_seg_compared_with_different_resolution(self):
         """
         Test multiscale segmentation
@@ -502,7 +502,7 @@ class PycutTest(unittest.TestCase):
         img, seg, seeds = self.make_data(64, 20)
         segparams = {
                 # 'method':'graphcut',
-                'method': 'multiscale_graphcut',
+                'method': 'multiscale_graphcut_hi2lo',
                 'use_boundary_penalties': False,
                 'boundary_dilatation_distance': 2,
                 'boundary_penalties_weight': 1,
@@ -639,6 +639,34 @@ class PycutTest(unittest.TestCase):
         expected = np.array([0, 1, 1, 0, 3, 0])
         self.assertCountEqual(vals, expected)
 
+    def test_msgc_lo2hi(self):
+        """
+        Test multiscale segmentation
+        """
+
+        img, seg, seeds = self.make_data(64, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'multiscale_graphcut_lo2hi',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'block_size': 8,
+            'tile_zoom_constant': 1
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+        gc.run()
+        # import sed3
+        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
+        # ed.show()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
 
 if __name__ == "__main__":
     unittest.main()

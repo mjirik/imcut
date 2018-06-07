@@ -30,6 +30,7 @@ import pygco
 from .image_manipulation import seed_zoom, zoom_to_shape, resize_to_shape, resize_to_shape_with_zoom, select_objects_by_seeds
 
 from .models import Model, Model3D, defaultmodelparams, methods
+from .graph import Graph
 
 
 
@@ -158,40 +159,38 @@ class ImageGraphCut:
     def __uniform_npenalty_fcn(self, orig_shape):
         return np.ones(orig_shape, dtype=np.int8)
 
-    def __ms_npenalty_fcn(self, axis, mask, ms_zoom, orig_shape):
+    def __ms_npenalty_fcn(self, axis, mask, orig_shape):
         """
-        :param axis:
-        :param mask: 3d ndarray with ones where is finner resolution
+        :param axis: direction of edge
+        :param mask: 3d ndarray with ones where is fine resolution
 
         Neighboorhood penalty between small pixels should be smaller then in
         bigger tiles. This is the way how to set it.
 
         """
-        # import scipy.ndimage.filters as scf
-        # Váha velkého pixelu je nastavena na délku jeho úhlopříčky
-        # TODO remove TILE_ZOOM_CONSTANT
-        # TILE_ZOOM_CONSTANT = self.segparams['block_size'] * 2**0.5
-        TILE_ZOOM_CONSTANT = 0.25
-
-        # ms_zoom = ms_zoom * TILE_ZOOM_CONSTANT
-        # # for axis in range(0,dim):
-        # # filtered = scf.prewitt(self.img, axis=axis)
         maskz = zoom_to_shape(mask, orig_shape)
-        # maskz = 1 - maskz.astype(np.int8)
-        # maskz = (maskz * (ms_zoom - 1)) + 1
-
 
         maskz_new = np.zeros(orig_shape, dtype=np.int16)
-        maskz_new[maskz == 0] = ms_zoom * self.segparams['tile_zoom_constant']
-        maskz_new[maskz == 1] = 1
+        maskz_new[maskz == 0] = self._msgc_npenalty_table[0, axis]
+        maskz_new[maskz == 1] = self._msgc_npenalty_table[1, axis]
         # import sed3
         # ed = sed3.sed3(maskz_new)
         # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
 
         return maskz_new
 
-    def __general_gc(self):
-        pass
+    def __msgc_step0_init(self):
+
+        # table with size 2 * self.img.ndims
+        # first axis  describe whether is the edge between lowres(0) or highres(1) voxels
+        # second axis describe edge direction (edge axis)
+        self._msgc_npenalty_table = np.array([
+            [self.segparams["block_size"] * self.segparams['tile_zoom_constant']] * self.img.ndim,
+            [1] * self.img.ndim
+
+        ])
+        # self.__msgc_npenalty_lowres =
+        # self.__msgc_npenalty_higres = 1
 
     def __msgc_step12_low_resolution_segmentation(self):
         """
@@ -222,10 +221,10 @@ class ImageGraphCut:
         # step 1:  low res GC
         hiseeds = self.seeds
         # ms_zoom = 4  # 0.125 #self.segparams['scale']
-        ms_zoom = self.segparams['block_size']
+        # ms_zoom = self.segparams['block_size']
         # loseeds = pyed.getSeeds()
         # logger.debug("msc " + str(np.unique(hiseeds)))
-        loseeds = seed_zoom(hiseeds, ms_zoom)
+        loseeds = seed_zoom(hiseeds, self.segparams['block_size'])
 
         area_weight = 1
         hard_constraints = True
@@ -273,8 +272,9 @@ class ImageGraphCut:
         self.modelparams = modelparams_hi
         self.voxelsize = voxelsize_orig
         self.img = img_orig
+        self.seeds = hiseeds
         self.stats["t2"] = (time.time() - start)
-        return ms_zoom, hiseeds, area_weight, hard_constraints
+        return area_weight, hard_constraints
 
     def __msgc_step3_discontinuity_localization(self):
         """
@@ -314,9 +314,10 @@ class ImageGraphCut:
         self.stats["t3"] = (time.time() - start)
         return seg
 
-    def __msgc_step45_construct_graph(self, ms_zoom, hiseeds, area_weight, hard_constraints, seg):
+    def __msgc_step45678_construct_graph(self, area_weight, hard_constraints, seg):
         # step 4: indexes of new dual graph
 
+        hiseeds = self.seeds
         msinds = self.__multiscale_indexes(seg, self.img.shape)#, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
@@ -339,7 +340,7 @@ class ImageGraphCut:
 
         self.stats["t4"] = (time.time() - self._start_time)
         def local_ms_npenalty(x):
-            return self.__ms_npenalty_fcn(x, seg, ms_zoom, self.img.shape)
+            return self.__ms_npenalty_fcn(x, seg, self.img.shape)
             # return self.__uniform_npenalty_fcn(orig_shape)
 
         # ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
@@ -389,32 +390,6 @@ class ImageGraphCut:
         self.stats["t8"] = (time.time() - self._start_time)
         return nlinks, unariesalt2, msinds
 
-    def __multiscale_gc_hi2lo_run(self):  # , pyed):
-        """
-        In first step is performed normal GC on low resolution data
-        Second step construct finer grid on edges of segmentation from first
-        step.
-        There is no option for use without `use_boundary_penalties`
-        """
-        # deb = True
-        # import py3DSeedEditor as ped
-        start = self._start_time
-        from PyQt4.QtCore import pyqtRemoveInputHook
-        pyqtRemoveInputHook()
-        import scipy
-        import scipy.ndimage
-        logger.debug('performing multiscale_gc')
-
-        ms_zoom, hiseeds, area_weight, hard_constraints = \
-            self.__msgc_step12_low_resolution_segmentation()
-        # ===== high resolution data processing
-        seg = self.__msgc_step3_discontinuity_localization()
-
-        # TODO insert
-        nlinks, unariesalt2, msinds = self.__msgc_step45_construct_graph(ms_zoom, hiseeds, area_weight, hard_constraints, seg)
-
-        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
-
     def __msgc_step9_finish_perform_gc_and_reshape(self, nlinks, unariesalt2, msinds):
         start = self._start_time
         # create potts pairwise
@@ -456,6 +431,47 @@ class ImageGraphCut:
         # ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
         # ped.show()
         self.segmentation = result_labeling
+
+    def __multiscale_gc_lo2hi_run(self):  # , pyed):
+        """
+        Run Graph-Cut segmentation with refinement of low resolution multiscale graph.
+        In first step is performed normal GC on low resolution data
+        Second step construct finer grid on edges of segmentation from first
+        step.
+        There is no option for use without `use_boundary_penalties`
+        """
+        # from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        self.__msgc_step0_init()
+
+        area_weight, hard_constraints = self.__msgc_step12_low_resolution_segmentation()
+        # ===== high resolution data processing
+        seg = self.__msgc_step3_discontinuity_localization()
+
+        graph = Graph(seg, voxelsize=self.voxelsize, nsplit=self.segparams["block_size"], edge_weight_table=self._msgc_npenalty_table)
+        graph.run()
+        unariesalt = self.__create_tlinks(self.img, self.voxelsize, self.seeds,
+                             area_weight=area_weight, hard_constraints=hard_constraints)
+        nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
+        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
+
+    def __multiscale_gc_hi2lo_run(self):  # , pyed):
+        """
+        Run Graph-Cut segmentation with simplifiyng of high resolution multiscale graph.
+        In first step is performed normal GC on low resolution data
+        Second step construct finer grid on edges of segmentation from first
+        step.
+        There is no option for use without `use_boundary_penalties`
+        """
+        # from PyQt4.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+
+        self.__msgc_step0_init()
+        area_weight, hard_constraints = self.__msgc_step12_low_resolution_segmentation()
+        # ===== high resolution data processing
+        seg = self.__msgc_step3_discontinuity_localization()
+        nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
+        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
 
     def __ordered_values_by_indexes(self, data, inds):
         """
@@ -607,9 +623,12 @@ class ImageGraphCut:
         self._start_time = time.time()
         if self.segparams['method'].lower() in ('graphcut', 'gc'):
             self.__single_scale_gc_run()
-        elif self.segparams['method'].lower() in ('multiscale_graphcut', "multiscale_gc", "msgc", "msgc_lo2hi", "lo2hi"):
-            self.__multiscale_gc_hi2lo_run()
-        elif self.segparams['method'].lower() in ("msgc_hi2lo", "hi2lo"):
+        elif self.segparams['method'].lower() in (
+                'multiscale_graphcut', "multiscale_gc", "msgc", "msgc_lo2hi", "lo2hi", "multiscale_graphcut_lo2hi"):
+            logger.debug('performing multiscale Graph-Cut lo2hi')
+            self.__multiscale_gc_lo2hi_run()
+        elif self.segparams['method'].lower() in ("msgc_hi2lo", "hi2lo", "multiscale_graphcut_hi2lo"):
+            logger.debug('performing multiscale Graph-Cut hi2lo')
             self.__multiscale_gc_hi2lo_run()
         else:
             logger.error('Unknown segmentation method: ' + self.segparams['method'])

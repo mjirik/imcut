@@ -58,9 +58,13 @@ class Graph(object):
         self.lastnode += nadd
         self.nnodes += nadd
 
-    def add_edges(self, conn, vert_flag, edge_group=None):
+    def add_edges(self, conn, edge_direction, edge_group=None, edge_low_or_high=None):
         """
         Add new edges at the end of the list.
+        :param edge_direction: direction flag
+        :param edge_group: describes group of edges from same low super node and same direction
+        :param edge_low_or_high: zero for low resolution, one for high resolution. It is used to set weight from weight
+        table.
         """
         last = self.lastedge
         if type(conn) is nm.ndarray:
@@ -77,10 +81,13 @@ class Graph(object):
 
         self.edges[idx, :] = conn
         self.edge_flag[idx] = True
-        self.edge_dir[idx] = vert_flag
+        self.edge_dir[idx] = edge_direction
         self.edge_group[idx] = edge_group
+        if edge_low_or_high is not None:
+            self.edges_weights[idx] = self.__edge_weight_table[edge_low_or_high, edge_direction]
         self.lastedge += nadd
         self.nedges += nadd
+
 
     def finish(self):
         ndidxs = nm.where(self.node_flag)[0]
@@ -93,6 +100,11 @@ class Graph(object):
             # self.msindex = self.msi.msindex
             # relabel
             self.msindex = aux[self.msi.msindex]
+        if self.__edge_weight_table is not None:
+            edges_weights = aux[self.edges_weights[self.edge_flag]]
+            del self.edges_weights
+            self.edges_weights = edges_weights
+
 
         del self.nodes
         del self.node_flag
@@ -141,6 +153,7 @@ class Graph(object):
         for igrp in self.edges_by_group(eidxs):
             if igrp.shape[0] > 1:
                 # high resolution block to high resolution block
+                # all directions are the same
                 directions = self.edge_dir[igrp[0]]
                 edge_indexes = sr_tab[directions, :].T.flatten() \
                                      + ndoffset
@@ -148,6 +161,8 @@ class Graph(object):
                 # if len(igrp) != len(edge_indexes):
                 #     print("Problem ")
                 self.edges[igrp, 1] = edge_indexes
+                if self.__edge_weight_table is not None:
+                    self.edges_weights[igrp] = self.__edge_weight_table[1, directions]
             else:
                 # low res block to hi res block, if into_or_from is set to 0
                 # hig res block to low res block, if into_or_from is set to 1
@@ -162,7 +177,10 @@ class Graph(object):
                 # first or second (the actual) node id is substitued by new node indexes
                 newed[:, 1 - into_or_from] = local_node_ids \
                              + ndoffset
-                self.add_edges(newed, neweddir, self.edge_group[igrp])
+                if self.__edge_weight_table is not None:
+                    self.add_edges(newed, neweddir, self.edge_group[igrp], edge_low_or_high=1)
+                else:
+                    self.add_edges(newed, neweddir, self.edge_group[igrp], edge_low_or_high=None)
         return ed_remove
 
     def split_voxel(self, ndid):
@@ -196,7 +214,11 @@ class Graph(object):
             self.msi.set_block_higres(ndid, self.srt.inds + ndoffset)
         nd = make_nodes_3d(nd)
         self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize3 / 2))
-        self.add_edges(ed + ndoffset, ed_dir)
+        if self.__edge_weight_table is not None:
+            # low resolution
+            self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=0)
+        else:
+            self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=None)
 
         # connect subgrid
         ed_remove = []
@@ -237,7 +259,7 @@ class Graph(object):
         """
         nd, ed, ed_dir = self.gen_grid_fcn(self.data.shape, self.voxelsize)
         self.add_nodes(nd)
-        self.add_edges(ed, ed_dir)
+        self.add_edges(ed, ed_dir, edge_low_or_high=0)
 
         if vtk_filename is not None:
             self.write_vtk(vtk_filename)
@@ -285,15 +307,16 @@ class Graph(object):
         # self.split_voxels()
 
 
-    def __init__(self, data, voxelsize, ndmax_del=400, grid_function=None, nsplit=3, compute_msindex=True):
+    def __init__(self, data, voxelsize, grid_function=None, nsplit=3, compute_msindex=True, edge_weight_table=None):
         """
 
         :param data:
         :param voxelsize:
-        :param ndmax:
         :param grid_function: '2d' or 'nd'. Use '2d' for former implementation
         :param nsplit: size of low resolution block
         :param compute_msindex: compute indexes of nodes arranged in a ndarray with the same shape as higres image
+        :param edge_weight_table: ndarray with size 2 * self.img.ndims. First axis describe whether is the edge
+        between lowres(0) or highres(1) voxels. Second axis describe edge direction (edge axis).
         """
         # same dimension as data
         self.voxelsize = nm.asarray(voxelsize)
@@ -305,11 +328,12 @@ class Graph(object):
         if self.voxelsize.size != len(data.shape):
             logger.error("Datashape should be the same as voxelsize")
             raise ValueError("Datashape should be the same as voxelsize")
+        self.__edge_weight_table = edge_weight_table
         # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
         # 2d (nsplit, req) 2:3, 3:8, 4:12
         # 3D
         number_of_resized_nodes = np.count_nonzero(self.data)
-        self.ndmax_debug = data.size + number_of_resized_nodes* np.power(nsplit, self.data.ndim)
+        # self.ndmax_debug = data.size + number_of_resized_nodes* np.power(nsplit, self.data.ndim)
         self.ndmax = data.size + number_of_resized_nodes * np.power(nsplit, self.data.ndim)
         # init nodes
         self.nnodes = 0
@@ -343,6 +367,9 @@ class Graph(object):
         # edge_flag: if true, this edge is used in final output
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
+        if self.__edge_weight_table is not None:
+            # dtype is given by graph-cut
+            self.edges_weights = nm.zeros((edmax,), dtype=nm.int16)
         # list of edges on low resolution
         edgrdtype = get_efficient_signed_int_type(edmax)
         self.edge_group = - nm.ones((edmax,), dtype=edgrdtype)
@@ -359,6 +386,7 @@ class Graph(object):
 
         self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
         self.srt = SRTab()
+
 
 def get_efficient_signed_int_type(number):
     if number < np.iinfo(np.int16).max:
