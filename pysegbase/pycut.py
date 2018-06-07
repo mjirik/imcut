@@ -194,6 +194,10 @@ class ImageGraphCut:
         pass
 
     def __msgc_step12_low_resolution_segmentation(self):
+        """
+        Get the segmentation and the
+        :return:
+        """
         import scipy
         start = self._start_time
         # ===== low resolution data processing
@@ -257,6 +261,7 @@ class ImageGraphCut:
 
         # self.img = resize_to_shape_with_zoom(img_orig, loseeds.shape, 1.0 / ms_zoom, order=0)
 
+        # this step set the self.segmentation
         self.__single_scale_gc_run()
         logger.debug(
             'segmentation - max: %d min: %d' % (
@@ -267,10 +272,15 @@ class ImageGraphCut:
 
         self.modelparams = modelparams_hi
         self.voxelsize = voxelsize_orig
+        self.img = img_orig
         self.stats["t2"] = (time.time() - start)
-        return img_orig, ms_zoom, hiseeds, area_weight, hard_constraints
+        return ms_zoom, hiseeds, area_weight, hard_constraints
 
-    def __msgc_step3_discontinuity_localization(self, debug):
+    def __msgc_step3_discontinuity_localization(self):
+        """
+        Estimate discontinuity in basis of low resolution image segmentation.
+        :return: discontinuity in low resolution
+        """
         import scipy
         start = self._start_time
         seg = 1 - self.segmentation.astype(np.int8)
@@ -295,7 +305,7 @@ class ImageGraphCut:
                 (boundary_dilatation_distance * 2) + 1
             ])
         )
-        if debug:
+        if self.debug_images:
             import sed3
             pd = sed3.sed3(seg)  # ), contour=seg)
             pd.show()
@@ -304,33 +314,10 @@ class ImageGraphCut:
         self.stats["t3"] = (time.time() - start)
         return seg
 
-    def __msgc_step45_construct_graph(self, start, debug):
-        pass
-
-    def __multiscale_gc_hi2lo_run(self):  # , pyed):
-        """
-        In first step is performed normal GC on low resolution data
-        Second step construct finer grid on edges of segmentation from first
-        step.
-        There is no option for use without `use_boundary_penalties`
-        """
-        debug = False
-        # deb = True
-        # import py3DSeedEditor as ped
-        start = self._start_time
-        from PyQt4.QtCore import pyqtRemoveInputHook
-        pyqtRemoveInputHook()
-        import scipy
-        import scipy.ndimage
-        logger.debug('performing multiscale_gc')
-
-        img_orig, ms_zoom, hiseeds, area_weight, hard_constraints = \
-            self.__msgc_step12_low_resolution_segmentation()
-        # ===== high resolution data processing
-        seg = self.__msgc_step3_discontinuity_localization(debug)
+    def __msgc_step45_construct_graph(self, ms_zoom, hiseeds, area_weight, hard_constraints, seg):
         # step 4: indexes of new dual graph
 
-        msinds = self.__multiscale_indexes(seg, img_orig.shape)#, ms_zoom)
+        msinds = self.__multiscale_indexes(seg, self.img.shape)#, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
         #     import sed3
@@ -339,7 +326,7 @@ class ImageGraphCut:
 
         # intensity values for indexes
         # @TODO compute average values for low resolution
-        ms_img = img_orig
+        ms_img = self.img
 
         # @TODO __ms_create_nlinks , use __ordered_values_by_indexes
         # import pdb; pdb.set_trace() # BREAKPOINT
@@ -348,12 +335,11 @@ class ImageGraphCut:
         # there is need to set correct weights between neighbooring pixels
         # this is not nice hack.
         # @TODO reorganise segparams and create_nlinks function
-        self.img = img_orig  # not necessary
         # orig_shape = img_orig.shape
 
-        self.stats["t4"] = (time.time() - start)
+        self.stats["t4"] = (time.time() - self._start_time)
         def local_ms_npenalty(x):
-            return self.__ms_npenalty_fcn(x, seg, ms_zoom, img_orig.shape)
+            return self.__ms_npenalty_fcn(x, seg, ms_zoom, self.img.shape)
             # return self.__uniform_npenalty_fcn(orig_shape)
 
         # ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
@@ -368,19 +354,19 @@ class ImageGraphCut:
             boundary_penalties_fcn=local_ms_npenalty
         )
 
-        self.stats["t5"] = (time.time() - start)
+        self.stats["t5"] = (time.time() - self._start_time)
 
         # get unique set
         # remove repetitive link from one pixel to another
         nlinks = ms_remove_repetitive_link(nlinks_not_unique)
         # now remove cycle link
-        self.stats["t6"] = (time.time() - start)
+        self.stats["t6"] = (time.time() - self._start_time)
         nlinks = np.array([line for line in nlinks if line[0] != line[1]])
 
-        self.stats["t7"] = (time.time() - start)
+        self.stats["t7"] = (time.time() - self._start_time)
         # import ipdb; ipdb.set_trace() #  noqa BREAKPOINT
         # tlinks - indexes, data_merge
-        ms_values_lin = self.__ordered_values_by_indexes(img_orig, msinds)
+        ms_values_lin = self.__ordered_values_by_indexes(self.img, msinds)
         seeds = hiseeds
         # seeds = pyed.getSeeds()
         # if deb:
@@ -400,12 +386,37 @@ class ImageGraphCut:
                                           hard_constraints=hard_constraints)
 
         unariesalt2 = unariesalt.reshape(-1, 2)
+        self.stats["t8"] = (time.time() - self._start_time)
+        return nlinks, unariesalt2, msinds
 
-        self.__msgc_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
-
-    def __msgc_finish_perform_gc_and_reshape(self, nlinks, unariesalt2, msinds):
+    def __multiscale_gc_hi2lo_run(self):  # , pyed):
+        """
+        In first step is performed normal GC on low resolution data
+        Second step construct finer grid on edges of segmentation from first
+        step.
+        There is no option for use without `use_boundary_penalties`
+        """
+        # deb = True
+        # import py3DSeedEditor as ped
         start = self._start_time
-        self.stats["t8"] = (time.time() - start)
+        from PyQt4.QtCore import pyqtRemoveInputHook
+        pyqtRemoveInputHook()
+        import scipy
+        import scipy.ndimage
+        logger.debug('performing multiscale_gc')
+
+        ms_zoom, hiseeds, area_weight, hard_constraints = \
+            self.__msgc_step12_low_resolution_segmentation()
+        # ===== high resolution data processing
+        seg = self.__msgc_step3_discontinuity_localization()
+
+        # TODO insert
+        nlinks, unariesalt2, msinds = self.__msgc_step45_construct_graph(ms_zoom, hiseeds, area_weight, hard_constraints, seg)
+
+        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
+
+    def __msgc_step9_finish_perform_gc_and_reshape(self, nlinks, unariesalt2, msinds):
+        start = self._start_time
         # create potts pairwise
         # pairwiseAlpha = -10
         pairwise = -(np.eye(2) - 1)
