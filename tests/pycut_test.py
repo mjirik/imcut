@@ -540,9 +540,9 @@ class PycutTest(unittest.TestCase):
         gc = pycut.ImageGraphCut(img2, segparams=segparams)
         gc.set_seeds(seeds2)
         gc.run()
-        import sed3
-        ed = sed3.sed3(gc.segmentation==0, contour=seg2)
-        ed.show()
+        # import sed3
+        # ed = sed3.sed3(gc.segmentation==0, contour=seg2)
+        # ed.show()
         
 
     def test_segmentation(self):
