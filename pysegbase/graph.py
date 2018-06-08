@@ -83,7 +83,7 @@ class Graph(object):
         self.edge_flag[idx] = True
         self.edge_dir[idx] = edge_direction
         self.edge_group[idx] = edge_group
-        if edge_low_or_high is not None:
+        if edge_low_or_high is not None and self.__edge_weight_table is not None:
             self.edges_weights[idx] = self.__edge_weight_table[edge_low_or_high, edge_direction]
         self.lastedge += nadd
         self.nedges += nadd
