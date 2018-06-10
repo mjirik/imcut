@@ -450,11 +450,26 @@ class ImageGraphCut:
 
         graph = Graph(seg, voxelsize=self.voxelsize, nsplit=self.segparams["block_size"], edge_weight_table=self._msgc_npenalty_table, compute_low_nodes_index=True)
         graph.run()
+        un, ind = np.unique(graph.msindex, return_index=True)
+
 
         unariesalt = self.__create_tlinks(self.img, self.voxelsize, self.seeds,
                              area_weight=area_weight, hard_constraints=hard_constraints)
-        nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
-        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
+
+        unariesalt2_lo2hi = np.hstack([
+            unariesalt[ind, 0, 0].reshape(-1, 1),
+            unariesalt[ind, 0, 1].reshape(-1, 1),
+        ])
+        nlinks_lo2hi = np.hstack([
+            graph.edges, graph.edges_weights.reshape(-1,1)
+        ])
+        import sed3
+        ed = sed3.sed3(unariesalt[:,:,0].reshape(self.imgshape))
+        ed.show()
+
+        # nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
+        # self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
+        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks_lo2hi, unariesalt2_lo2hi, graph.msindex)
 
     def __multiscale_gc_hi2lo_run(self):  # , pyed):
         """

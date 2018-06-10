@@ -104,10 +104,10 @@ class Graph(object):
             # self.msindex = self.msi.msindex
             # relabel
             self.msindex = aux[self.msi.msindex]
-            # import sed3
+            import sed3
             # ed = sed3.sed3(self.msindex)
             # ed.show()
-            np.unique(self.msindex.ravel())
+            # np.unique(self.msindex.ravel())
 
         if self.__edge_weight_table is not None:
             self.edges_weights = aux[self.edges_weights[self.edge_flag]]
