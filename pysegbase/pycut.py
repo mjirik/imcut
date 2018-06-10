@@ -448,8 +448,9 @@ class ImageGraphCut:
         # ===== high resolution data processing
         seg = self.__msgc_step3_discontinuity_localization()
 
-        graph = Graph(seg, voxelsize=self.voxelsize, nsplit=self.segparams["block_size"], edge_weight_table=self._msgc_npenalty_table)
+        graph = Graph(seg, voxelsize=self.voxelsize, nsplit=self.segparams["block_size"], edge_weight_table=self._msgc_npenalty_table, compute_low_nodes_index=True)
         graph.run()
+
         unariesalt = self.__create_tlinks(self.img, self.voxelsize, self.seeds,
                              area_weight=area_weight, hard_constraints=hard_constraints)
         nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)

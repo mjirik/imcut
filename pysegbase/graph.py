@@ -38,7 +38,7 @@ class Graph(object):
     #     4: nm.array([(0,4,8,12), (0,1,2,3), (3,7,11,15), (12,13,14,15)]),
     # }
 
-    def add_nodes(self, coors):
+    def add_nodes(self, coors, node_low_or_high=None):
         """
         Add new nodes at the end of the list.
         """
@@ -63,8 +63,8 @@ class Graph(object):
         Add new edges at the end of the list.
         :param edge_direction: direction flag
         :param edge_group: describes group of edges from same low super node and same direction
-        :param edge_low_or_high: zero for low resolution, one for high resolution. It is used to set weight from weight
-        table.
+        :param edge_low_or_high: zero for low to low resolution, one for high to high or high to low resolution.
+        It is used to set weight from weight table.
         """
         last = self.lastedge
         if type(conn) is nm.ndarray:
@@ -83,6 +83,7 @@ class Graph(object):
         self.edge_flag[idx] = True
         self.edge_dir[idx] = edge_direction
         self.edge_group[idx] = edge_group
+        # TODO change this just to array of low_or_high_resolution
         if edge_low_or_high is not None and self.__edge_weight_table is not None:
             self.edges_weights[idx] = self.__edge_weight_table[edge_low_or_high, edge_direction]
         self.lastedge += nadd
@@ -91,19 +92,27 @@ class Graph(object):
 
     def finish(self):
         ndidxs = nm.where(self.node_flag)[0]
-        aux = - nm.ones((self.nodes.shape[0],), dtype=nm.int16)
+        aux = - nm.ones((self.nodes.shape[0],), dtype=int)
         aux[ndidxs] = nm.arange(ndidxs.shape[0])
         edges = aux[self.edges[self.edge_flag]]
         nodes = self.nodes[ndidxs]
+
+        # if self.compute_low_node_inverse:
+        #     self.low_node_inverse = np.nonzero(self.nodes[:self.data.size])
 
         if self.compute_msindex:
             # self.msindex = self.msi.msindex
             # relabel
             self.msindex = aux[self.msi.msindex]
+            # import sed3
+            # ed = sed3.sed3(self.msindex)
+            # ed.show()
+            np.unique(self.msindex.ravel())
+
         if self.__edge_weight_table is not None:
-            edges_weights = aux[self.edges_weights[self.edge_flag]]
-            del self.edges_weights
-            self.edges_weights = edges_weights
+            self.edges_weights = aux[self.edges_weights[self.edge_flag]]
+            # del self.edges_weights
+            # self.edges_weights = edges_weights
 
 
         del self.nodes
@@ -287,7 +296,7 @@ class Graph(object):
         for ndid, val in enumerate(self.data.ravel()):
             if val == 0:
                 if self.compute_msindex:
-                    self.msi.set_block_lowres(ndid, val)
+                    self.msi.set_block_lowres(ndid, ndid)
             else:
                 self.split_voxel(ndid)
 
@@ -307,7 +316,7 @@ class Graph(object):
         # self.split_voxels()
 
 
-    def __init__(self, data, voxelsize, grid_function=None, nsplit=3, compute_msindex=True, edge_weight_table=None):
+    def __init__(self, data, voxelsize, grid_function=None, nsplit=3, compute_msindex=True, edge_weight_table=None, compute_low_nodes_index=True):
         """
 
         :param data:
@@ -316,7 +325,7 @@ class Graph(object):
         :param nsplit: size of low resolution block
         :param compute_msindex: compute indexes of nodes arranged in a ndarray with the same shape as higres image
         :param edge_weight_table: ndarray with size 2 * self.img.ndims. First axis describe whether is the edge
-        between lowres(0) or highres(1) voxels. Second axis describe edge direction (edge axis).
+        between lowres(0) or highres(1) or hight-low (1) voxels. Second axis describe edge direction (edge axis).
         """
         # same dimension as data
         self.voxelsize = nm.asarray(voxelsize)
@@ -329,6 +338,7 @@ class Graph(object):
             logger.error("Datashape should be the same as voxelsize")
             raise ValueError("Datashape should be the same as voxelsize")
         self.__edge_weight_table = edge_weight_table
+        self.compute_low_node_inverse = compute_low_nodes_index
         # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
         # 2d (nsplit, req) 2:3, 3:8, 4:12
         # 3D

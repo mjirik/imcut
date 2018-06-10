@@ -132,12 +132,18 @@ class GraphTest(unittest.TestCase):
                  [0,1,]],
             ]
         )
-        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
+        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2, compute_msindex=True)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         g.edges
         self.assertEqual(g.edges.shape[0], 33)
         self.assertEqual(g.edges.shape[1], 2)
         self.assertEqual(g.nodes.shape[0], 15)
+
+        # msindex with low resolution should be in the beginning of data
+        un, counts = np.unique(g.msindex, return_counts=True)
+        # on this example first 7 node labeles should be used multiple timse
+        self.assertTrue((counts[:7] > 1).all(),
+                        msg="on this example first 7 node labeles should be used multiple times")
 
     def test_from_edges_reconnetcion_onsmall_graph_3d(self):
 
