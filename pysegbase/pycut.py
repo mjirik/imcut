@@ -419,9 +419,9 @@ class ImageGraphCut:
         start = time.time()
         # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
-            nlinks,
-            unariesalt2,
-            pairwise
+            nlinks.astype(np.int32),
+            unariesalt2.astype(np.int32),
+            pairwise.astype(np.int32)
         )
 
         elapsed = (time.time() - start)
