@@ -58,19 +58,22 @@ class ImageGraphCut:
                  debug_images=False,
                  volume_unit='mm3',
                  interactivity_loop_finish_fcn=None,
+                 keep_graph_properties=False,
                  ):
         """
 
         Args:
-            img: input data
-            modelparams: parameters of model
-            segparams: segmentation parameters
+            :param img: input data
+            :param modelparams: parameters of model
+            :param segparams: segmentation parameters
                 use_apriori_if_available - set self.apriori to ndimage with same shape as img
                 apriori_gamma: influence of apriory information. 0 means no influence, 1.0 is 100% use of
                 apriori information
-            voxelsize: size of voxel
-            debug_images: use to show debug images with matplotlib
-            volume_unit: define string of volume unit. Default is "mm3"
+            :param voxelsize: size of voxel
+            :param debug_images: use to show debug images with matplotlib
+            :param volume_unit: define string of volume unit. Default is "mm3"
+            :param keep_graph_properties: Do not delete some usefull varibales like msinds, unariesalt and nlinks.
+
 
         Returns:
 
@@ -124,6 +127,11 @@ class ImageGraphCut:
         self.mdl = Model(modelparams=self.modelparams)
         self.apriori = None
         self.interactivity_loop_finish_funcion=interactivity_loop_finish_fcn
+        self.keep_graph_properties = keep_graph_properties
+
+        self.msinds = None
+        self.unariesalt2 = None
+        self.nlinks = None
 
     def interactivity_loop(self, pyed):
         # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
@@ -431,6 +439,14 @@ class ImageGraphCut:
         # ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
         # ped.show()
         self.segmentation = result_labeling
+        if self.keep_graph_properties:
+            self.msinds = msinds
+            self.unariesalt2 = unariesalt2
+            self.nlinks = nlinks
+        else:
+            self.msinds = None
+            self.unariesalt2 = None
+            self.nlinks = None
 
     def __multiscale_gc_lo2hi_run(self):  # , pyed):
         """
@@ -450,7 +466,7 @@ class ImageGraphCut:
 
         graph = Graph(seg, voxelsize=self.voxelsize, nsplit=self.segparams["block_size"], edge_weight_table=self._msgc_npenalty_table, compute_low_nodes_index=True)
         graph.run()
-        un, ind = np.unique(graph.msindex, return_index=True)
+        un, ind = np.unique(graph.msinds, return_index=True)
 
 
         unariesalt = self.__create_tlinks(self.img, self.voxelsize, self.seeds,
@@ -463,13 +479,23 @@ class ImageGraphCut:
         nlinks_lo2hi = np.hstack([
             graph.edges, graph.edges_weights.reshape(-1,1)
         ])
-        import sed3
-        ed = sed3.sed3(unariesalt[:,:,0].reshape(self.imgshape))
-        ed.show()
+        if self.debug_images:
+            import sed3
+            ed = sed3.sed3(unariesalt[:,:,0].reshape(self.imgshape))
+            ed.show()
+            import sed3
+            ed = sed3.sed3(unariesalt[:,:,1].reshape(self.imgshape))
+            ed.show()
+            # import sed3
+            # ed = sed3.sed3(graph.data)
+            # ed.show()
+            # import sed3
+            # ed = sed3.sed3(graph.msinds)
+            # ed.show()
 
         # nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
         # self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
-        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks_lo2hi, unariesalt2_lo2hi, graph.msindex)
+        self.__msgc_step9_finish_perform_gc_and_reshape(nlinks_lo2hi, unariesalt2_lo2hi, graph.msinds)
 
     def __multiscale_gc_hi2lo_run(self):  # , pyed):
         """
@@ -1033,6 +1059,30 @@ class ImageGraphCut:
 
         self.__show_debug_unariesalt(unariesalt, show=show, bins=bins)
 
+    def inspect_node(self, node_seed):
+        """
+        Get info about the node. See pycut.inspect_node() for details.
+        :param node_seed:
+        :return: unariesalt, coordinates, neighboor_edges_and_weights, neighboor_coords
+        """
+        return inspect_node(self.nlinks, self.unariesalt2, self.msinds, node_seed)
+
+    def interactive_inspect_node(self):
+        """
+        Call after segmentation to see node neighborhood
+        :return:
+        """
+
+        import sed3
+        ed = sed3.sed3(self.msinds, contour=self.segmentation==0)
+        ed.show()
+        edseeds = ed.seeds
+
+        node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = self.inspect_node(edseeds)
+        import sed3
+        ed = sed3.sed3(self.msinds, contour=self.segmentation==0, seeds=node_neighboor_seeds)
+        ed.show()
+
     def _ssgc_prepare_data_and_run_computation(self,
                                                # voxels1, voxels2,
                                                hard_constraints=True,
@@ -1107,6 +1157,61 @@ def ms_remove_repetitive_link(nlinks_not_unique):
     nlinks = np.unique(a.view(np.dtype((np.void, a.dtype.itemsize * a.shape[1])))).view(a.dtype).reshape(-1, a.shape[1])
 
     return nlinks
+
+def inspect_node_neighborhood(nlinks, msinds, node_seed):
+    """
+    Get information about one node in graph
+
+    :param nlinks: neighboorhood edges
+    :param msinds: indexes in 3d image
+    :param node_seed: index in the image or seeds (the first located seed is used)
+    :return: coordinates, neighboor_edges_and_weights, neighboor_coords
+    """
+    if type(node_seed) != np.ndarray:
+        raise ValueError("Expected ndarray with seeds")
+
+    seed_indexes = np.nonzero(node_seed)
+    selected_inds = msinds[seed_indexes]
+    selected_voxel_ind = selected_inds[0]
+    node_neighbor_edges = np.vstack([
+        nlinks[np.where(nlinks[:, 0] == selected_voxel_ind)],
+        nlinks[np.where(nlinks[:, 1] == selected_voxel_ind)]
+    ]
+    )
+    node_neighbor_seeds = np.zeros_like(msinds, dtype=np.int8)
+    for neighboor_ind in np.unique(node_neighbor_edges[:, :2].ravel()):
+        node_neighbor_ind = np.where(msinds == neighboor_ind)
+        node_neighbor_seeds[node_neighbor_ind] = 2
+
+    node_neighbor_seeds[np.where(msinds == selected_voxel_ind)] = 1
+
+
+    # node_coordinates = np.unravel_index(selected_voxel_ind, msinds.shape)
+    # node_neighbor_coordinates = np.unravel_index(np.unique(node_neighbor_edges[:, :2].ravel()), msinds.shape)
+    return node_neighbor_edges, node_neighbor_seeds
+
+def inspect_node(nlinks, unariesalt, msinds, node_seed):
+    """
+    Get information about one node in graph
+
+    :param nlinks: neighboorhood edges
+    :param unariesalt: weights
+    :param msinds: indexes in 3d image
+    :param node_seed: index in the image or seeds (the first located seed is used)
+    :return: unariesalt, coordinates, neighboor_edges_and_weights, neighboor_coords
+    """
+    if type(node_seed) == np.ndarray:
+        seed_indexes = np.nonzero(node_seed)
+    else:
+        seed_indexes = node_seed
+    selected_inds = msinds[seed_indexes]
+    selected_voxel_ind = selected_inds[0]
+    node_unariesalt = unariesalt[selected_voxel_ind]
+
+    neigh_edges, neigh_seeds = inspect_node_neighborhood(nlinks, msinds, node_seed)
+
+    return node_unariesalt, neigh_edges, neigh_seeds
+
 
 
 

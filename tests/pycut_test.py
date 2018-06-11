@@ -639,8 +639,7 @@ class PycutTest(unittest.TestCase):
         expected = np.array([0, 1, 1, 0, 3, 0])
         self.assertCountEqual(vals, expected)
 
-    # TODO make lo2hi work
-    @unittest.skip("This test is almost done")
+    # @unittest.skip("This test is almost done")
     def test_msgc_lo2hi(self):
         """
         Test multiscale segmentation
@@ -650,18 +649,21 @@ class PycutTest(unittest.TestCase):
         segparams = {
             # 'method':'graphcut',
             'method': 'multiscale_graphcut_lo2hi',
+            # 'method': 'multiscale_graphcut_hi2lo',
             'use_boundary_penalties': False,
             'boundary_dilatation_distance': 2,
             'boundary_penalties_weight': 1,
             'block_size': 8,
             'tile_zoom_constant': 1
         }
-        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
         gc.set_seeds(seeds)
         gc.run()
-        # import sed3
-        # ed = sed3.sed3(gc.segmentation==0, contour=seg)
-        # ed.show()
+
+        edseeds = seeds
+        # gc.interactive_inspect_node()
+
+        # node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.inspect_node(edseeds)
 
         self.assertLess(
             np.sum(
@@ -669,6 +671,42 @@ class PycutTest(unittest.TestCase):
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
             600)
+
+    def test_node_inspection_on_msgc_lo2hi(self):
+        """
+        Test multiscale segmentation
+        """
+
+        img, seg, seeds = self.make_data(64, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'multiscale_graphcut_lo2hi',
+            # 'method': 'multiscale_graphcut_hi2lo',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'block_size': 8,
+            'tile_zoom_constant': 1
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+        # gc.interactive_inspect_node()
+
+        node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.inspect_node(seeds)
+        ii, ij, ik = np.nonzero(node_neighboor_seeds)
+        #
+        self.assertLessEqual(np.max(ii) - np.min(ii), 24, msg="Neighbor nodes position variance should be maximum 3 * block size ")
+        self.assertLessEqual(np.max(ij) - np.min(ij), 24, msg="Neighbor nodes position variance should be maximum 3 * block size ")
+        self.assertLessEqual(np.max(ik) - np.min(ik), 24, msg="Neighbor nodes position variance should be maximum 3 * block size ")
+
 
 if __name__ == "__main__":
     unittest.main()

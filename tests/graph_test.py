@@ -172,7 +172,7 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(g.nodes.shape[0], 15)
 
         # msindex with low resolution should be in the beginning of data
-        un, counts = np.unique(g.msindex, return_counts=True)
+        un, counts = np.unique(g.msinds, return_counts=True)
         # on this example first 7 node labeles should be used multiple timse
         self.assertTrue((counts[:7] > 1).all(),
                         msg="on this example first 7 node labeles should be used multiple times")
@@ -205,7 +205,7 @@ class GraphTest(unittest.TestCase):
                  [0,0,]],
             ]
         )
-        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
+        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2, compute_msindex=True)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         # self.assertEqual(g.edges.shape[0], 33)
         # self.assertEqual(g.edges.shape[1], 2)
@@ -276,10 +276,10 @@ class GraphTest(unittest.TestCase):
         msi = graph.MultiscaleIndex(shape, block_size=block_size)
         # set first block
         msi.set_block_lowres(0, 5)
-        self.assertEqual(msi.msindex[0, 0], 5)
+        self.assertEqual(msi.msinds[0, 0], 5)
         # set last block
         msi.set_block_lowres(np.prod(shape) - 1, 3)
-        self.assertEqual(msi.msindex[-1, -1], 3)
+        self.assertEqual(msi.msinds[-1, -1], 3)
 
 
     def test_multiscale_index_set_higres(self):
@@ -288,7 +288,7 @@ class GraphTest(unittest.TestCase):
         msi = graph.MultiscaleIndex(shape, block_size=block_size)
         # set last block
         msi.set_block_higres(np.prod(shape) - 1, [11, 12, 13, 14])
-        self.assertEqual(msi.msindex[-1, -1], 14)
+        self.assertEqual(msi.msinds[-1, -1], 14)
 
 
     @raises(ValueError)

@@ -84,8 +84,8 @@ class Graph(object):
         self.edge_dir[idx] = edge_direction
         self.edge_group[idx] = edge_group
         # TODO change this just to array of low_or_high_resolution
-        if edge_low_or_high is not None and self.__edge_weight_table is not None:
-            self.edges_weights[idx] = self.__edge_weight_table[edge_low_or_high, edge_direction]
+        if edge_low_or_high is not None and self._edge_weight_table is not None:
+            self.edges_weights[idx] = self._edge_weight_table[edge_low_or_high, edge_direction]
         self.lastedge += nadd
         self.nedges += nadd
 
@@ -103,13 +103,13 @@ class Graph(object):
         if self.compute_msindex:
             # self.msindex = self.msi.msindex
             # relabel
-            self.msindex = aux[self.msi.msindex]
-            import sed3
+            self.msinds = aux[self.msi.msinds]
+            # import sed3
             # ed = sed3.sed3(self.msindex)
             # ed.show()
             # np.unique(self.msindex.ravel())
 
-        if self.__edge_weight_table is not None:
+        if self._edge_weight_table is not None:
             self.edges_weights = aux[self.edges_weights[self.edge_flag]]
             # del self.edges_weights
             # self.edges_weights = edges_weights
@@ -170,8 +170,8 @@ class Graph(object):
                 # if len(igrp) != len(edge_indexes):
                 #     print("Problem ")
                 self.edges[igrp, 1] = edge_indexes
-                if self.__edge_weight_table is not None:
-                    self.edges_weights[igrp] = self.__edge_weight_table[1, directions]
+                if self._edge_weight_table is not None:
+                    self.edges_weights[igrp] = self._edge_weight_table[1, directions]
             else:
                 # low res block to hi res block, if into_or_from is set to 0
                 # hig res block to low res block, if into_or_from is set to 1
@@ -186,7 +186,7 @@ class Graph(object):
                 # first or second (the actual) node id is substitued by new node indexes
                 newed[:, 1 - into_or_from] = local_node_ids \
                              + ndoffset
-                if self.__edge_weight_table is not None:
+                if self._edge_weight_table is not None:
                     self.add_edges(newed, neweddir, self.edge_group[igrp], edge_low_or_high=1)
                 else:
                     self.add_edges(newed, neweddir, self.edge_group[igrp], edge_low_or_high=None)
@@ -223,9 +223,9 @@ class Graph(object):
             self.msi.set_block_higres(ndid, self.srt.inds + ndoffset)
         nd = make_nodes_3d(nd)
         self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize3 / 2))
-        if self.__edge_weight_table is not None:
-            # low resolution
-            self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=0)
+        if self._edge_weight_table is not None:
+            # high resolution
+            self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=1)
         else:
             self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=None)
 
@@ -241,19 +241,6 @@ class Graph(object):
         # edges "from" node?
         ed_remove = self._edge_group_substitution( ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=1)
 
-        # eidxs = idxs[nm.where(self.edges[idxs,0] == ndid)[0]]
-        # for igrp in self.edges_by_group(eidxs):
-        #     if igrp.shape[0] > 1:
-        #         self.edges[igrp,1] = sr_tab[self.edge_dir[igrp[0]],:].T.flatten()\
-        #         + ndoffset
-        #     else:
-        #         ed_remove.append(igrp[0])
-        #         muleidxs = nm.tile(igrp, nsplit)
-        #         newed = self.edges[muleidxs,:]
-        #         neweddir = self.edge_dir[muleidxs]
-        #         newed[:,0] = sr_tab[self.edge_dir[igrp] + 2,:].T.flatten()\
-        #             + ndoffset
-        #         self.add_edges(newed, neweddir, self.edge_group[igrp])
 
         # remove node
         self.node_flag[ndid] = False
@@ -337,7 +324,7 @@ class Graph(object):
         if self.voxelsize.size != len(data.shape):
             logger.error("Datashape should be the same as voxelsize")
             raise ValueError("Datashape should be the same as voxelsize")
-        self.__edge_weight_table = edge_weight_table
+        self._edge_weight_table = edge_weight_table
         self.compute_low_node_inverse = compute_low_nodes_index
         # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
         # 2d (nsplit, req) 2:3, 3:8, 4:12
@@ -377,7 +364,7 @@ class Graph(object):
         # edge_flag: if true, this edge is used in final output
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
-        if self.__edge_weight_table is not None:
+        if self._edge_weight_table is not None:
             # dtype is given by graph-cut
             self.edges_weights = nm.zeros((edmax,), dtype=nm.int16)
         # list of edges on low resolution
@@ -386,7 +373,7 @@ class Graph(object):
         self.nsplit = nsplit
         self.compute_msindex = compute_msindex
         # indexes of nodes arranged in ndimage
-        self.msindex = None
+        self.msinds = None
         if grid_function in (None, "nd", "ND"):
             self.gen_grid_fcn=gen_grid_nd
         elif grid_function in ("2d", "2D"):
@@ -608,10 +595,10 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
 class MultiscaleIndex(object):
     def __init__(self, shape, block_size):
         self.shape = np.asarray(shape)
-        self.msindex = np.zeros(self.shape * block_size, dtype=int)
+        self.msinds = np.zeros(self.shape * block_size, dtype=int)
         self.block_size = block_size
-        self.block_shape = [block_size] * self.msindex.ndim
-        self.cache_slice = [None] * self.msindex.ndim
+        self.block_shape = [block_size] * self.msinds.ndim
+        self.cache_slice = [None] * self.msinds.ndim
 
     def _prepare_cache_slice(self, index):
         coords = np.unravel_index(index, self.shape)
@@ -622,11 +609,11 @@ class MultiscaleIndex(object):
 
     def set_block_lowres(self, index, val):
         self._prepare_cache_slice(index)
-        self.msindex[self.cache_slice] = val
+        self.msinds[self.cache_slice] = val
 
     def set_block_higres(self, index, val):
         self._prepare_cache_slice(index)
-        self.msindex[self.cache_slice] = np.asarray(val).reshape(self.block_shape)
+        self.msinds[self.cache_slice] = np.asarray(val).reshape(self.block_shape)
 
 
 # def relabel(arr, forward_indexes=None):
