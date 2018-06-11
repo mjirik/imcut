@@ -1063,7 +1063,7 @@ class ImageGraphCut:
         """
         Get info about the node. See pycut.inspect_node() for details.
         :param node_seed:
-        :return: unariesalt, coordinates, neighboor_edges_and_weights, neighboor_coords
+        :return: node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds
         """
         return inspect_node(self.nlinks, self.unariesalt2, self.msinds, node_seed)
 
@@ -1165,7 +1165,7 @@ def inspect_node_neighborhood(nlinks, msinds, node_seed):
     :param nlinks: neighboorhood edges
     :param msinds: indexes in 3d image
     :param node_seed: index in the image or seeds (the first located seed is used)
-    :return: coordinates, neighboor_edges_and_weights, neighboor_coords
+    :return: node_neighboor_edges_and_weights, node_neighboor_seeds
     """
     if type(node_seed) != np.ndarray:
         raise ValueError("Expected ndarray with seeds")
@@ -1198,7 +1198,7 @@ def inspect_node(nlinks, unariesalt, msinds, node_seed):
     :param unariesalt: weights
     :param msinds: indexes in 3d image
     :param node_seed: index in the image or seeds (the first located seed is used)
-    :return: unariesalt, coordinates, neighboor_edges_and_weights, neighboor_coords
+    :return: node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds
     """
     if type(node_seed) == np.ndarray:
         seed_indexes = np.nonzero(node_seed)
