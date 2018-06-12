@@ -707,6 +707,69 @@ class PycutTest(unittest.TestCase):
         self.assertLessEqual(np.max(ij) - np.min(ij), 24, msg="Neighbor nodes position variance should be maximum 3 * block size ")
         self.assertLessEqual(np.max(ik) - np.min(ik), 24, msg="Neighbor nodes position variance should be maximum 3 * block size ")
 
+    def test_msgc_lo2hi_crazy_non_block_sized_images_65(self):
+        """
+        Test multiscale segmentation
+        """
+
+        img, seg, seeds = self.make_data(65, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'multiscale_graphcut_lo2hi',
+            # 'method': 'multiscale_graphcut_hi2lo',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'block_size': 8,
+            'tile_zoom_constant': 1
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        edseeds = seeds
+        # gc.interactive_inspect_node()
+
+        # node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.inspect_node(edseeds)
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+
+    def test_msgc_lo2hi_crazy_non_block_sized_images_68(self):
+        """
+        Test multiscale segmentation
+        """
+
+        img, seg, seeds = self.make_data(68, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'multiscale_graphcut_lo2hi',
+            # 'method': 'multiscale_graphcut_hi2lo',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'block_size': 8,
+            'tile_zoom_constant': 1
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        edseeds = seeds
+        # gc.interactive_inspect_node()
+
+        # node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.inspect_node(edseeds)
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,7 +27,7 @@ import pygco
 # from pygco import cut_from_graph
 
 # from . import models
-from .image_manipulation import seed_zoom, zoom_to_shape, resize_to_shape, resize_to_shape_with_zoom, select_objects_by_seeds
+from .image_manipulation import seed_zoom, zoom_to_shape, resize_to_shape, resize_to_shape_with_zoom, select_objects_by_seeds, crop, uncrop
 
 from .models import Model, Model3D, defaultmodelparams, methods
 from .graph import Graph
@@ -104,7 +104,6 @@ class ImageGraphCut:
         self.img = img
         self.tdata = {}
         self.segmentation = None
-        self.imgshape = img.shape
         self.modelparams = defaultmodelparams.copy()
         self.modelparams.update(modelparams)
         # self.segparams = segparams
@@ -458,6 +457,7 @@ class ImageGraphCut:
         """
         # from PyQt4.QtCore import pyqtRemoveInputHook
         # pyqtRemoveInputHook()
+        self._msgc_lo2hi_resize_init()
         self.__msgc_step0_init()
 
         area_weight, hard_constraints = self.__msgc_step12_low_resolution_segmentation()
@@ -481,10 +481,10 @@ class ImageGraphCut:
         ])
         if self.debug_images:
             import sed3
-            ed = sed3.sed3(unariesalt[:,:,0].reshape(self.imgshape))
+            ed = sed3.sed3(unariesalt[:,:,0].reshape(self.img.shape))
             ed.show()
             import sed3
-            ed = sed3.sed3(unariesalt[:,:,1].reshape(self.imgshape))
+            ed = sed3.sed3(unariesalt[:,:,1].reshape(self.img.shape))
             ed.show()
             # import sed3
             # ed = sed3.sed3(graph.data)
@@ -496,6 +496,7 @@ class ImageGraphCut:
         # nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
         # self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
         self.__msgc_step9_finish_perform_gc_and_reshape(nlinks_lo2hi, unariesalt2_lo2hi, graph.msinds)
+        self._msgc_lo2hi_resize_finish()
 
     def __multiscale_gc_hi2lo_run(self):  # , pyed):
         """
@@ -1062,6 +1063,8 @@ class ImageGraphCut:
     def inspect_node(self, node_seed):
         """
         Get info about the node. See pycut.inspect_node() for details.
+        Processing is done in temporary shape.
+
         :param node_seed:
         :return: node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds
         """
@@ -1072,15 +1075,19 @@ class ImageGraphCut:
         Call after segmentation to see node neighborhood
         :return:
         """
+        if np.sum(np.abs(self.msinds.shape - self.segmentation)) == 0:
+            segmentation = self.segmentation
+        else:
+            segmentation = self.temp_segmentation
 
         import sed3
-        ed = sed3.sed3(self.msinds, contour=self.segmentation==0)
+        ed = sed3.sed3(self.msinds, contour=segmentation==0)
         ed.show()
         edseeds = ed.seeds
 
         node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = self.inspect_node(edseeds)
         import sed3
-        ed = sed3.sed3(self.msinds, contour=self.segmentation==0, seeds=node_neighboor_seeds)
+        ed = sed3.sed3(self.msinds, contour=segmentation==0, seeds=node_neighboor_seeds)
         ed.show()
 
     def _ssgc_prepare_data_and_run_computation(self,
@@ -1143,6 +1150,24 @@ class ImageGraphCut:
         result_labeling = result_graph.reshape(self.img.shape)
 
         return result_labeling
+
+    def _msgc_lo2hi_resize_init(self):
+        self._lo2hi_resize_original_shape = self.img.shape
+        new_shape = (
+                np.ceil(np.asarray(self.img.shape) / float(self.segparams["block_size"])) *
+                self.segparams["block_size"]).astype(np.int)
+        crinfo = list(zip([0] * self.img.ndim, self.img.shape))
+        self.img = uncrop(self.img, crinfo, new_shape)
+        self.seeds = uncrop(self.seeds, crinfo, new_shape)
+
+    def _msgc_lo2hi_resize_finish(self):
+        orig_shape = self._lo2hi_resize_original_shape
+        self.temp_img = self.img
+        self.temp_segmentation = self.segmentation
+        self.temp_seeds = self.seeds
+        self.img = self.temp_img[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        self.segmentation = self.temp_segmentation[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        self.seeds = self.temp_seeds[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
 
     def save(self, filename):
         self.mdl.save(filename)
