@@ -91,3 +91,36 @@ class ImageManipulationTest(unittest.TestCase):
         self.assertEqual(selected[-2, 1, 1], 0)
         self.assertEqual(len(unique), 2)
         self.assertGreater(np.count_nonzero(data), np.count_nonzero(selected))
+
+    def test_crop_and_uncrop(self):
+        shape = [10, 10, 5]
+        img_in = np.random.random(shape)
+
+        crinfo = [[2, 8], [3, 9], [2, 5]]
+
+        img_cropped = imma.crop(img_in, crinfo)
+
+        img_uncropped = imma.uncrop(img_cropped, crinfo, shape)
+
+        self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
+
+    def test_multiple_crop_and_uncrop(self):
+        """
+        test combination of multiple crop
+        """
+
+        shape = [10, 10, 5]
+        img_in = np.random.random(shape)
+
+        crinfo1 = [[2, 8], [3, 9], [2, 5]]
+        crinfo2 = [[2, 5], [1, 4], [1, 2]]
+
+        img_cropped = imma.crop(img_in, crinfo1)
+        img_cropped = imma.crop(img_cropped, crinfo2)
+
+        crinfo_combined = imma.combinecrinfo(crinfo1, crinfo2)
+
+        img_uncropped = imma.uncrop(img_cropped, crinfo_combined, shape)
+
+        self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
+        self.assertEquals(img_in.shape, img_uncropped.shape)

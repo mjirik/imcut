@@ -339,3 +339,133 @@ def select_objects_by_seeds(data, seeds):
 #         list2[index], list2[min] = list2[min], list2[index]
 #
 #     return list1, list2
+
+def crop(data, crinfo):
+    """
+    Crop the data.
+
+    crop(data, crinfo)
+
+    :param crinfo: min and max for each axis - [[minX, maxX], [minY, maxY], [minZ, maxZ]]
+
+    """
+    crinfo = fix_crinfo(crinfo)
+    return data[
+           __int_or_none(crinfo[0][0]):__int_or_none(crinfo[0][1]),
+           __int_or_none(crinfo[1][0]):__int_or_none(crinfo[1][1]),
+           __int_or_none(crinfo[2][0]):__int_or_none(crinfo[2][1])
+           ]
+
+
+def __int_or_none(number):
+    if number is not None:
+        number = int(number)
+    return number
+
+
+def combinecrinfo(crinfo1, crinfo2):
+    """
+    Combine two crinfos. First used is crinfo1, second used is crinfo2.
+    """
+    crinfo1 = fix_crinfo(crinfo1)
+    crinfo2 = fix_crinfo(crinfo2)
+
+    crinfo = [
+        [crinfo1[0][0] + crinfo2[0][0], crinfo1[0][0] + crinfo2[0][1]],
+        [crinfo1[1][0] + crinfo2[1][0], crinfo1[1][0] + crinfo2[1][1]],
+        [crinfo1[2][0] + crinfo2[2][0], crinfo1[2][0] + crinfo2[2][1]]
+    ]
+
+    return crinfo
+
+
+def crinfo_from_specific_data(data, margin=0):
+    """
+    Create crinfo of minimum orthogonal nonzero block in input data.
+
+    :param data: input data
+    :param margin: add margin to minimum block
+    :return:
+    """
+    # hledáme automatický ořez, nonzero dá indexy
+    logger.debug('crinfo')
+    logger.debug(str(margin))
+    nzi = np.nonzero(data)
+    logger.debug(str(nzi))
+
+    if np.isscalar(margin):
+        margin = [margin] * 3
+
+    x1 = np.min(nzi[0]) - margin[0]
+    x2 = np.max(nzi[0]) + margin[0] + 1
+    y1 = np.min(nzi[1]) - margin[0]
+    y2 = np.max(nzi[1]) + margin[0] + 1
+    z1 = np.min(nzi[2]) - margin[0]
+    z2 = np.max(nzi[2]) + margin[0] + 1
+
+    # ošetření mezí polí
+    if x1 < 0:
+        x1 = 0
+    if y1 < 0:
+        y1 = 0
+    if z1 < 0:
+        z1 = 0
+
+    if x2 > data.shape[0]:
+        x2 = data.shape[0] - 1
+    if y2 > data.shape[1]:
+        y2 = data.shape[1] - 1
+    if z2 > data.shape[2]:
+        z2 = data.shape[2] - 1
+
+    # ořez
+    crinfo = [[x1, x2], [y1, y2], [z1, z2]]
+    return crinfo
+
+
+def uncrop(data, crinfo, orig_shape, resize=False):
+    """
+
+    :param data: input data
+    :param crinfo: array with minimum and maximum index along each axis
+        [[minX, maxX],[minY, maxY],[minZ, maxZ]]
+    :param orig_shape: shape of uncropped image
+    :param resize:
+    :return:
+    """
+
+    crinfo = fix_crinfo(crinfo)
+    data_out = np.zeros(orig_shape, dtype=data.dtype)
+
+    # print 'uncrop ', crinfo
+    # print orig_shape
+    # print data.shape
+    if resize:
+        data = resize_to_shape(data, crinfo[:, 1] - crinfo[:, 0])
+
+    startx = np.round(crinfo[0][0]).astype(int)
+    starty = np.round(crinfo[1][0]).astype(int)
+    startz = np.round(crinfo[2][0]).astype(int)
+
+    data_out[
+    # np.round(crinfo[0][0]).astype(int):np.round(crinfo[0][1]).astype(int)+1,
+    # np.round(crinfo[1][0]).astype(int):np.round(crinfo[1][1]).astype(int)+1,
+    # np.round(crinfo[2][0]).astype(int):np.round(crinfo[2][1]).astype(int)+1
+    startx:startx + data.shape[0],
+    starty:starty + data.shape[1],
+    startz:startz + data.shape[2]
+    ] = data
+
+    return data_out
+
+
+def fix_crinfo(crinfo, to='axis'):
+    """
+    Function recognize order of crinfo and convert it to proper format.
+    """
+
+    crinfo = np.asarray(crinfo)
+    if crinfo.shape[0] == 2:
+        crinfo = crinfo.T
+
+    return crinfo
