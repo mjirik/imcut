@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/github/mjirik/pysegbase/badge.svg?branch=master)](https://coveralls.io/github/mjirik/pysegbase?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/mjirik/imcut/badge.svg?branch=master)](https://coveralls.io/github/mjirik/imcut?branch=master)
 
 About
 -----
@@ -38,7 +38,7 @@ See third party licenses
 Resources
 -----
 
-  https://github.com/mjirik/pysegbase
+  https://github.com/mjirik/imcut
   
   https://github.com/amueller/gco_python
 
@@ -51,13 +51,13 @@ New BSD License, see the LICENSE file.
 Install conda
 ----
 
-    conda install -c mjirik -c conda-forge pysegbase
+    conda install -c mjirik -c conda-forge imcut
     pip install pygco
 
 Install pip
 -------
 
-    pip install pygco pysegbase
+    pip install pygco imcut
 
 See INSTALL file for more information
 
@@ -66,21 +66,21 @@ Run
 
 Create output.mat file:
     
-    python pysegbase/dcmreaddata.py -i directoryWithDicomFiles --degrad 4
+    python imcut/dcmreaddata.py -i directoryWithDicomFiles --degrad 4
     
 See data:
 
-    python pysegbase/seed_editor_qt.py -f output.mat
+    python imcut/seed_editor_qt.py -f output.mat
     
 Make graph_cut:
 
-    python pysegbase/pycut.py -i output.mat
+    python imcut/pycut.py -i output.mat
 
 
 Use is as a library:
 
     import numpy as np
-    import pysegbase.pycut as pspc
+    import imcut.pycut as pspc
 
     data = np.random.rand(30, 30, 30)
     data[10:20, 5:15, 3:13] += 1
@@ -96,7 +96,7 @@ More complex example without interactivity
 ---
 
     import numpy as np
-    import pysegbase.pycut as pspc
+    import imcut.pycut as pspc
     import matplotlib.pyplot as plt
 
     # create data
@@ -150,4 +150,4 @@ Configuration
         
 *mdl_stored_file*: if this is set, load model from file 
 
-[read more about configuration](https://github.com/mjirik/pysegbase/blob/master/pysegbase/pycut.py)
+[read more about configuration](https://github.com/mjirik/imcut/blob/master/imcut/pycut.py)

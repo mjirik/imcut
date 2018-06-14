@@ -59,7 +59,7 @@ Mac:
 
 Install PYSEG_BASE:
 
-  pip install pysegbase
+  pip install imcut
 
   or:
 
