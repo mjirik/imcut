@@ -17,7 +17,7 @@ path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 
 from nose.plugins.attrib import attr
-from pysegbase import models
+from imcut import models
 
 
 class ModelsTest(unittest.TestCase):
@@ -27,7 +27,7 @@ class ModelsTest(unittest.TestCase):
     #         cls.assertCountEqual = cls.assertItemsEqual
 
     def test_sigmoid(self):
-        # from pysegbase import models
+        # from imcut import models
         import matplotlib.pyplot as plt
         x = np.linspace(-1000,1000, 100)
         min = 20

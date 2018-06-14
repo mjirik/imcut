@@ -18,7 +18,7 @@ sys.path.append(os.path.join(path_to_script, "../src/"))
 
 from nose.plugins.attrib import attr
 from nose.tools import raises
-from pysegbase import graph
+from imcut import graph
 
 orig_sr_tab = {
     2: np.array([(0,2), (0,1), (1,3), (2,3)]),

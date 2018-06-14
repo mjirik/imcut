@@ -1,13 +1,13 @@
 # upload to pipy server:
 #     python setup.py register sdist upload
 # Update with pip
-#     pip install -U --no-deps --user pysegbase
+#     pip install -U --no-deps --user imcut
 from setuptools import setup, find_packages  # Always prefer setuptools over distutils
 from os import path
 
 here = path.abspath(path.dirname(__file__))
 setup(
-    name='pysegbase',
+    name='imcut',
     description='Graph Cut based 3D segmentation with editor',
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see

@@ -203,7 +203,7 @@ class Model(Model3D):
             data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
             arrs = [data.reshape(-1, 1), data2.reshape(-1, 1)]
             fv = np.concatenate(arrs, axis=1)
-            return pysegbase.features.return_fv_by_seeds(fv, seeds, unique_cls)
+            return imcut.features.return_fv_by_seeds(fv, seeds, unique_cls)
 
         modelparams['fv_extern'] = fv_function
         """

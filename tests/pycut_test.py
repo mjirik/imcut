@@ -17,7 +17,7 @@ path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 
 from nose.plugins.attrib import attr
-from pysegbase import pycut
+from imcut import pycut
 
 def fv_function(data, voxelsize, seeds=None, cls=None):
     """
@@ -208,13 +208,13 @@ class PycutTest(unittest.TestCase):
         Returns:
 
         """
-        import pysegbase.seed_editor_qt
+        import imcut.seed_editor_qt
         import numpy as np
         from PyQt4.QtGui import QApplication
         app = QApplication(sys.argv)
         data = (np.random.rand(30,31,32) * 100).astype(np.int)
         data[15:40, 13:20, 10:18] += 50
-        se = pysegbase.seed_editor_qt.QTSeedEditor(data)
+        se = imcut.seed_editor_qt.QTSeedEditor(data)
         se.exec_()
         # self.assertTrue(False)
 
@@ -225,13 +225,13 @@ class PycutTest(unittest.TestCase):
         Returns:
 
         """
-        import pysegbase.seed_editor_qt
+        import imcut.seed_editor_qt
         import numpy as np
         from PyQt4.QtGui import QApplication
         app = QApplication(sys.argv)
         data = (np.random.rand(30,31,32) * 100).astype(np.int)
         data[15:40, 13:20, 10:18] += 50
-        se = pysegbase.seed_editor_qt.QTSeedEditor(data)
+        se = imcut.seed_editor_qt.QTSeedEditor(data)
         se.slice_box.seed_mark = 1 #left mouse button
         se.slice_box.last_position = [1, 3]
         se.slice_box.drawSeeds([10, 5])

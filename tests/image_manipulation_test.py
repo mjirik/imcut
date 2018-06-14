@@ -9,7 +9,7 @@ import os.path
 import unittest
 import scipy
 import numpy as np
-import pysegbase.image_manipulation as imma
+import imcut.image_manipulation as imma
 
 import logging
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ sys.path.append(os.path.join(path_to_script, "../src/"))
 
 from nose.plugins.attrib import attr
 from nose.tools import raises
-from pysegbase import graph
+from imcut import graph
 
 class ImageManipulationTest(unittest.TestCase):
     # @classmethod
