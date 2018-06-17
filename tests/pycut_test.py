@@ -771,5 +771,64 @@ class PycutTest(unittest.TestCase):
             ),
             600)
 
+
+    # TODO find why there is an error on the border of image
+    def test_msgc_lo2hi_round_data(self):
+        """
+        Test multiscale segmentation
+        """
+        np.random.seed(3)
+        img, seg, seeds = make_round_data(45, 3, 10, 3)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'multiscale_graphcut_lo2hi',
+            # 'method': 'multiscale_graphcut_hi2lo',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'block_size': 8,
+            'tile_zoom_constant': 1
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
+        gc.set_seeds(seeds)
+        gc.run()
+        # import sed3
+        # ed = sed3.show_slices(img, gc.segmentation*2)
+        # ed.show()
+
+        edseeds = seeds
+        # gc.interactive_inspect_node()
+
+        # node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.inspect_node(edseeds)
+
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            600)
+
+
+def make_round_data(sz=32, offset=0, radius=7, seedsz=3):
+    #seedsz= int(sz/10)
+    space=2
+    seeds = np.zeros([sz, sz+1, sz+2], dtype=np.int8)
+    xmin = radius + seedsz + offset + 2
+    ymin = radius + seedsz + offset + 6
+    seeds[offset + 12, xmin + 3:xmin + 7 + seedsz, ymin:ymin+2] = 1
+    seeds[offset + 20, xmin + 7:xmin + 12 + seedsz, ymin+5:ymin+7] = 1
+    img = np.ones([sz, sz+1, sz+2])
+    img = img - seeds
+
+    seeds[
+        2:10 + seedsz,
+        2:9+ seedsz,
+        2:3+ seedsz] = 2
+    img = scipy.ndimage.morphology.distance_transform_edt(img)
+    segm = img < radius
+    img = (100 * segm + 80 * np.random.random(img.shape)).astype(np.uint8)
+    return img, segm, seeds
+
+
 if __name__ == "__main__":
     unittest.main()

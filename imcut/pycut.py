@@ -1157,7 +1157,7 @@ class ImageGraphCut:
                 np.ceil(np.asarray(self.img.shape) / float(self.segparams["block_size"])) *
                 self.segparams["block_size"]).astype(np.int)
         crinfo = list(zip([0] * self.img.ndim, self.img.shape))
-        self.img = uncrop(self.img, crinfo, new_shape)
+        self.img = uncrop(self.img, crinfo, new_shape, outside_mode="nearest")
         self.seeds = uncrop(self.seeds, crinfo, new_shape)
 
     def _msgc_lo2hi_resize_finish(self):
