@@ -124,3 +124,39 @@ class ImageManipulationTest(unittest.TestCase):
 
         self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
         self.assertEquals(img_in.shape, img_uncropped.shape)
+
+    def test_multiple_crop_and_uncrop_nearest_outside(self):
+        """
+        test combination of multiple crop
+        """
+
+        shape = [10, 11, 5]
+        img_in = np.random.random(shape)
+
+        crinfo1 = [[2, 8], [3, 9], [2, 5]]
+        # crinfo2 = [[2, 5], [1, 5], [1, 2]]
+
+        img_cropped = imma.crop(img_in, crinfo1)
+        # img_cropped = imma.crop(img_cropped, crinfo2)
+
+        # crinfo_combined = imma.combinecrinfo(crinfo1, crinfo2)
+
+        img_uncropped = imma.uncrop(img_cropped, crinfo1, shape, outside_mode="nearest")
+
+        # import sed3
+        # ed = sed3.sed3(img_uncropped)
+        # ed.show()
+        self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
+
+        self.assertTrue(img_uncropped[crinfo1[0][0], 5, 3] == img_uncropped[0, 5, 3], msg="pixels under crop")
+        self.assertTrue(img_uncropped[5, crinfo1[1][0], 3] == img_uncropped[5, 0, 3], msg="pixels under crop")
+        self.assertTrue(img_uncropped[7, 3, crinfo1[2][0]] == img_uncropped[7, 3, 0], msg="pixels under crop")
+
+        self.assertTrue(img_uncropped[crinfo1[0][1] - 1, 5, 3] == img_uncropped[-1, 5, 3], msg="pixels over crop")
+        self.assertTrue(img_uncropped[5, crinfo1[1][1] - 1, 3] == img_uncropped[5, -1, 3], msg="pixels over crop")
+        self.assertTrue(img_uncropped[7, 3, crinfo1[2][1] - 1] == img_uncropped[7, 3, -1], msg="pixels over crop")
+
+        # self.assertTrue(img_uncropped[crinfo1[0][1], 5 , 3] == img_uncropped[0, 5, 3], msg="pixels over crop")
+        # self.assertTrue(img_uncropped[crinfo1[1][1], 5 , 3] == img_uncropped[1, 5, 3], msg="pixels over crop")
+        # self.assertTrue(img_uncropped[crinfo1[2][1], 5 , 3] == img_uncropped[2, 5, 3], msg="pixels over crop")
+        self.assertEquals(img_in.shape, img_uncropped.shape)
