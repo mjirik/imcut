@@ -59,9 +59,41 @@ def box_data(noise_sigma=3):
 
 class PycutTest(unittest.TestCase):
     def setUp(self):
-        self.segparams1 = {
+        self.segparams_ssgc = {
             # 'method':'graphcut',
             'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                "params": {
+                    "n_components": 2,
+                }
+                # 'fv_type': "fv_extern",
+                # 'fv_extern': fv_function,
+                # 'adaptation': 'original_data',
+            }
+        }
+        self.segparams_lo2hi = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                "params": {
+                    "n_components": 2,
+                }
+                # 'fv_type': "fv_extern",
+                # 'fv_extern': fv_function,
+                # 'adaptation': 'original_data',
+            }
+        }
+        self.segparams_hi2lo = {
+            # 'method':'graphcut',
+            'method': 'graphcut_hi2lo',
             'use_boundary_penalties': False,
             'boundary_dilatation_distance': 2,
             'boundary_penalties_weight': 1,
@@ -81,9 +113,10 @@ class PycutTest(unittest.TestCase):
         if sys.version_info.major < 3:
             cls.assertCountEqual = cls.assertItemsEqual
 
+    # @unittest.skipIf(os.environ.get("TRAVIS", True), "Skip on Travis-CI")
     def test_simple_graph_cut(self):
         img, seg, seeds = self.make_data(64, 20)
-        gc = pycut.ImageGraphCut(img , segparams=self.segparams1)
+        gc = pycut.ImageGraphCut(img, segparams=self.segparams_ssgc)
         gc.set_seeds(seeds)
 
         gc.run()
@@ -96,7 +129,7 @@ class PycutTest(unittest.TestCase):
 
     def test_simple_graph_cut_show_similarity(self):
         img, seg, seeds = self.make_data(64, 20)
-        gc = pycut.ImageGraphCut(img , segparams=self.segparams1)
+        gc = pycut.ImageGraphCut(img, segparams=self.segparams_ssgc)
         gc.set_seeds(seeds)
 
         gc.run()
