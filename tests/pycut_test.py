@@ -821,11 +821,11 @@ class PycutTest(unittest.TestCase):
         )
         self.assertEqual(np.max(nlinks_max), 8, "nlink maximal value in reconstructed nlink map")
         self.assertEqual(np.min(nlinks_max), 1, "nlink minimal value in reconstructed nlink map")
-        self.assertGreater(np.min(tdata1), 0, "tlink minimal value in reconstructed nlink map")
-        self.assertGreater(np.min(tdata2), 0, "tlink minimal value in reconstructed nlink map")
+        self.assertGreaterEqual(np.min(tdata1), 0, "tlink minimal value in reconstructed nlink map")
+        self.assertGreaterEqual(np.min(tdata2), 0, "tlink minimal value in reconstructed nlink map")
         self.assertGreaterEqual(node_neighboor_seeds.shape[0], 3, "check number of nlink connections")
         self.assertLessEqual(node_neighboor_seeds.shape[0], 6, "check number of nlink connections")
-        self.assertGreater(np.min(node_unariesalt), 0, "selected node nlink minimum")
+        self.assertGreaterEqual(np.min(node_unariesalt), 0, "selected node nlink minimum")
 
 
 def make_round_data(sz=32, offset=0, radius=7, seedsz=3):
