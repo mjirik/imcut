@@ -160,3 +160,25 @@ class ImageManipulationTest(unittest.TestCase):
         # self.assertTrue(img_uncropped[crinfo1[1][1], 5 , 3] == img_uncropped[1, 5, 3], msg="pixels over crop")
         # self.assertTrue(img_uncropped[crinfo1[2][1], 5 , 3] == img_uncropped[2, 5, 3], msg="pixels over crop")
         self.assertEquals(img_in.shape, img_uncropped.shape)
+
+    def test_uncrop_with_none_crinfo(self):
+        shape = [10, 10, 5]
+        orig_shape = [15, 13, 7]
+        img_in = np.random.random(shape)
+
+        img_uncropped = imma.uncrop(img_in, crinfo=None, orig_shape=orig_shape)
+
+        self.assertTrue(img_uncropped[-1, -1, -1] == 0)
+        self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
+
+
+    def test_uncrop_with_start_point_crinfo(self):
+        shape = [10, 10, 5]
+        orig_shape = [15, 13, 7]
+        img_in = np.random.random(shape)
+        crinfo = [5, 2, 1]
+
+        img_uncropped = imma.uncrop(img_in, crinfo=crinfo, orig_shape=orig_shape)
+
+        self.assertTrue(img_uncropped[-1, -1, -1] == 0)
+        self.assertTrue(img_uncropped[4 + 5, 4 + 2, 3 + 1] == img_in[4 , 4, 3])

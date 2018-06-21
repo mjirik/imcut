@@ -425,19 +425,24 @@ def crinfo_from_specific_data(data, margin=0):
 
 def uncrop(data, crinfo, orig_shape, resize=False, outside_mode="constant", cval=0):
     """
+    Put some boundary to input image.
+
 
     :param data: input data
     :param crinfo: array with minimum and maximum index along each axis
-        [[minX, maxX],[minY, maxY],[minZ, maxZ]]
+        [[minX, maxX],[minY, maxY],[minZ, maxZ]]. If crinfo is None, the whole input image is placed into [0, 0, 0].
+        If crinfo is just series of three numbers, it is used as an initial point for input image placement.
     :param orig_shape: shape of uncropped image
     :param resize: True or False (default). Usefull if the data.shape does not fit to crinfo shape.
     :param outside_mode: 'constant', 'nearest'
     :return:
     """
 
-    import matplotlib.pyplot as plt
-    # if outside_mode is "":
-    #     outside_mode
+    if crinfo is None:
+        crinfo = list(zip([0] * data.ndim, orig_shape))
+    elif np.asarray(crinfo).size == data.ndim:
+        crinfo = list(zip(crinfo, np.asarray(crinfo) + data.shape))
+
     crinfo = fix_crinfo(crinfo)
     data_out = np.ones(orig_shape, dtype=data.dtype) * cval
 
