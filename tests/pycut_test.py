@@ -701,7 +701,7 @@ class PycutTest(unittest.TestCase):
         # gc.interactive_inspect_node()
         node_msindex = gc.debug_get_node_msindex(seeds)
 
-        node_id, node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.debug_inspect_node(node_msindex=node_msindex)
+        node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.debug_inspect_node(node_msindex=node_msindex)
         ii, ij, ik = np.nonzero(node_neighboor_seeds)
         #
         self.assertLessEqual(np.max(ii) - np.min(ii), 24, msg="Neighbor nodes position variance should be maximum 3 * block size ")
@@ -821,8 +821,8 @@ class PycutTest(unittest.TestCase):
         self.assertEqual(np.min(nlinks_max), 1, "nlink minimal value in reconstructed nlink map")
         self.assertGreaterEqual(np.min(tdata1), 0, "tlink minimal value in reconstructed nlink map")
         self.assertGreaterEqual(np.min(tdata2), 0, "tlink minimal value in reconstructed nlink map")
-        self.assertGreaterEqual(node_neighboor_seeds.shape[0], 3, "check number of nlink connections")
-        self.assertLessEqual(node_neighboor_seeds.shape[0], 6, "check number of nlink connections")
+        self.assertGreaterEqual(node_neighboor_edges_and_weights.shape[0], 3, "check number of nlink connections")
+        self.assertLessEqual(node_neighboor_edges_and_weights.shape[0], 6, "check number of nlink connections")
         self.assertGreaterEqual(np.min(node_unariesalt), 0, "selected node nlink minimum")
 
 

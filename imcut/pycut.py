@@ -1114,7 +1114,7 @@ class ImageGraphCut:
 
         unariesalt = self.debug_get_reconstructed_similarity(
             data3d, voxelsize=voxelsize, seeds=seeds, area_weight=area_weight, hard_constraints=hard_constraints,
-            return_unariesalt=False)
+            return_unariesalt=True)
 
         self._debug_show_unariesalt(unariesalt, show=show, bins=bins, slice_number=slice_number)
 
