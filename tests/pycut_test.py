@@ -772,8 +772,6 @@ class PycutTest(unittest.TestCase):
             ),
             600)
 
-
-    # TODO find why there is an error on the border of image
     def test_msgc_lo2hi_round_data(self):
         """
         Test multiscale segmentation
