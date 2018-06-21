@@ -100,8 +100,8 @@ class PycutTest(unittest.TestCase):
         gc.set_seeds(seeds)
 
         gc.run()
-        gc.show_similarity(show=False)
-        gc.show_model(start=-500, stop=500, show=False)
+        gc.debug_show_reconstructed_similarity(show=False)
+        gc.debug_show_model(start=-500, stop=500, show=False)
         # import sed3
         # ed = sed3.sed3((gc.segmentation==0).astype(np.double), contour=seg)
         # ed.show()
@@ -699,8 +699,9 @@ class PycutTest(unittest.TestCase):
             ),
             600)
         # gc.interactive_inspect_node()
+        node_msindex = gc.debug_get_node_msindex(seeds)
 
-        node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.inspect_node(seeds)
+        node_id, node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.debug_inspect_node(node_msindex=node_msindex)
         ii, ij, ik = np.nonzero(node_neighboor_seeds)
         #
         self.assertLessEqual(np.max(ii) - np.min(ii), 24, msg="Neighbor nodes position variance should be maximum 3 * block size ")
@@ -794,19 +795,37 @@ class PycutTest(unittest.TestCase):
         gc.run()
         # import sed3
         # ed = sed3.show_slices(img, gc.segmentation*2)
-        # ed.show()
+
+        # gc.debug_show_model()
+        # gc.debug_show_reconstructed_similarity()
+        tdata1, tdata2 = gc.debug_get_reconstructed_similarity()
 
         edseeds = seeds
-        # gc.interactive_inspect_node()
+        # node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds, node_msindex = gc.interactive_inspect_node()
 
-        # node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.inspect_node(edseeds)
+        node_msindex = gc.debug_get_node_msindex(edseeds)
+        node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = gc.debug_inspect_node(node_msindex)
 
+        nlinks_max = gc.debug_reconstruct_nlinks_max()
+
+        # from imcut import image_manipulation as imma
+        # seg_uncr = imma.uncrop(gc.segmentation, None, nlinks_max.shape)
+        # ed = sed3.sed3(nlinks_max, seg_uncr*2)
+        # ed.show()
         self.assertLess(
             np.sum(
                 np.abs(
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
-            600)
+            600
+        )
+        self.assertEqual(np.max(nlinks_max), 8, "nlink maximal value in reconstructed nlink map")
+        self.assertEqual(np.min(nlinks_max), 1, "nlink minimal value in reconstructed nlink map")
+        self.assertGreater(np.min(tdata1), 0, "tlink minimal value in reconstructed nlink map")
+        self.assertGreater(np.min(tdata2), 0, "tlink minimal value in reconstructed nlink map")
+        self.assertGreaterEqual(node_neighboor_seeds.shape[0], 3, "check number of nlink connections")
+        self.assertLessEqual(node_neighboor_seeds.shape[0], 6, "check number of nlink connections")
+        self.assertGreater(np.min(node_unariesalt), 0, "selected node nlink minimum")
 
 
 def make_round_data(sz=32, offset=0, radius=7, seedsz=3):
