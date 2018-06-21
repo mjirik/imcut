@@ -670,7 +670,7 @@ class PycutTest(unittest.TestCase):
                 np.abs(
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
-            600)
+            100)
 
     def test_node_inspection_on_msgc_lo2hi(self):
         """
@@ -697,7 +697,7 @@ class PycutTest(unittest.TestCase):
                 np.abs(
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
-            600)
+            100)
         # gc.interactive_inspect_node()
         node_msindex = gc.debug_get_node_msindex(seeds)
 
@@ -738,7 +738,7 @@ class PycutTest(unittest.TestCase):
                 np.abs(
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
-            600)
+            100)
 
     def test_msgc_lo2hi_crazy_non_block_sized_images_68(self):
         """
@@ -770,7 +770,7 @@ class PycutTest(unittest.TestCase):
                 np.abs(
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
-            600)
+            100)
 
     def test_msgc_lo2hi_round_data(self):
         """
@@ -815,7 +815,7 @@ class PycutTest(unittest.TestCase):
                 np.abs(
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
-            600
+            100
         )
         self.assertEqual(np.max(nlinks_max), 8, "nlink maximal value in reconstructed nlink map")
         self.assertEqual(np.min(nlinks_max), 1, "nlink minimal value in reconstructed nlink map")
