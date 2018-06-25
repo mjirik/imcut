@@ -896,8 +896,8 @@ class PycutTest(unittest.TestCase):
         gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
         gc.set_seeds(seeds)
         gc.run()
-        import sed3
-        ed = sed3.show_slices(img, gc.segmentation*2, seeds=seeds)
+        # import sed3
+        # ed = sed3.show_slices(img, gc.segmentation*2, seeds=seeds)
 
         self.assertEqual((gc.segmentation == 0).astype(np.int8)[-3, -3, -3], 0)
         self.assertLess(
