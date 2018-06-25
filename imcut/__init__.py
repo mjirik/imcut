@@ -3,7 +3,7 @@ from __future__ import absolute_import
 __all__ = ['pycut',
            # 'seed_editor_qt',
            'dcmreaddata']
-__version__ = "1.2.50"
+__version__ = "1.2.51"
 # DeprecationWarning("imcut package is renamed to imcut")
 # from .pycut import Model, ImageGraphCut
 # from .seed_editor_qt import QTSeedEditor
