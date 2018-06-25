@@ -69,7 +69,25 @@ class PycutTest(unittest.TestCase):
                 'type': 'gmmsame',
                 "params": {
                     "n_components": 2,
-                }
+                },
+            # "return_only_objects_with_seeds": True,
+                # 'fv_type': "fv_extern",
+                # 'fv_extern': fv_function,
+                # 'adaptation': 'original_data',
+            }
+        }
+        self.segparams_ssgc = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                "params": {
+                    "n_components": 2,
+                },
+                # "return_only_objects_with_seeds": True,
                 # 'fv_type': "fv_extern",
                 # 'fv_extern': fv_function,
                 # 'adaptation': 'original_data',
@@ -859,8 +877,47 @@ class PycutTest(unittest.TestCase):
         self.assertLessEqual(node_neighboor_edges_and_weights.shape[0], 6, "check number of nlink connections")
         self.assertGreaterEqual(np.min(node_unariesalt), 0, "selected node nlink minimum")
 
+    def test_ssgc_just_objects_with_seeds_round_data(self):
+        """
+        Test multiscale segmentation
+        """
+        np.random.seed(3)
+        img, seg, seeds = make_round_data(45, 3, 10, 3, add_object_without_seeds=True)
+        segparams = {
+            'method':'graphcut',
+            # 'method': 'multiscale_graphcut_hi2lo',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'block_size': 8,
+            'tile_zoom_constant': 1,
+            "return_only_object_with_seeds": True,
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
+        gc.set_seeds(seeds)
+        gc.run()
+        import sed3
+        ed = sed3.show_slices(img, gc.segmentation*2, seeds=seeds)
 
-def make_round_data(sz=32, offset=0, radius=7, seedsz=3):
+        self.assertEqual((gc.segmentation == 0).astype(np.int8)[-3, -3, -3], 0)
+        self.assertLess(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            1500,
+            msg="error is expected in the corner",
+        )
+        self.assertGreater(
+            np.sum(
+                np.abs(
+                    (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+            ),
+            1000,
+            msg="error is expected in the corner",
+        )
+
+def make_round_data(sz=32, offset=0, radius=7, seedsz=3, add_object_without_seeds=False):
     #seedsz= int(sz/10)
     space=2
     seeds = np.zeros([sz, sz+1, sz+2], dtype=np.int8)
@@ -868,6 +925,10 @@ def make_round_data(sz=32, offset=0, radius=7, seedsz=3):
     ymin = radius + seedsz + offset + 6
     seeds[offset + 12, xmin + 3:xmin + 7 + seedsz, ymin:ymin+2] = 1
     seeds[offset + 20, xmin + 7:xmin + 12 + seedsz, ymin+5:ymin+7] = 1
+
+    # add temp seed
+    if add_object_without_seeds:
+        seeds[-3, -3, -3] = 1
     img = np.ones([sz, sz+1, sz+2])
     img = img - seeds
 
@@ -875,6 +936,11 @@ def make_round_data(sz=32, offset=0, radius=7, seedsz=3):
         2:10 + seedsz,
         2:9+ seedsz,
         2:3+ seedsz] = 2
+
+    # remove temo seed
+    if add_object_without_seeds:
+        seeds[-3, -3, -3] = 0
+
     img = scipy.ndimage.morphology.distance_transform_edt(img)
     segm = img < radius
     img = (100 * segm + 80 * np.random.random(img.shape)).astype(np.uint8)

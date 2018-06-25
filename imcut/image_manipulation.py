@@ -141,12 +141,17 @@ def zoom_to_shape(data, shape, dtype=None):
                                                   :shpmin[0], :shpmin[1], :shpmin[2]]
     return datares
 
-def select_objects_by_seeds(data, seeds):
-    labeled_data, length = scipy.ndimage.label(data)
-    selected_labels = labeled_data[seeds > 0]
-    output = np.zeros_like(data)
+def select_objects_by_seeds(binar_data, seeds):
+    labeled_data, length = scipy.ndimage.label(binar_data)
+    selected_labels = list(np.unique(labeled_data[seeds > 0]))
+    # selected_labels.pop(0)
+    # pop the background label
+    output = np.zeros_like(binar_data)
     for label in selected_labels:
-        output[data==label] = 1
+        output[labeled_data == label] = 1
+    # import sed3
+    # ed =sed3.sed3(labeled_data, contour=output, seeds=seeds)
+    # ed.show()
     return output
 
 
