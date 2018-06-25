@@ -709,7 +709,7 @@ class ImageGraphCut:
                 #     seeds=(self.seeds == 1).nonzero(),
                 #     debug=False
                 # )
-                newData = select_objects_by_seeds(1 - res_segm)
+                newData = select_objects_by_seeds(1 - res_segm, seeds=self.seeds)
                 res_segm = 1 - newData
             except:
                 import traceback
