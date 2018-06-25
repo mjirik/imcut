@@ -846,7 +846,7 @@ class ImageGraphCut:
             plt.show()
         return fig
 
-    def debug_show_model(self, suptitle=None, start=-1000, stop=1000, nsteps=400, show=True):
+    def debug_show_model(self, start=-1000, stop=1000, nsteps=400, suptitle=None, show=True):
         import matplotlib.pyplot as plt
 
         fig = plt.figure()
