@@ -146,6 +146,17 @@ class PycutTest(unittest.TestCase):
         err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
         self.assertLess(err, 600)
 
+    @attr('interactive')
+    def test_simple_graph_cut_interactive(self):
+        img, seg, seeds = self.make_data(64, 20)
+        gc = pycut.ImageGraphCut(img, segparams=self.segparams_ssgc)
+        gc.set_seeds(seeds)
+
+        # gc.run()
+        gc.interactivity()
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertLess(err, 600)
+
     def test_simple_graph_cut_show_similarity(self):
         img, seg, seeds = self.make_data(64, 20)
         gc = pycut.ImageGraphCut(img, segparams=self.segparams_ssgc)
@@ -219,6 +230,8 @@ class PycutTest(unittest.TestCase):
         gc = pycut.ImageGraphCut(data3d , segparams=segparams, debug_images=False)
         gc.set_seeds(seeds)
         gc.run()
+        # gc.interactivity()
+
 
         # import sed3
         # ed = sed3.sed3(data3d, contour=(gc.segmentation==0).astype(np.double) * 3)
@@ -349,8 +362,6 @@ class PycutTest(unittest.TestCase):
                     (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
             ),
             600)
-
-
 
     def test_test_fv_function(self):
         img, seg, seeds = self.make_data(64, 20)
@@ -829,7 +840,7 @@ class PycutTest(unittest.TestCase):
         Test multiscale segmentation
         """
         np.random.seed(3)
-        img, seg, seeds = make_round_data(45, 3, 10, 3)
+        img, seg, seeds = generate_round_data(45, 3, 10, 3)
         segparams = {
             # 'method':'graphcut',
             'method': 'multiscale_graphcut_lo2hi',
@@ -882,7 +893,7 @@ class PycutTest(unittest.TestCase):
         Test multiscale segmentation
         """
         np.random.seed(3)
-        img, seg, seeds = make_round_data(45, 3, 10, 3, add_object_without_seeds=True)
+        img, seg, seeds = generate_round_data(45, 3, 10, 3, add_object_without_seeds=True)
         segparams = {
             'method':'graphcut',
             # 'method': 'multiscale_graphcut_hi2lo',
@@ -917,7 +928,7 @@ class PycutTest(unittest.TestCase):
             msg="error is expected in the corner",
         )
 
-def make_round_data(sz=32, offset=0, radius=7, seedsz=3, add_object_without_seeds=False):
+def generate_round_data(sz=32, offset=0, radius=7, seedsz=3, add_object_without_seeds=False):
     #seedsz= int(sz/10)
     space=2
     seeds = np.zeros([sz, sz+1, sz+2], dtype=np.int8)
