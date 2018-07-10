@@ -1,9 +1,9 @@
 package:
   name: imcut
-  version: "1.2.52"
+  version: "1.2.53"
 
 source:
-  git_rev: 1.2.52
+  git_rev: 1.2.53
   git_url: .
 #  git_url: https://github.com/mjirik/pyseg_base.git
 #  patches:
