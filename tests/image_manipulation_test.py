@@ -71,24 +71,27 @@ class ImageManipulationTest(unittest.TestCase):
         self.assertEqual(unique[2], 2)
 
     def test_get_priority_objects(self):
-        shape = [10, 15, 12]
+        shape = [12, 15, 12]
         data = np.zeros(shape)
         value1 = 1
-        value2 = 2
+        value2 = 1
         data[:5, :7, :6] = value1
         data[-5:, :7, :6] = value2
 
         seeds = np.zeros(shape)
-        seeds[9,3:6, 3] = 1
+        seeds[9, 3:6, 3] = 1
 
         selected = imma.select_objects_by_seeds(data, seeds)
+        # import sed3
+        # ed =sed3.sed3(selected, contour=data, seeds=seeds)
+        # ed.show()
         unique = np.unique(selected)
         #
         self.assertEqual(selected.shape[0], shape[0])
         self.assertEqual(selected.shape[1], shape[1])
         self.assertEqual(selected.shape[2], shape[2])
-        self.assertEqual(selected[1, 1, 1], 1)
-        self.assertEqual(selected[-2, 1, 1], 0)
+        self.assertEqual(selected[1, 1, 1], 0)
+        self.assertEqual(selected[-2, 1, 1], 1)
         self.assertEqual(len(unique), 2)
         self.assertGreater(np.count_nonzero(data), np.count_nonzero(selected))
 
@@ -124,3 +127,61 @@ class ImageManipulationTest(unittest.TestCase):
 
         self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
         self.assertEquals(img_in.shape, img_uncropped.shape)
+
+    def test_multiple_crop_and_uncrop_nearest_outside(self):
+        """
+        test combination of multiple crop
+        """
+
+        shape = [10, 11, 5]
+        img_in = np.random.random(shape)
+
+        crinfo1 = [[2, 8], [3, 9], [2, 5]]
+        # crinfo2 = [[2, 5], [1, 5], [1, 2]]
+
+        img_cropped = imma.crop(img_in, crinfo1)
+        # img_cropped = imma.crop(img_cropped, crinfo2)
+
+        # crinfo_combined = imma.combinecrinfo(crinfo1, crinfo2)
+
+        img_uncropped = imma.uncrop(img_cropped, crinfo1, shape, outside_mode="nearest")
+
+        # import sed3
+        # ed = sed3.sed3(img_uncropped)
+        # ed.show()
+        self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
+
+        self.assertTrue(img_uncropped[crinfo1[0][0], 5, 3] == img_uncropped[0, 5, 3], msg="pixels under crop")
+        self.assertTrue(img_uncropped[5, crinfo1[1][0], 3] == img_uncropped[5, 0, 3], msg="pixels under crop")
+        self.assertTrue(img_uncropped[7, 3, crinfo1[2][0]] == img_uncropped[7, 3, 0], msg="pixels under crop")
+
+        self.assertTrue(img_uncropped[crinfo1[0][1] - 1, 5, 3] == img_uncropped[-1, 5, 3], msg="pixels over crop")
+        self.assertTrue(img_uncropped[5, crinfo1[1][1] - 1, 3] == img_uncropped[5, -1, 3], msg="pixels over crop")
+        self.assertTrue(img_uncropped[7, 3, crinfo1[2][1] - 1] == img_uncropped[7, 3, -1], msg="pixels over crop")
+
+        # self.assertTrue(img_uncropped[crinfo1[0][1], 5 , 3] == img_uncropped[0, 5, 3], msg="pixels over crop")
+        # self.assertTrue(img_uncropped[crinfo1[1][1], 5 , 3] == img_uncropped[1, 5, 3], msg="pixels over crop")
+        # self.assertTrue(img_uncropped[crinfo1[2][1], 5 , 3] == img_uncropped[2, 5, 3], msg="pixels over crop")
+        self.assertEquals(img_in.shape, img_uncropped.shape)
+
+    def test_uncrop_with_none_crinfo(self):
+        shape = [10, 10, 5]
+        orig_shape = [15, 13, 7]
+        img_in = np.random.random(shape)
+
+        img_uncropped = imma.uncrop(img_in, crinfo=None, orig_shape=orig_shape)
+
+        self.assertTrue(img_uncropped[-1, -1, -1] == 0)
+        self.assertTrue(img_uncropped[4, 4, 3] == img_in[4, 4, 3])
+
+
+    def test_uncrop_with_start_point_crinfo(self):
+        shape = [10, 10, 5]
+        orig_shape = [15, 13, 7]
+        img_in = np.random.random(shape)
+        crinfo = [5, 2, 1]
+
+        img_uncropped = imma.uncrop(img_in, crinfo=crinfo, orig_shape=orig_shape)
+
+        self.assertTrue(img_uncropped[-1, -1, -1] == 0)
+        self.assertTrue(img_uncropped[4 + 5, 4 + 2, 3 + 1] == img_in[4 , 4, 3])

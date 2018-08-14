@@ -141,12 +141,24 @@ def zoom_to_shape(data, shape, dtype=None):
                                                   :shpmin[0], :shpmin[1], :shpmin[2]]
     return datares
 
-def select_objects_by_seeds(data, seeds):
-    labeled_data, length = scipy.ndimage.label(data)
-    selected_labels = labeled_data[seeds > 0]
-    output = np.zeros_like(data)
+def select_objects_by_seeds(binar_data, seeds, ignore_background_seeds=True, background_label=0):
+
+    labeled_data, length = scipy.ndimage.label(binar_data)
+    selected_labels = list(np.unique(labeled_data[seeds > 0]))
+    # selected_labels.pop(0)
+    # pop the background label
+    output = np.zeros_like(binar_data)
     for label in selected_labels:
-        output[data==label] = 1
+        selection = labeled_data == label
+        # copy from input image to output. If there will be seeds in background, the 0 is copied
+        if ignore_background_seeds and (binar_data[selection][0] == background_label):
+            pass
+        else:
+            # output[selection] = binar_data[selection]
+            output[selection] = 1
+    # import sed3
+    # ed =sed3.sed3(labeled_data, contour=output, seeds=seeds)
+    # ed.show()
     return output
 
 
@@ -423,19 +435,28 @@ def crinfo_from_specific_data(data, margin=0):
     return crinfo
 
 
-def uncrop(data, crinfo, orig_shape, resize=False):
+def uncrop(data, crinfo, orig_shape, resize=False, outside_mode="constant", cval=0):
     """
+    Put some boundary to input image.
+
 
     :param data: input data
     :param crinfo: array with minimum and maximum index along each axis
-        [[minX, maxX],[minY, maxY],[minZ, maxZ]]
+        [[minX, maxX],[minY, maxY],[minZ, maxZ]]. If crinfo is None, the whole input image is placed into [0, 0, 0].
+        If crinfo is just series of three numbers, it is used as an initial point for input image placement.
     :param orig_shape: shape of uncropped image
-    :param resize:
+    :param resize: True or False (default). Usefull if the data.shape does not fit to crinfo shape.
+    :param outside_mode: 'constant', 'nearest'
     :return:
     """
 
+    if crinfo is None:
+        crinfo = list(zip([0] * data.ndim, orig_shape))
+    elif np.asarray(crinfo).size == data.ndim:
+        crinfo = list(zip(crinfo, np.asarray(crinfo) + data.shape))
+
     crinfo = fix_crinfo(crinfo)
-    data_out = np.zeros(orig_shape, dtype=data.dtype)
+    data_out = np.ones(orig_shape, dtype=data.dtype) * cval
 
     # print 'uncrop ', crinfo
     # print orig_shape
@@ -455,6 +476,42 @@ def uncrop(data, crinfo, orig_shape, resize=False):
     starty:starty + data.shape[1],
     startz:startz + data.shape[2]
     ] = data
+
+    if outside_mode == "nearest":
+        # for ax in range(data.ndims):
+        # ax = 0
+
+        # copy border slice to pixels out of boundary - the higher part
+        for ax in range(data.ndim):
+            # the part under the crop
+            start = np.round(crinfo[ax][0]).astype(int)
+            slices = [slice(None), slice(None), slice(None)]
+            slices[ax] = start
+            repeated_slice = np.expand_dims(data_out[slices], ax)
+            append_sz = start
+            if append_sz > 0:
+                tile0 = np.repeat(repeated_slice, append_sz, axis=ax)
+                slices = [slice(None), slice(None), slice(None)]
+                slices[ax] = slice(None, start)
+                # data_out[start + data.shape[ax] : , :, :] = tile0
+                data_out[slices] = tile0
+                # plt.imshow(np.squeeze(repeated_slice))
+                # plt.show()
+
+            # the part over the crop
+            start = np.round(crinfo[ax][0]).astype(int)
+            slices = [slice(None), slice(None), slice(None)]
+            slices[ax] = start + data.shape[ax] - 1
+            repeated_slice = np.expand_dims(data_out[slices], ax)
+            append_sz = data_out.shape[ax] - (start + data.shape[ax])
+            if append_sz > 0:
+                tile0 = np.repeat(repeated_slice, append_sz, axis=ax)
+                slices = [slice(None), slice(None), slice(None)]
+                slices[ax] = slice(start + data.shape[ax], None)
+                # data_out[start + data.shape[ax] : , :, :] = tile0
+                data_out[slices] = tile0
+                # plt.imshow(np.squeeze(repeated_slice))
+                # plt.show()
 
     return data_out
 

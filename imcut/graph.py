@@ -110,7 +110,8 @@ class Graph(object):
             # np.unique(self.msindex.ravel())
 
         if self._edge_weight_table is not None:
-            self.edges_weights = aux[self.edges_weights[self.edge_flag]]
+            # self.edges_weights = aux[self.edges_weights[self.edge_flag]]
+            self.edges_weights = self.edges_weights[self.edge_flag]
             # del self.edges_weights
             # self.edges_weights = edges_weights
 

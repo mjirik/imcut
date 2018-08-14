@@ -72,7 +72,9 @@ class ImageGraphCut:
             :param voxelsize: size of voxel
             :param debug_images: use to show debug images with matplotlib
             :param volume_unit: define string of volume unit. Default is "mm3"
-            :param keep_graph_properties: Do not delete some usefull varibales like msinds, unariesalt and nlinks.
+            :param keep_graph_properties: Do not delete some usefull varibales like
+                msinds, unariesalt, nlinks, temp_msgc_resized_segmentation, temp_msgc_resized_img and
+                temp_msgc_resized_seeds
 
 
         Returns:
@@ -126,7 +128,7 @@ class ImageGraphCut:
         self.mdl = Model(modelparams=self.modelparams)
         self.apriori = None
         self.interactivity_loop_finish_funcion=interactivity_loop_finish_fcn
-        self.keep_graph_properties = keep_graph_properties
+        self.keep_temp_properties = keep_graph_properties
 
         self.msinds = None
         self.unariesalt2 = None
@@ -312,6 +314,11 @@ class ImageGraphCut:
                 (boundary_dilatation_distance * 2) + 1
             ])
         )
+        if self.keep_temp_properties:
+            self.temp_msgc_lowres_discontinuity = seg
+        else:
+            self.temp_msgc_lowres_discontinuity = None
+
         if self.debug_images:
             import sed3
             pd = sed3.sed3(seg)  # ), contour=seg)
@@ -438,7 +445,7 @@ class ImageGraphCut:
         # ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
         # ped.show()
         self.segmentation = result_labeling
-        if self.keep_graph_properties:
+        if self.keep_temp_properties:
             self.msinds = msinds
             self.unariesalt2 = unariesalt2
             self.nlinks = nlinks
@@ -659,6 +666,12 @@ class ImageGraphCut:
         self.voxels2 = self.img[self.seeds == 2]
 
     def run(self, run_fit_model=True):
+        """
+        Run the Graph Cut segmentation according to preset parameters.
+
+        :param run_fit_model: Allow to skip model fit when the model is prepared before
+        :return:
+        """
 
         if run_fit_model:
             self.fit_model(self.img, self.voxelsize, self.seeds)
@@ -696,7 +709,7 @@ class ImageGraphCut:
                 #     seeds=(self.seeds == 1).nonzero(),
                 #     debug=False
                 # )
-                newData = select_objects_by_seeds(1 - res_segm)
+                newData = select_objects_by_seeds(1 - res_segm, seeds=self.seeds)
                 res_segm = 1 - newData
             except:
                 import traceback
@@ -762,15 +775,26 @@ class ImageGraphCut:
         # diffs.insert(0,
         return filtered
 
-    def __show_debug_unariesalt(self, unariesalt, suptitle=None, slice_number=None, show=True, bins=20):
-        shape = self.img.shape
-        # print("unariesalt dtype ", unariesalt.dtype)
+    def _reshape_unariesalt_to_similarity(self, unariesalt, shape):
+        # if unariesalt is None:
+        #     unariesalt = self.unariesalt2
+        # if shape is None:
+        #     shape = self.img.shape
+        #     if hasattr(self, "temp_msgc_resized_img"):
+        #         shape = self.temp_msgc_resized_img.shape
         tdata1 = unariesalt[..., 0].reshape(shape)
         tdata2 = unariesalt[..., 1].reshape(shape)
-        self.__show_debug_tdata_images(tdata1, tdata2, suptitle=suptitle, slice_number=slice_number, show=show, bins=bins)
+        return tdata1, tdata2
 
 
-    def __show_debug_tdata_images(self, tdata1, tdata2, suptitle=None, slice_number=None, show=True, bins=20):
+    def _debug_show_unariesalt(self, unariesalt, suptitle=None, slice_number=None, show=True, bins=20):
+        shape = self.img.shape
+        # print("unariesalt dtype ", unariesalt.dtype)
+        tdata1, tdata2 = self._reshape_unariesalt_to_similarity(unariesalt, shape)
+        self._debug_show_tdata_images(tdata1, tdata2, suptitle=suptitle, slice_number=slice_number, show=show, bins=bins)
+
+
+    def _debug_show_tdata_images(self, tdata1, tdata2, suptitle=None, slice_number=None, show=True, bins=20):
         # Show model parameters
         logger.debug('tdata1 shape ' + str(tdata1.shape))
         if slice_number is None:
@@ -822,7 +846,7 @@ class ImageGraphCut:
             plt.show()
         return fig
 
-    def show_model(self, suptitle=None, start=-1000, stop=1000, nsteps=400, show=True):
+    def debug_show_model(self, start=-1000, stop=1000, nsteps=400, suptitle=None, show=True):
         import matplotlib.pyplot as plt
 
         fig = plt.figure()
@@ -1043,8 +1067,18 @@ class ImageGraphCut:
         logger.info("__create nlinks time " + str(elapsed))
         return edges
 
-    def show_similarity(self, data3d=None, voxelsize=None, seeds=None, area_weight=1, hard_constraints=True, show=True,
-                        bins=20):
+    def debug_get_reconstructed_similarity(self, data3d=None, voxelsize=None, seeds=None, area_weight=1, 
+                                           hard_constraints=True, return_unariesalt=False):
+        """
+        Use actual model to calculate similarity. If no input is given the last image is used.
+        :param data3d:
+        :param voxelsize:
+        :param seeds:
+        :param area_weight:
+        :param hard_constraints:
+        :param return_unariesalt:
+        :return:
+        """
         if data3d is None:
             data3d = self.img
         if voxelsize is None:
@@ -1057,10 +1091,34 @@ class ImageGraphCut:
                                           # voxels1, voxels2,
                                           seeds,
                                           area_weight, hard_constraints)
+        if return_unariesalt:
+            return unariesalt
+        else:
+            return self._reshape_unariesalt_to_similarity(unariesalt, data3d.shape)
 
-        self.__show_debug_unariesalt(unariesalt, show=show, bins=bins)
+    def debug_show_reconstructed_similarity(self, data3d=None, voxelsize=None, seeds=None, area_weight=1,
+                                            hard_constraints=True, show=True,
+                                            bins=20, slice_number=None):
+        """
+        Show tlinks.
+        :param data3d: ndarray with input data
+        :param voxelsize:
+        :param seeds:
+        :param area_weight:
+        :param hard_constraints:
+        :param show:
+        :param bins: histogram bins number
+        :param slice_number:
+        :return:
+        """
 
-    def inspect_node(self, node_seed):
+        unariesalt = self.debug_get_reconstructed_similarity(
+            data3d, voxelsize=voxelsize, seeds=seeds, area_weight=area_weight, hard_constraints=hard_constraints,
+            return_unariesalt=True)
+
+        self._debug_show_unariesalt(unariesalt, show=show, bins=bins, slice_number=slice_number)
+
+    def debug_inspect_node(self, node_msindex):
         """
         Get info about the node. See pycut.inspect_node() for details.
         Processing is done in temporary shape.
@@ -1068,27 +1126,45 @@ class ImageGraphCut:
         :param node_seed:
         :return: node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds
         """
-        return inspect_node(self.nlinks, self.unariesalt2, self.msinds, node_seed)
+        return inspect_node(self.nlinks, self.unariesalt2, self.msinds, node_msindex)
 
-    def interactive_inspect_node(self):
+    def debug_get_node_msindex(self, node_seeds):
         """
-        Call after segmentation to see node neighborhood
+        Get multiscale index of voxel selected by seeds.
+        :param node_seeds: ndarray
+        :return int with multiscale index
+
+        """
+        node_msindex = get_node_msindex(self.msinds, node_seeds)
+        return node_msindex
+
+    def debug_interactive_inspect_node(self):
+        """
+        Call after segmentation to see selected node neighborhood.
+        User have to select one node by click.
         :return:
         """
-        if np.sum(np.abs(self.msinds.shape - self.segmentation)) == 0:
+        if np.sum(np.abs(np.asarray(self.msinds.shape) - np.asarray(self.segmentation.shape))) == 0:
             segmentation = self.segmentation
         else:
-            segmentation = self.temp_segmentation
+            segmentation = self.temp_msgc_resized_segmentation
 
+        logger.info("Click to select one voxel of interest")
         import sed3
         ed = sed3.sed3(self.msinds, contour=segmentation==0)
         ed.show()
         edseeds = ed.seeds
+        node_msindex = get_node_msindex(self.msinds, edseeds)
 
-        node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = self.inspect_node(edseeds)
+        node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds = self.debug_inspect_node(node_msindex)
         import sed3
         ed = sed3.sed3(self.msinds, contour=segmentation==0, seeds=node_neighboor_seeds)
         ed.show()
+
+        return node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds, node_msindex
+
+    def debug_reconstruct_nlinks_max(self):
+        return reconstruct_nlinks_max(self.nlinks, self.msinds)
 
     def _ssgc_prepare_data_and_run_computation(self,
                                                # voxels1, voxels2,
@@ -1139,7 +1215,7 @@ class ImageGraphCut:
         # pairwise)
         start = time.time()
         if self.debug_images:
-            self.__show_debug_unariesalt(unariesalt)
+            self._debug_show_unariesalt(unariesalt)
         result_graph = pygco.cut_from_graph(
             nlinks,
             unariesalt.reshape(-1, 2),
@@ -1157,17 +1233,22 @@ class ImageGraphCut:
                 np.ceil(np.asarray(self.img.shape) / float(self.segparams["block_size"])) *
                 self.segparams["block_size"]).astype(np.int)
         crinfo = list(zip([0] * self.img.ndim, self.img.shape))
-        self.img = uncrop(self.img, crinfo, new_shape)
+        self.img = uncrop(self.img, crinfo, new_shape, outside_mode="nearest")
         self.seeds = uncrop(self.seeds, crinfo, new_shape)
 
     def _msgc_lo2hi_resize_finish(self):
         orig_shape = self._lo2hi_resize_original_shape
-        self.temp_img = self.img
-        self.temp_segmentation = self.segmentation
-        self.temp_seeds = self.seeds
-        self.img = self.temp_img[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
-        self.segmentation = self.temp_segmentation[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
-        self.seeds = self.temp_seeds[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        self.temp_msgc_resized_img = self.img
+        self.temp_msgc_resized_segmentation = self.segmentation
+        self.temp_msgc_resized_seeds = self.seeds
+        self.img = self.temp_msgc_resized_img[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        self.segmentation = self.temp_msgc_resized_segmentation[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        self.seeds = self.temp_msgc_resized_seeds[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        if not self.keep_temp_properties:
+            del self.temp_msgc_resized_segmentation
+            del self.temp_msgc_resized_img
+            del self.temp_msgc_resized_seeds
+            del self._lo2hi_resize_original_shape
 
     def save(self, filename):
         self.mdl.save(filename)
@@ -1183,61 +1264,83 @@ def ms_remove_repetitive_link(nlinks_not_unique):
 
     return nlinks
 
-def inspect_node_neighborhood(nlinks, msinds, node_seed):
+def get_neighborhood_edes(nlinks, node_msindex):
+    node_neighbor_edges = np.vstack([
+        nlinks[np.where(nlinks[:, 0] == node_msindex )],
+        nlinks[np.where(nlinks[:, 1] == node_msindex )]
+    ]
+    )
+    return node_neighbor_edges
+
+def inspect_node_neighborhood(nlinks, msinds, node_msindex):
     """
     Get information about one node in graph
 
     :param nlinks: neighboorhood edges
     :param msinds: indexes in 3d image
-    :param node_seed: index in the image or seeds (the first located seed is used)
+    :param node_msindex: int, multiscale index of selected voxel
     :return: node_neighboor_edges_and_weights, node_neighboor_seeds
     """
-    if type(node_seed) != np.ndarray:
-        raise ValueError("Expected ndarray with seeds")
+    # seed_indexes = np.nonzero(node_seed)
+    # selected_inds = msinds[seed_indexes]
+    # node_msindex = selected_inds[0]
 
-    seed_indexes = np.nonzero(node_seed)
-    selected_inds = msinds[seed_indexes]
-    selected_voxel_ind = selected_inds[0]
-    node_neighbor_edges = np.vstack([
-        nlinks[np.where(nlinks[:, 0] == selected_voxel_ind)],
-        nlinks[np.where(nlinks[:, 1] == selected_voxel_ind)]
-    ]
-    )
+    node_neighbor_edges = get_neighborhood_edes(nlinks, node_msindex)
+
     node_neighbor_seeds = np.zeros_like(msinds, dtype=np.int8)
     for neighboor_ind in np.unique(node_neighbor_edges[:, :2].ravel()):
         node_neighbor_ind = np.where(msinds == neighboor_ind)
         node_neighbor_seeds[node_neighbor_ind] = 2
 
-    node_neighbor_seeds[np.where(msinds == selected_voxel_ind)] = 1
+    node_neighbor_seeds[np.where(msinds == node_msindex )] = 1
 
 
     # node_coordinates = np.unravel_index(selected_voxel_ind, msinds.shape)
     # node_neighbor_coordinates = np.unravel_index(np.unique(node_neighbor_edges[:, :2].ravel()), msinds.shape)
     return node_neighbor_edges, node_neighbor_seeds
 
-def inspect_node(nlinks, unariesalt, msinds, node_seed):
+def inspect_node(nlinks, unariesalt, msinds, node_msindex):
     """
     Get information about one node in graph
 
     :param nlinks: neighboorhood edges
     :param unariesalt: weights
     :param msinds: indexes in 3d image
-    :param node_seed: index in the image or seeds (the first located seed is used)
+    :param node_msindex: msindex of selected node. See get_node_msindex()
     :return: node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds
     """
-    if type(node_seed) == np.ndarray:
-        seed_indexes = np.nonzero(node_seed)
-    else:
-        seed_indexes = node_seed
-    selected_inds = msinds[seed_indexes]
-    selected_voxel_ind = selected_inds[0]
-    node_unariesalt = unariesalt[selected_voxel_ind]
 
-    neigh_edges, neigh_seeds = inspect_node_neighborhood(nlinks, msinds, node_seed)
-
+    node_unariesalt = unariesalt[node_msindex]
+    neigh_edges, neigh_seeds = inspect_node_neighborhood(nlinks, msinds, node_msindex)
     return node_unariesalt, neigh_edges, neigh_seeds
 
 
+
+def get_node_msindex(msinds, node_seed):
+    """
+    Convert seeds-like selection of voxel to multiscale index.
+    :param msinds: ndarray with indexes
+    :param node_seed: ndarray with 1 where selected pixel is, or list of indexes in this array
+    :return: multiscale index of first found seed
+    """
+    if type(node_seed) == np.ndarray:
+        seed_indexes = np.nonzero(node_seed)
+    elif type(node_seed) == list:
+        seed_indexes = node_seed
+    else:
+        seed_indexes = [node_seed]
+
+    selected_nodes_msinds = msinds[seed_indexes]
+    node_msindex = selected_nodes_msinds[0]
+    return node_msindex
+
+
+def reconstruct_nlinks_max(nlinks, msinds):
+    nlinks_max = np.zeros_like(msinds, dtype=nlinks.dtype)
+    for node_msindex in np.unique(msinds):
+        edges = get_neighborhood_edes(nlinks, node_msindex)
+        nlinks_max[msinds == node_msindex] = np.max(edges[:, 2])
+    return nlinks_max
 
 
 # class Tests(unittest.TestCase):
