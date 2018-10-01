@@ -886,7 +886,7 @@ class ImageGraphCut:
         if data is None:
             data = self.img
         if voxelsize is None:
-            voxelsize = self.img
+            voxelsize = self.voxelsize
         if seeds is None:
             seeds = self.seeds
         # TODO rewrite just for one class and call separatelly for obj and background.
