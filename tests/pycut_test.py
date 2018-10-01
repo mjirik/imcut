@@ -927,6 +927,88 @@ class PycutTest(unittest.TestCase):
             1000,
             msg="error is expected in the corner",
         )
+    def test_save_load(self):
+        """
+        test external feature vector with save model in the middle of processing
+        """
+
+        img, seg, seeds = self.make_data(64, 20)
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'use_boundary_penalties': False,
+            'boundary_dilatation_distance': 2,
+            'boundary_penalties_weight': 1,
+            'modelparams': {
+                'type': 'gmmsame',
+                'fv_type': "intensity",
+                # 'fv_extern': fv_function,
+                'adaptation': 'original_data',
+            }
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+        gc.set_seeds(seeds)
+
+        gc.run()
+        # import sed3
+        # ed = sed3.sed3((gc.segmentation==0).astype(np.double), contour=seg)
+        # ed.show()
+
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertLess(err, 600)
+
+        mdl_stored_file = "test_model.p"
+        gc.save(mdl_stored_file)
+
+        # forget
+        gc = None
+
+
+        img, seg, seeds = self.make_data(56, 18)
+        # there is only one change in mdl params
+        # segparams['modelparams'] = {
+        #     'mdl_stored_file': mdl_stored_file,
+        # }
+        gc = pycut.ImageGraphCut(img) #, segparams=segparams)
+        gc.load(mdl_stored_file)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertLess(err, 600)
+        # import sed3
+        # sed3.show_slices(img, contour=gc.segmentation==0, slice_step=6)
+
+
+        # if we change the data there should be more error (assertMore)
+        img = (img * 0.2).astype(np.uint8)
+        # segparams['modelparams']['adaptation'] = 'original_data'
+        # print(np.max(img))
+        # print(np.min(img))
+        gc = pycut.ImageGraphCut(img) #, segparams=segparams)
+        gc.load(mdl_stored_file)
+        gc.set_seeds(seeds)
+        gc.run()
+
+        m0 = gc.mdl.mdl[1]
+        m1 = gc.mdl.mdl[2]
+        logger.debug("model parameters")
+
+        # import sed3
+        # ed = sed3.sed3((gc.segmentation==0).astype(np.double), contour=seg)
+        # ed.show()
+
+        err = np.sum(np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8)))
+        self.assertGreater(err, 600, "There should be greater error when we changed the data")
+        # self.assertGreater(
+        #     np.sum(
+        #         np.abs(
+        #             (gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+        #     ),
+        #     600)
+
+        os.remove(mdl_stored_file)
+
 
 def generate_round_data(sz=32, offset=0, radius=7, seedsz=3, add_object_without_seeds=False):
     #seedsz= int(sz/10)
@@ -956,7 +1038,6 @@ def generate_round_data(sz=32, offset=0, radius=7, seedsz=3, add_object_without_
     segm = img < radius
     img = (100 * segm + 80 * np.random.random(img.shape)).astype(np.uint8)
     return img, segm, seeds
-
 
 if __name__ == "__main__":
     unittest.main()

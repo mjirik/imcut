@@ -85,29 +85,11 @@ class ImageGraphCut:
                      str(segparams) + " voxelsize: " + str(voxelsize) +
                      " debug_images: " + str(debug_images))
 
-        # default values                              use_boundary_penalties
-        # self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
-        self.segparams = {
-            'method': 'graphcut',
-            'pairwise_alpha': 20,
-            'use_boundary_penalties': False,
-            'boundary_penalties_sigma': 200,
-            'boundary_penalties_weight': 30,
-            'return_only_object_with_seeds': False,
-            'use_old_similarity': True,  # New similarity not implemented @TODO
-            'use_extra_features_for_training': False,
-            'use_apriori_if_available': True,
-            'apriori_gamma': 0.1,
-        }
-        if 'modelparams' in segparams.keys():
-            modelparams = segparams['modelparams']
-        self.segparams.update(segparams)
+        self._update_segparams(segparams, modelparams)
 
         self.img = img
         self.tdata = {}
         self.segmentation = None
-        self.modelparams = defaultmodelparams.copy()
-        self.modelparams.update(modelparams)
         # self.segparams = segparams
         self.seeds = np.zeros(self.img.shape, dtype=np.int8)
         self.debug_images = debug_images
@@ -125,7 +107,6 @@ class ImageGraphCut:
             'tlinks shape': [],
             'nlinks shape': []
         }
-        self.mdl = Model(modelparams=self.modelparams)
         self.apriori = None
         self.interactivity_loop_finish_funcion=interactivity_loop_finish_fcn
         self.keep_temp_properties = keep_graph_properties
@@ -133,6 +114,47 @@ class ImageGraphCut:
         self.msinds = None
         self.unariesalt2 = None
         self.nlinks = None
+
+    def _update_segparams(self, segparams={}, modelparams={}):
+        # default values                              use_boundary_penalties
+        # self.segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':False}
+        self.segparams = {
+            'method': 'graphcut',
+            'pairwise_alpha': 20,
+            'use_boundary_penalties': False,
+            'boundary_penalties_sigma': 200,
+            'boundary_penalties_weight': 30,
+            'return_only_object_with_seeds': False,
+            'use_old_similarity': True,  # New similarity not implemented @TODO
+            'use_extra_features_for_training': False,
+            'use_apriori_if_available': True,
+            'apriori_gamma': 0.1,
+        }
+        if 'modelparams' in segparams.keys():
+            modelparams = segparams['modelparams']
+        self.segparams.update(segparams)
+        self.modelparams = defaultmodelparams.copy()
+        self.modelparams.update(modelparams)
+        self.mdl = Model(modelparams=self.modelparams)
+
+    def load(self, filename, fv_extern=None):
+        """
+        Read model stored in the file.
+
+        :param filename: Path to file with model
+        :param fv_extern: external feature vector function is passed here
+        :return:
+        """
+        self.modelparams["mdl_stored_file"] = filename
+        if fv_extern is not None:
+            self.modelparams["fv_extern"] = fv_extern
+
+        # segparams['modelparams'] = {
+        #     'mdl_stored_file': mdl_stored_file,
+        #     # 'fv_extern': fv_function
+        # }
+        self.mdl = Model(modelparams=self.modelparams)
+
 
     def interactivity_loop(self, pyed):
         # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
@@ -1251,6 +1273,11 @@ class ImageGraphCut:
             del self._lo2hi_resize_original_shape
 
     def save(self, filename):
+        """
+        Save model to file
+        :param filename: Path to file
+        :return:
+        """
         self.mdl.save(filename)
 
 

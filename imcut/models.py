@@ -129,7 +129,9 @@ class Model3D(object):
         #     pass
 
         # fv_extern_name = dill.source.getname(tmpmodelparams['fv_extern'])
-        tmpmodelparams.pop('fv_extern')
+        if "fv_extern" in tmpmodelparams:
+            tmpmodelparams.pop('fv_extern')
+
         sv = {
             'modelparams': tmpmodelparams,
             'mdl': self.mdl,
