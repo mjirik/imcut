@@ -1434,6 +1434,7 @@ def relabel_squeeze(data):
 
 def main():
     # logger = logging.getLogger(__file__)
+    logger = logging.getLogger()
     logger.setLevel(logging.WARNING)
     logging.basicConfig(format='%(message)s')
     ch = logging.StreamHandler()

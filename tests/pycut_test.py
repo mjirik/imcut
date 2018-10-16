@@ -33,7 +33,7 @@ def fv_function(data, voxelsize, seeds=None, cls=None):
 
     if seeds is not None:
         logger.debug("seeds " + str(seeds))
-        print("seeds ", seeds)
+        # print("seeds ", seeds)
         sd = seeds.reshape(-1,1)
         selection = np.in1d(sd, cls)
         fv = fv[selection]
