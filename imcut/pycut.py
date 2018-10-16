@@ -9,15 +9,15 @@ $ pycat -f head.mat -o brain.mat
 """
 
 from __future__ import absolute_import, division, print_function
+import logging
+logger = logging.getLogger(__name__)
 
 # import unittest
 # from optparse import OptionParser
 import argparse
 import sys
-import logging
 # import os.path as op
 
-logger = logging.getLogger(__name__)
 
 from scipy.io import loadmat
 import numpy as np
@@ -835,8 +835,10 @@ class ImageGraphCut:
             ax.imshow(tdata2[slice_number, :, :])
             # plt.colorbar(ax=ax)
 
-            print('tdata1 max ', np.max(tdata1), ' min ', np.min(tdata1), " dtype ", tdata1.dtype)
-            print('tdata2 max ', np.max(tdata2), ' min ', np.min(tdata2), " dtype ", tdata2.dtype)
+            # print('tdata1 max ', np.max(tdata1), ' min ', np.min(tdata1), " dtype ", tdata1.dtype)
+            # print('tdata2 max ', np.max(tdata2), ' min ', np.min(tdata2), " dtype ", tdata2.dtype)
+            logger.debug('tdata1 max ' + str(np.max(tdata1)) + ' min ' + str(np.min(tdata1)) + " dtype " +str( tdata1.dtype))
+            # print('tdata2 max ', np.max(tdata2), ' min ', np.min(tdata2), " dtype ", tdata2.dtype)
 
 
             # # histogram
@@ -1431,7 +1433,7 @@ def relabel_squeeze(data):
 
 
 def main():
-    logger = logging.getLogger()
+    # logger = logging.getLogger(__file__)
     logger.setLevel(logging.WARNING)
     logging.basicConfig(format='%(message)s')
     ch = logging.StreamHandler()

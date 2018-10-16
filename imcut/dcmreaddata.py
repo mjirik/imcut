@@ -10,6 +10,8 @@ $ dcmreaddata -d sample_data -o head.mat
 """
 
 from __future__ import print_function
+import logging
+logger = logging.getLogger(__name__)
 
 import os
 import numpy as np
@@ -17,8 +19,6 @@ from optparse import OptionParser
 from scipy.io import savemat
 
 
-import logging
-logger = logging.getLogger(__name__)
 
 from io3d.dcmreaddata import DicomReader, get_dcmdir_qt
 # from io3d.misc import obj_from_file
