@@ -20,15 +20,8 @@ from PyQt4.QtGui import QApplication
 import numpy as np
 
 
-try:
-    from imcut import pycut
-    from imcut import seed_editor_qt
-    import imcut.dcmreaddata as dcmr
-except:
-    print("Deprecated of pyseg_base as submodule")
-    import pycut
-    import seed_editor_qt
-    import dcmreaddata as dcmr
+from imcut import pycut
+# import imcut.dcmreaddata as dcmr
 
 
 class PycutTest(unittest.TestCase):
@@ -124,6 +117,7 @@ class PycutTest(unittest.TestCase):
         import pdb; pdb.set_trace()
         #np.exp(-np.random.normal(0
 
+        from seededitorqt import seed_editor_qt
         from PyQt4.QtGui import QApplication
         app = QApplication(sys.argv)
         pyed = seed_editor_qt.QTSeedEditor(filtered2)
