@@ -759,7 +759,7 @@ class ImageGraphCut:
 
         return tdata1, tdata2
 
-    def __boundary_penalties_array(self, axis, sigma=None):
+    def _boundary_penalties_array(self, axis, sigma=None):
 
         import scipy.ndimage.filters as scf
 
@@ -1226,7 +1226,7 @@ class ImageGraphCut:
             # set boundary penalties function
             # Default are penalties based on intensity differences
             boundary_penalties_fcn = lambda ax: \
-                self.__boundary_penalties_array(axis=ax, sigma=sigma)
+                self._boundary_penalties_array(axis=ax, sigma=sigma)
         else:
             boundary_penalties_fcn = None
         nlinks = self.__create_nlinks(self.img,
