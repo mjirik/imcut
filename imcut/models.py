@@ -28,7 +28,12 @@ else:
                           'params': {'cvtype': 'full'},
                           'fv_type': 'intensity'
                           }
-methods = ['graphcut', 'multiscale_graphcut']
+methods = ['graphcut', 'multiscale_graphcut_lo2hi', "multiscale_graphcut_hi2lo"]
+accepted_methods = [
+    'graphcut', 'gc',
+    'multiscale_graphcut', "multiscale_gc", "msgc", "msgc_lo2hi", "lo2hi", "multiscale_graphcut_lo2hi",
+    "msgc_hi2lo", "hi2lo", "multiscale_graphcut_hi2lo"
+]
 
 def sigmoid(x):
     return (1 / (1 + np.exp(-x)))
