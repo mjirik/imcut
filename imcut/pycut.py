@@ -29,7 +29,7 @@ import pygco
 # from . import models
 from .image_manipulation import seed_zoom, zoom_to_shape, resize_to_shape, resize_to_shape_with_zoom, select_objects_by_seeds, crop, uncrop
 
-from .models import Model, Model3D, defaultmodelparams, methods
+from .models import Model, Model3D, defaultmodelparams, methods, accepted_methods
 from .graph import Graph
 
 
