@@ -329,7 +329,7 @@ class ImageGraphCut:
         boundary_dilatation_distance = self.segparams[
             'boundary_dilatation_distance']
         seg = scipy.ndimage.morphology.binary_dilation(
-            seg,
+            seg_border,
             np.ones([
                 (boundary_dilatation_distance * 2) + 1,
                 (boundary_dilatation_distance * 2) + 1,
@@ -343,6 +343,8 @@ class ImageGraphCut:
 
         if self.debug_images:
             import sed3
+            pd = sed3.sed3(seg_border)  # ), contour=seg)
+            pd.show()
             pd = sed3.sed3(seg)  # ), contour=seg)
             pd.show()
         # segzoom = scipy.ndimage.interpolation.zoom(seg.astype('float'), zoom,
@@ -515,6 +517,8 @@ class ImageGraphCut:
             import sed3
             ed = sed3.sed3(unariesalt[:,:,1].reshape(self.img.shape))
             ed.show()
+            # ed = sed3.sed3(seg)
+            # ed.show()
             # import sed3
             # ed = sed3.sed3(graph.data)
             # ed.show()
