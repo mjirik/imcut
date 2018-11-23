@@ -328,8 +328,10 @@ class ImageGraphCut:
         # scipy.ndimage.morphology.distance_transform_edt
         boundary_dilatation_distance = self.segparams[
             'boundary_dilatation_distance']
+        # TODO in fallowing function should be seg_border but is causes test fail
         seg = scipy.ndimage.morphology.binary_dilation(
-            seg_border,
+            # seg_border,
+            seg,
             np.ones([
                 (boundary_dilatation_distance * 2) + 1,
                 (boundary_dilatation_distance * 2) + 1,
