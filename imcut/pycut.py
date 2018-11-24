@@ -328,10 +328,9 @@ class ImageGraphCut:
         # scipy.ndimage.morphology.distance_transform_edt
         boundary_dilatation_distance = self.segparams[
             'boundary_dilatation_distance']
-        # TODO in fallowing function should be seg_border but is causes test fail
         seg = scipy.ndimage.morphology.binary_dilation(
-            # seg_border,
-            seg,
+            seg_border,
+            # seg,
             np.ones([
                 (boundary_dilatation_distance * 2) + 1,
                 (boundary_dilatation_distance * 2) + 1,
@@ -1199,6 +1198,12 @@ class ImageGraphCut:
         return node_unariesalt, node_neighboor_edges_and_weights, node_neighboor_seeds, node_msindex
 
     def debug_reconstruct_nlinks_max(self):
+        """
+        It will shoe the maximum weight between neighboor pixels.
+        It should be different in hires area and lowres area.
+        In lowres area it whould be k* higher than highres where k is tile size.
+        :return:
+        """
         return reconstruct_nlinks_max(self.nlinks, self.msinds)
 
     def _ssgc_prepare_data_and_run_computation(self,
@@ -1312,6 +1317,7 @@ def get_neighborhood_edes(nlinks, node_msindex):
     )
     return node_neighbor_edges
 
+
 def inspect_node_neighborhood(nlinks, msinds, node_msindex):
     """
     Get information about one node in graph
@@ -1338,6 +1344,7 @@ def inspect_node_neighborhood(nlinks, msinds, node_msindex):
     # node_coordinates = np.unravel_index(selected_voxel_ind, msinds.shape)
     # node_neighbor_coordinates = np.unravel_index(np.unique(node_neighbor_edges[:, :2].ravel()), msinds.shape)
     return node_neighbor_edges, node_neighbor_seeds
+
 
 def inspect_node(nlinks, unariesalt, msinds, node_msindex):
     """

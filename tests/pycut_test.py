@@ -841,14 +841,15 @@ class PycutTest(unittest.TestCase):
         """
         np.random.seed(3)
         img, seg, seeds = generate_round_data(45, 3, 10, 3)
+        blocksize = 6
         segparams = {
             # 'method':'graphcut',
             'method': 'multiscale_graphcut_lo2hi',
             # 'method': 'multiscale_graphcut_hi2lo',
             'use_boundary_penalties': False,
-            'boundary_dilatation_distance': 2,
+            'boundary_dilatation_distance': 1,
             'boundary_penalties_weight': 1,
-            'block_size': 8,
+            'block_size': blocksize,
             'tile_zoom_constant': 1
         }
         gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
@@ -869,9 +870,10 @@ class PycutTest(unittest.TestCase):
 
         nlinks_max = gc.debug_reconstruct_nlinks_max()
 
-        # from imcut import image_manipulation as imma
-        # seg_uncr = imma.uncrop(gc.segmentation, None, nlinks_max.shape)
-        # ed = sed3.sed3(nlinks_max, seg_uncr*2)
+        from imcut import image_manipulation as imma
+        seg_uncr = imma.uncrop(gc.segmentation, None, nlinks_max.shape)
+        # import sed3
+        # ed = sed3.sed3(nlinks_max, contour=seg_uncr*2)
         # ed.show()
         self.assertLess(
             np.sum(
@@ -880,10 +882,12 @@ class PycutTest(unittest.TestCase):
             ),
             100
         )
-        self.assertEqual(np.max(nlinks_max), 8, "nlink maximal value in reconstructed nlink map")
+        self.assertEqual(np.max(nlinks_max), blocksize, "nlink maximal value in reconstructed nlink map. " 
+                                                        "It should be size of block if there are at least some"
+                                                        " lowres blocks.")
         self.assertEqual(np.min(nlinks_max), 1, "nlink minimal value in reconstructed nlink map")
-        self.assertGreaterEqual(np.min(tdata1), 0, "tlink minimal value in reconstructed nlink map")
-        self.assertGreaterEqual(np.min(tdata2), 0, "tlink minimal value in reconstructed nlink map")
+        self.assertGreaterEqual(np.min(tdata1), 0, "tlink minimal value in reconstructed tlink map")
+        self.assertGreaterEqual(np.min(tdata2), 0, "tlink minimal value in reconstructed tlink map")
         self.assertGreaterEqual(node_neighboor_edges_and_weights.shape[0], 3, "check number of nlink connections")
         self.assertLessEqual(node_neighboor_edges_and_weights.shape[0], 6, "check number of nlink connections")
         self.assertGreaterEqual(np.min(node_unariesalt), 0, "selected node nlink minimum")
