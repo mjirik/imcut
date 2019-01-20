@@ -267,7 +267,7 @@ class Graph(object):
         :return:
         """
         self.cache = {}
-        self.msi = MultiscaleIndex(self.data.shape, block_size=self.nsplit)
+        self.msi = MultiscaleArray(self.data.shape, block_size=self.nsplit)
 
         # old implementation
         # idxs = nm.where(self.data)
@@ -593,10 +593,14 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     for edi in idxs:
         f.write('3\n')
 
-class MultiscaleIndex(object):
-    def __init__(self, shape, block_size):
+
+class MultiscaleArray(object):
+    def __init__(self, shape, block_size, arr=None):
         self.shape = np.asarray(shape)
-        self.msinds = np.zeros(self.shape * block_size, dtype=int)
+        if arr is None:
+            self.msinds = np.zeros(self.shape * block_size, dtype=int)
+        else:
+            self.msinds = arr
         self.block_size = block_size
         self.block_shape = [block_size] * self.msinds.ndim
         self.cache_slice = [None] * self.msinds.ndim
@@ -615,6 +619,11 @@ class MultiscaleIndex(object):
     def set_block_higres(self, index, val):
         self._prepare_cache_slice(index)
         self.msinds[self.cache_slice] = np.asarray(val).reshape(self.block_shape)
+
+    def mul_block(self, index, val):
+        """Multiply values in block"""
+        self._prepare_cache_slice(index)
+        self.msinds[self.cache_slice] *= val
 
 
 # def relabel(arr, forward_indexes=None):

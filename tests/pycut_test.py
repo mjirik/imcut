@@ -852,7 +852,10 @@ class PycutTest(unittest.TestCase):
             'block_size': blocksize,
             'tile_zoom_constant': 1
         }
-        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True)
+        gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True,
+                                 debug_images=True,
+                                 # debug_images=False
+                                 )
         gc.set_seeds(seeds)
         gc.run()
         # import sed3

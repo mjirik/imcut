@@ -273,7 +273,7 @@ class GraphTest(unittest.TestCase):
     def test_multiscale_index_set_lowres(self):
         shape = [2, 3]
         block_size = 2
-        msi = graph.MultiscaleIndex(shape, block_size=block_size)
+        msi = graph.MultiscaleArray(shape, block_size=block_size)
         # set first block
         msi.set_block_lowres(0, 5)
         self.assertEqual(msi.msinds[0, 0], 5)
@@ -285,7 +285,7 @@ class GraphTest(unittest.TestCase):
     def test_multiscale_index_set_higres(self):
         shape = [2, 3]
         block_size = 2
-        msi = graph.MultiscaleIndex(shape, block_size=block_size)
+        msi = graph.MultiscaleArray(shape, block_size=block_size)
         # set last block
         msi.set_block_higres(np.prod(shape) - 1, [11, 12, 13, 14])
         self.assertEqual(msi.msinds[-1, -1], 14)
