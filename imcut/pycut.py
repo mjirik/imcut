@@ -292,12 +292,13 @@ class ImageGraphCut:
 
         # this step set the self.segmentation
         self.__single_scale_gc_run()
-        logger.debug(
-            'segmentation - max: %d min: %d' % (
-                np.max(self.segmentation),
-                np.min(self.segmentation)
-            )
-        )
+        # logger.debug(
+        #     'segmentation - max: %d min: %d' % (
+        #         np.max(self.segmentation),
+        #         np.min(self.segmentation)
+        #     )
+        # )
+        logger.debug("segmentation: %s", scipy.stats.describe(self.segmentation, axis=None))
 
         self.modelparams = modelparams_hi
         self.voxelsize = voxelsize_orig
@@ -319,11 +320,11 @@ class ImageGraphCut:
         # step 2: discontinuity localization
         # self.segparams = sparams_hi
         seg_border = scipy.ndimage.filters.laplace(seg, mode='constant')
-        logger.debug(str(np.max(seg_border)))
-        logger.debug(str(np.min(seg_border)))
+        logger.debug("seg_border: %s", scipy.stats.describe(seg_border, axis=None))
+        # logger.debug(str(np.max(seg_border)))
+        # logger.debug(str(np.min(seg_border)))
         seg_border[seg_border != 0] = 1
-        logger.debug(str(np.max(seg_border)))
-        logger.debug(str(np.min(seg_border)))
+        logger.debug("seg_border: %s", scipy.stats.describe(seg_border, axis=None))
         # scipy.ndimage.morphology.distance_transform_edt
         boundary_dilatation_distance = self.segparams[
             'boundary_dilatation_distance']
@@ -431,8 +432,9 @@ class ImageGraphCut:
 
     def __msgc_tlinks_area_weight_from_low_segmentation(self, loseg):
         mul_val = (self.segparams["block_size"])**3
-        # mul_val = 1
-        logger.debug("w: %s, loseg: %s, loseg.shape: %s", w, scipy.stats.describe(loseg, axis=None), loseg.shape)
+        # TODO find correct value
+        mul_val = 1
+        logger.debug("w: %s, loseg: %s, loseg.shape: %s", mul_val, scipy.stats.describe(loseg, axis=None), loseg.shape)
         if loseg.shape == self.img.shape:
             loseg_resized = loseg
         else:
@@ -661,8 +663,8 @@ class ImageGraphCut:
         # print np.max(inds)
         # print np.min(inds)
         inds = relabel_squeeze(inds)
-        logger.debug("Maximal index after relabeling: " + str(np.max(inds)))
-        logger.debug("Minimal index after relabeling: " + str(np.min(inds)))
+        logger.debug("Index after relabeling: %s", scipy.stats.describe(inds, axis=None))
+        # logger.debug("Minimal index after relabeling: " + str(np.min(inds)))
         # inds_orig[mask_orig==True] = 0
         # inds_small_in_orig[mask_orig==False] = 0
         # inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
@@ -809,10 +811,11 @@ class ImageGraphCut:
         # srovnán hodnot tak, aby to vycházelo mezi 0 a 100
         # cc = 10
         # filtered = ((filtered - 1)*cc) + 10
-        logger.debug(
-            'ax %.1g max %.3g min %.3g  avg %.3g' % (
-                axis, np.max(filtered), np.min(filtered), np.mean(filtered))
-        )
+        # logger.debug(
+        #     'ax %.1g max %.3g min %.3g  avg %.3g' % (
+        #         axis, np.max(filtered), np.min(filtered), np.mean(filtered))
+        # )
+        logger.debug("boundary penalties, axis: %s, filtered: %s", axis, scipy.stats.describe(filtered, axis=None))
         #
         # @TODO Check why forumla with exp is not stable
         # Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
@@ -852,7 +855,7 @@ class ImageGraphCut:
 
     def _debug_show_tdata_images(self, tdata1, tdata2, suptitle=None, slice_number=None, show=True, bins=20):
         # Show model parameters
-        logger.debug('tdata1 shape ' + str(tdata1.shape))
+        logger.debug('tdata1 shape %s',  str(tdata1.shape))
         if slice_number is None:
             slice_number = int(tdata1.shape[0] / 2)
         try:
@@ -871,7 +874,9 @@ class ImageGraphCut:
 
             # print('tdata1 max ', np.max(tdata1), ' min ', np.min(tdata1), " dtype ", tdata1.dtype)
             # print('tdata2 max ', np.max(tdata2), ' min ', np.min(tdata2), " dtype ", tdata2.dtype)
-            logger.debug('tdata1 max ' + str(np.max(tdata1)) + ' min ' + str(np.min(tdata1)) + " dtype " +str( tdata1.dtype))
+            # logger.debug('tdata1 max ' + str(np.max(tdata1)) + ' min ' + str(np.min(tdata1)) + " dtype " +str( tdata1.dtype))
+            logger.debug("tdata1: %s", scipy.stats.describe(tdata1, axis=None))
+            logger.debug("tdata2: %s", scipy.stats.describe(tdata2, axis=None))
             # print('tdata2 max ', np.max(tdata2), ' min ', np.min(tdata2), " dtype ", tdata2.dtype)
 
 

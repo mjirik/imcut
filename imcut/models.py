@@ -11,6 +11,7 @@ import sklearn.mixture
 # version comparison
 from pkg_resources import parse_version
 import scipy.ndimage
+import scipy.stats
 from . import features
 
 if parse_version(sklearn.__version__) > parse_version('0.10'):
@@ -222,7 +223,7 @@ class Model(Model3D):
             fv = data.reshape(-1, 1)
 
             if seeds is not None:
-                logger.debug("seeds" + str(seeds))
+                logger.debug("seeds: %s", scipy.stats.describe(seeds, axis=None))
                 sd = seeds.reshape(-1, 1)
                 selection = np.in1d(sd, unique_cls)
                 fv = fv[selection]
