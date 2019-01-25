@@ -433,7 +433,7 @@ class ImageGraphCut:
     def __msgc_tlinks_area_weight_from_low_segmentation(self, loseg):
         mul_val = (self.segparams["block_size"])**3
         # TODO find correct value
-        mul_val = 1
+        # mul_val = 1
         logger.debug("w: %s, loseg: %s, loseg.shape: %s", mul_val, scipy.stats.describe(loseg, axis=None), loseg.shape)
         if loseg.shape == self.img.shape:
             loseg_resized = loseg
@@ -442,7 +442,7 @@ class ImageGraphCut:
             loseg_resized = zoom_to_shape(loseg, self.img.shape, dtype=np.int8)
             pass
         # area_weight = loseg_resized.astype(np.int8) * w
-        mul_mask = loseg_resized.astype(np.bool)
+        mul_mask = ~loseg_resized.astype(np.bool)
         return mul_mask, mul_val
 
     def __msgc_step9_finish_perform_gc_and_reshape(self, nlinks, unariesalt2, msinds):
