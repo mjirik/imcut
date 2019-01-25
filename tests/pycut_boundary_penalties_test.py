@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-
 # import funkcí z jiného adresáře
 import sys
 import os.path
@@ -21,57 +20,60 @@ import numpy as np
 
 
 from imcut import pycut
+
 # import imcut.dcmreaddata as dcmr
 
 
 class PycutTest(unittest.TestCase):
     interactivetTest = False
-    #interactivetTest = True
+    # interactivetTest = True
 
-    def generate_data(self, shp=[16,16,16], object_type='box'):
+    def generate_data(self, shp=[16, 16, 16], object_type="box"):
         """ Generating random data with cubic object inside"""
 
         x = np.ones(shp)
-# inserting box
-        if object_type == 'box':
+        # inserting box
+        if object_type == "box":
             x[4:-4, 6:-2, 1:-6] = -1
-        elif object_type == 'empty_box':
+        elif object_type == "empty_box":
             x[4:-4, 6:-2, 1:-6] = -1
             x[5:-5, 7:-3, 2:-7] = 1
-        elif object_type == 'wall':
-            x[5,:,:] = -3
+        elif object_type == "wall":
+            x[5, :, :] = -3
 
         x_noisy = x + np.random.normal(0, 0.6, size=x.shape)
         return x_noisy
 
-    @unittest.skipIf(not interactivetTest, 'interactiveTest')
+    @unittest.skipIf(not interactivetTest, "interactiveTest")
     def test_segmentation_with_boundary_penalties(self):
-        data_shp = [16,16,16]
-        #data = self.generate_data(data_shp, boundary_only=True)
-        data = self.generate_data(data_shp, object_type='wall')
+        data_shp = [16, 16, 16]
+        # data = self.generate_data(data_shp, boundary_only=True)
+        data = self.generate_data(data_shp, object_type="wall")
         seeds = np.zeros(data_shp)
-# setting background seeds
-        seeds[:,0,0] = 1
-        seeds[6,8:-5,2] = 2
-        #x[4:-4, 6:-2, 1:-6] = -1
+        # setting background seeds
+        seeds[:, 0, 0] = 1
+        seeds[6, 8:-5, 2] = 2
+        # x[4:-4, 6:-2, 1:-6] = -1
 
-        segparams = {'pairwiseAlpha':10, 'use_boundary_penalties':True}
+        segparams = {"pairwiseAlpha": 10, "use_boundary_penalties": True}
         igc = pycut.ImageGraphCut(data, segparams=segparams)
         igc.interactivity()
-# instead of interacitivity just set seeeds
-        #igc.set_seeds(seeds)
-        #igc.make_gc()
+        # instead of interacitivity just set seeeds
+        # igc.set_seeds(seeds)
+        # igc.make_gc()
 
-# instead of showing just test results
-#        from PyQt4.QtGui import QApplication
-#        app = QApplication(sys.argv)
-#        pyed = seed_editor_qt.QTSeedEditor(igc.segmentation,
-#                            modeFun=self.interactivity_loop,
-#                            voxelVolume=self.voxel_volume,
-#                            seeds=self.seeds, minVal=min_val, maxVal=max_val)
-#        app.exec_()
-        #igc.show_segmentation()
-        import pdb; pdb.set_trace()
+        # instead of showing just test results
+        #        from PyQt4.QtGui import QApplication
+        #        app = QApplication(sys.argv)
+        #        pyed = seed_editor_qt.QTSeedEditor(igc.segmentation,
+        #                            modeFun=self.interactivity_loop,
+        #                            voxelVolume=self.voxel_volume,
+        #                            seeds=self.seeds, minVal=min_val, maxVal=max_val)
+        #        app.exec_()
+        # igc.show_segmentation()
+        import pdb
+
+        pdb.set_trace()
         segmentation = igc.segmentation
         # Testin some pixels for result
         self.assertTrue(segmentation[0, 0, -1] == 0)
@@ -83,42 +85,44 @@ class PycutTest(unittest.TestCase):
         Test if on edge are smaller values
         """
 
-        data = self.generate_data([16,16,16])*100
+        data = self.generate_data([16, 16, 16]) * 100
         igc = pycut.ImageGraphCut(data)
-        #igc.interactivity()
+        # igc.interactivity()
 
         penalty_array = igc._boundary_penalties_array(axis=0)
-        edge_area_pattern = np.mean(penalty_array[3:5,8:10,2])
-        flat_area_pattern = np.mean(penalty_array[1:3,3:6,-4:-2])
+        edge_area_pattern = np.mean(penalty_array[3:5, 8:10, 2])
+        flat_area_pattern = np.mean(penalty_array[1:3, 3:6, -4:-2])
         self.assertGreater(flat_area_pattern, edge_area_pattern)
 
-    @unittest.skipIf(not interactivetTest, 'interactiveTest')
+    @unittest.skipIf(not interactivetTest, "interactiveTest")
     def test_boundary_penalty(self):
-        data = self.generate_data([16,16,16])*100
-# instead of showing just test results
-        #app = QApplication(sys.argv)
-        #pyed = seed_editor_qt.QTSeedEditor(data)
-        #app.exec_()
-
+        data = self.generate_data([16, 16, 16]) * 100
+        # instead of showing just test results
+        # app = QApplication(sys.argv)
+        # pyed = seed_editor_qt.QTSeedEditor(data)
+        # app.exec_()
 
         import scipy.ndimage.filters
 
-        #filtered = scipy.ndimage.filters.prewitt(data,0)
-        filtered = scipy.ndimage.filters.sobel(data,0)
-        #filtered = scipy.ndimage.filters.gaussian_filter1d(data,sigma=0.6,axis=0, order=1)
+        # filtered = scipy.ndimage.filters.prewitt(data,0)
+        filtered = scipy.ndimage.filters.sobel(data, 0)
+        # filtered = scipy.ndimage.filters.gaussian_filter1d(data,sigma=0.6,axis=0, order=1)
 
-# Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
-# aby to slušně vycházelo
-        filtered2 = (-np.power(filtered,2)/(512*np.var(data)))
-# Přičítám tu 1024 což je empiricky zjištěná hodnota - aby to dobře vyšlo
-        filtered2 = filtered2 + 0 # - np.min(filtered2) + 1e-30
-        print('max '  , np.max(filtered2))
-        print('min '  , np.min(filtered2))
-        import pdb; pdb.set_trace()
-        #np.exp(-np.random.normal(0
+        # Oproti Boykov2001b tady nedělím dvojkou. Ta je tam jen proto,
+        # aby to slušně vycházelo
+        filtered2 = -np.power(filtered, 2) / (512 * np.var(data))
+        # Přičítám tu 1024 což je empiricky zjištěná hodnota - aby to dobře vyšlo
+        filtered2 = filtered2 + 0  # - np.min(filtered2) + 1e-30
+        print("max ", np.max(filtered2))
+        print("min ", np.min(filtered2))
+        import pdb
+
+        pdb.set_trace()
+        # np.exp(-np.random.normal(0
 
         from seededitorqt import seed_editor_qt
         from PyQt4.QtGui import QApplication
+
         app = QApplication(sys.argv)
         pyed = seed_editor_qt.QTSeedEditor(filtered2)
         app.exec_()
@@ -129,40 +133,43 @@ class PycutTest(unittest.TestCase):
         app.exec_()
 
         import matplotlib.pyplot as plt
-        plt.imshow(filtered3[:,:,5])
+
+        plt.imshow(filtered3[:, :, 5])
         plt.colorbar()
         plt.show()
 
-    @unittest.skipIf(not interactivetTest, 'interactiveTest')
+    @unittest.skipIf(not interactivetTest, "interactiveTest")
     def test_segmentation(self):
-        data_shp = [16,16,16]
+        data_shp = [16, 16, 16]
         data = self.generate_data(data_shp)
         seeds = np.zeros(data_shp)
-# setting background seeds
-        seeds[:,0,0] = 1
-        seeds[6,8:-5,2] = 2
-        #x[4:-4, 6:-2, 1:-6] = -1
+        # setting background seeds
+        seeds[:, 0, 0] = 1
+        seeds[6, 8:-5, 2] = 2
+        # x[4:-4, 6:-2, 1:-6] = -1
 
         igc = pycut.ImageGraphCut(data)
         igc.interactivity()
-# instead of interacitivity just set seeeds
-        #igc.set_seeds(seeds)
-        #igc.make_gc()
+        # instead of interacitivity just set seeeds
+        # igc.set_seeds(seeds)
+        # igc.make_gc()
 
-# instead of showing just test results
-#        from PyQt4.QtGui import QApplication
-#        app = QApplication(sys.argv)
-#        pyed = seed_editor_qt.QTSeedEditor(igc.segmentation,
-#                            modeFun=self.interactivity_loop,
-#                            voxelVolume=self.voxel_volume,
-#                            seeds=self.seeds, minVal=min_val, maxVal=max_val)
-#        app.exec_()
-        #igc.show_segmentation()
+        # instead of showing just test results
+        #        from PyQt4.QtGui import QApplication
+        #        app = QApplication(sys.argv)
+        #        pyed = seed_editor_qt.QTSeedEditor(igc.segmentation,
+        #                            modeFun=self.interactivity_loop,
+        #                            voxelVolume=self.voxel_volume,
+        #                            seeds=self.seeds, minVal=min_val, maxVal=max_val)
+        #        app.exec_()
+        # igc.show_segmentation()
         segmentation = igc.segmentation
         # Testin some pixels for result
         self.assertTrue(segmentation[0, 0, -1] == 0)
         self.assertTrue(segmentation[7, 9, 3] == 1)
         self.assertTrue(np.sum(segmentation) > 10)
+
+
 #    def setUp(self):
 #        #self.dcmdir = os.path.join(path_to_script, '../sample_data/jatra_06mm_jenjatraplus/')
 #        self.dcmdir = os.path.join(path_to_script, '../sample_data/jatra_5mm')

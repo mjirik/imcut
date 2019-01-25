@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 # import os.path as op
 
 logger = logging.getLogger(__name__)
@@ -10,7 +11,7 @@ import scipy
 import scipy.ndimage
 
 
-def resize_to_shape(data, shape, zoom=None, mode='nearest', order=0):
+def resize_to_shape(data, shape, zoom=None, mode="nearest", order=0):
     """
     Function resize input data to specific shape.
     :param data: input 3d array-like data
@@ -27,44 +28,37 @@ def resize_to_shape(data, shape, zoom=None, mode='nearest', order=0):
         # rint 'za vyjimkou'
         import skimage
         import skimage.transform
+
         # Now we need reshape  seeds and segmentation to original size
 
         # with warnings.catch_warnings():
         #     warnings.filterwarnings("ignore", ".*'constant', will be changed to.*")
         segm_orig_scale = skimage.transform.resize(
-            data, shape, order=0,
-            preserve_range=True,
-            mode="reflect"
-
+            data, shape, order=0, preserve_range=True, mode="reflect"
         )
 
         segmentation = segm_orig_scale
-        logger.debug('resize to orig with skimage')
+        logger.debug("resize to orig with skimage")
     except:
         if zoom is None:
             zoom = shape / np.asarray(data.shape).astype(np.double)
         segmentation = resize_to_shape_with_zoom(
-            data,
-            zoom=zoom,
-            mode=mode,
-            order=order
+            data, zoom=zoom, mode=mode, order=order
         )
 
     return segmentation
 
 
-def resize_to_shape_with_zoom(data, shape, zoom, mode='nearest', order=0):
+def resize_to_shape_with_zoom(data, shape, zoom, mode="nearest", order=0):
     import scipy
     import scipy.ndimage
+
     dtype = data.dtype
 
     segm_orig_scale = scipy.ndimage.zoom(
-        data,
-        1.0 / zoom,
-        mode=mode,
-        order=order
+        data, 1.0 / zoom, mode=mode, order=order
     ).astype(dtype)
-    logger.debug('resize to orig with scipy.ndimage')
+    logger.debug("resize to orig with scipy.ndimage")
 
     # @TODO odstranit hack pro oříznutí na stejnou velikost
     # v podstatě je to vyřešeno, ale nechalo by se to dělat elegantněji v zoom
@@ -80,10 +74,9 @@ def resize_to_shape_with_zoom(data, shape, zoom, mode='nearest', order=0):
     # mport ipdb; ipdb.set_trace() # BREAKPOINT
 
     segmentation = np.zeros(shape, dtype=dtype)
-    segmentation[
-    0:shp[0],
-    0:shp[1],
-    0:shp[2]] = segm_orig_scale[0:shp[0], 0:shp[1], 0:shp[2]]
+    segmentation[0 : shp[0], 0 : shp[1], 0 : shp[2]] = segm_orig_scale[
+        0 : shp[0], 0 : shp[1], 0 : shp[2]
+    ]
 
     del segm_orig_scale
     return segmentation
@@ -127,26 +120,33 @@ def seed_zoom(seeds, zoom):
 
     return loseeds
 
+
 def zoom_to_shape(data, shape, dtype=None):
     """
     Zoom data to specific shape.
     """
     import scipy
     import scipy.ndimage
+
     zoomd = np.array(shape) / np.array(data.shape, dtype=np.double)
     import warnings
+
     datares = scipy.ndimage.interpolation.zoom(data, zoomd, order=0, mode="reflect")
 
     if datares.shape != shape:
-        logger.warning('Zoom with different output shape')
+        logger.warning("Zoom with different output shape")
     dataout = np.zeros(shape, dtype=dtype)
     shpmin = np.minimum(dataout.shape, shape)
 
-    dataout[:shpmin[0], :shpmin[1], :shpmin[2]] = datares[
-                                                  :shpmin[0], :shpmin[1], :shpmin[2]]
+    dataout[: shpmin[0], : shpmin[1], : shpmin[2]] = datares[
+        : shpmin[0], : shpmin[1], : shpmin[2]
+    ]
     return datares
 
-def select_objects_by_seeds(binar_data, seeds, ignore_background_seeds=True, background_label=0):
+
+def select_objects_by_seeds(
+    binar_data, seeds, ignore_background_seeds=True, background_label=0
+):
 
     labeled_data, length = scipy.ndimage.label(binar_data)
     selected_labels = list(np.unique(labeled_data[seeds > 0]))
@@ -357,6 +357,7 @@ def select_objects_by_seeds(binar_data, seeds, ignore_background_seeds=True, bac
 #
 #     return list1, list2
 
+
 def crop(data, crinfo):
     """
     Crop the data.
@@ -368,10 +369,10 @@ def crop(data, crinfo):
     """
     crinfo = fix_crinfo(crinfo)
     return data[
-           __int_or_none(crinfo[0][0]):__int_or_none(crinfo[0][1]),
-           __int_or_none(crinfo[1][0]):__int_or_none(crinfo[1][1]),
-           __int_or_none(crinfo[2][0]):__int_or_none(crinfo[2][1])
-           ]
+        __int_or_none(crinfo[0][0]) : __int_or_none(crinfo[0][1]),
+        __int_or_none(crinfo[1][0]) : __int_or_none(crinfo[1][1]),
+        __int_or_none(crinfo[2][0]) : __int_or_none(crinfo[2][1]),
+    ]
 
 
 def __int_or_none(number):
@@ -390,7 +391,7 @@ def combinecrinfo(crinfo1, crinfo2):
     crinfo = [
         [crinfo1[0][0] + crinfo2[0][0], crinfo1[0][0] + crinfo2[0][1]],
         [crinfo1[1][0] + crinfo2[1][0], crinfo1[1][0] + crinfo2[1][1]],
-        [crinfo1[2][0] + crinfo2[2][0], crinfo1[2][0] + crinfo2[2][1]]
+        [crinfo1[2][0] + crinfo2[2][0], crinfo1[2][0] + crinfo2[2][1]],
     ]
 
     return crinfo
@@ -405,7 +406,7 @@ def crinfo_from_specific_data(data, margin=0):
     :return:
     """
     # hledáme automatický ořez, nonzero dá indexy
-    logger.debug('crinfo')
+    logger.debug("crinfo")
     logger.debug(str(margin))
     nzi = np.nonzero(data)
     logger.debug(str(nzi))
@@ -474,12 +475,12 @@ def uncrop(data, crinfo, orig_shape, resize=False, outside_mode="constant", cval
     startz = np.round(crinfo[2][0]).astype(int)
 
     data_out[
-    # np.round(crinfo[0][0]).astype(int):np.round(crinfo[0][1]).astype(int)+1,
-    # np.round(crinfo[1][0]).astype(int):np.round(crinfo[1][1]).astype(int)+1,
-    # np.round(crinfo[2][0]).astype(int):np.round(crinfo[2][1]).astype(int)+1
-    startx:startx + data.shape[0],
-    starty:starty + data.shape[1],
-    startz:startz + data.shape[2]
+        # np.round(crinfo[0][0]).astype(int):np.round(crinfo[0][1]).astype(int)+1,
+        # np.round(crinfo[1][0]).astype(int):np.round(crinfo[1][1]).astype(int)+1,
+        # np.round(crinfo[2][0]).astype(int):np.round(crinfo[2][1]).astype(int)+1
+        startx : startx + data.shape[0],
+        starty : starty + data.shape[1],
+        startz : startz + data.shape[2],
     ] = data
 
     if outside_mode == "nearest":
@@ -521,7 +522,7 @@ def uncrop(data, crinfo, orig_shape, resize=False, outside_mode="constant", cval
     return data_out
 
 
-def fix_crinfo(crinfo, to='axis'):
+def fix_crinfo(crinfo, to="axis"):
     """
     Function recognize order of crinfo and convert it to proper format.
     """
