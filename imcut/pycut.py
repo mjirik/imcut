@@ -22,6 +22,7 @@ import sys
 from scipy.io import loadmat
 import numpy as np
 import time
+import scipy.stats
 import copy
 import pygco
 # from pygco import cut_from_graph
@@ -155,7 +156,6 @@ class ImageGraphCut:
         # }
         self.mdl = Model(modelparams=self.modelparams)
 
-
     def interactivity_loop(self, pyed):
         # @TODO stálo by za to, přehodit tlačítka na myši. Levé má teď
         # jedničku, pravé dvojku. Pravým však zpravidla označujeme pozadí a tak
@@ -257,7 +257,6 @@ class ImageGraphCut:
         # logger.debug("msc " + str(np.unique(hiseeds)))
         loseeds = seed_zoom(hiseeds, self.segparams['block_size'])
 
-        area_weight = 1
         hard_constraints = True
 
         self.seeds = loseeds
@@ -305,7 +304,7 @@ class ImageGraphCut:
         self.img = img_orig
         self.seeds = hiseeds
         self.stats["t2"] = (time.time() - start)
-        return area_weight, hard_constraints
+        return hard_constraints
 
     def __msgc_step3_discontinuity_localization(self):
         """
@@ -353,7 +352,7 @@ class ImageGraphCut:
         self.stats["t3"] = (time.time() - start)
         return seg
 
-    def __msgc_step45678_hi2lo_construct_graph(self, area_weight, hard_constraints, seg):
+    def __msgc_step45678_hi2lo_construct_graph(self, hard_constraints, seg):
         # step 4: indexes of new dual graph
 
         hiseeds = self.seeds
@@ -412,18 +411,37 @@ class ImageGraphCut:
         ms_seeds_lin = self.__ordered_values_by_indexes(seeds, msinds)
         # logger.debug("unique seeds " + str(np.unique(seeds)))
         # logger.debug("unique seeds " + str(np.unique(ms_seeds_lin)))
-
+        mul_mask, mul_val = self.__msgc_tlinks_area_weight_from_low_segmentation(mask_orig)
+        mul_mask_lin = self.__ordered_values_by_indexes(mul_mask, msinds)
+        area_weight = 1
         # TODO vyresit voxelsize
         unariesalt = self.__create_tlinks(ms_values_lin,
                                           voxelsize=self.voxelsize,
                                           # self.voxels1, self.voxels2,
                                           seeds=ms_seeds_lin,
                                           area_weight=area_weight,
-                                          hard_constraints=hard_constraints)
+                                          hard_constraints=hard_constraints,
+                                          mul_mask=mul_mask_lin,
+                                          mul_val=mul_val
+                                          )
 
         unariesalt2 = unariesalt.reshape(-1, 2)
         self.stats["t8"] = (time.time() - self._start_time)
         return nlinks, unariesalt2, msinds
+
+    def __msgc_tlinks_area_weight_from_low_segmentation(self, loseg):
+        w = (self.segparams["block_size"])**3
+        mul_val = 1
+        logger.debug("w: %s, loseg: %s, loseg.shape: %s", w, scipy.stats.describe(loseg, axis=None), loseg.shape)
+        if loseg.shape == self.img.shape:
+            loseg_resized = loseg
+        else:
+            #resize
+            loseg_resized = zoom_to_shape(loseg, self.img.shape, dtype=np.int8)
+            pass
+        # area_weight = loseg_resized.astype(np.int8) * w
+        mul_mask = loseg_resized.astype(np.bool)
+        return mul_mask, mul_val
 
     def __msgc_step9_finish_perform_gc_and_reshape(self, nlinks, unariesalt2, msinds):
         start = self._start_time
@@ -488,7 +506,7 @@ class ImageGraphCut:
         self._msgc_lo2hi_resize_init()
         self.__msgc_step0_init()
 
-        area_weight, hard_constraints = self.__msgc_step12_low_resolution_segmentation()
+        hard_constraints = self.__msgc_step12_low_resolution_segmentation()
         # ===== high resolution data processing
         seg = self.__msgc_step3_discontinuity_localization()
 
@@ -502,8 +520,13 @@ class ImageGraphCut:
         graph.run()
         un, ind = np.unique(graph.msinds, return_index=True)
 
-        unariesalt = self.__create_tlinks(self.img, self.voxelsize, self.seeds,
-                             area_weight=area_weight, hard_constraints=hard_constraints)
+        mul_mask, mul_val = self.__msgc_tlinks_area_weight_from_low_segmentation(seg)
+        area_weight = 1
+        unariesalt = self.__create_tlinks(
+            self.img, self.voxelsize, self.seeds,
+            area_weight=area_weight, hard_constraints=hard_constraints,
+            mul_mask=None, mul_val=None
+        )
 
         unariesalt2_lo2hi = np.hstack([
             unariesalt[ind, 0, 0].reshape(-1, 1),
@@ -545,10 +568,10 @@ class ImageGraphCut:
         # pyqtRemoveInputHook()
 
         self.__msgc_step0_init()
-        area_weight, hard_constraints = self.__msgc_step12_low_resolution_segmentation()
+        hard_constraints = self.__msgc_step12_low_resolution_segmentation()
         # ===== high resolution data processing
         seg = self.__msgc_step3_discontinuity_localization()
-        nlinks, unariesalt2, msinds = self.__msgc_step45678_hi2lo_construct_graph(area_weight, hard_constraints, seg)
+        nlinks, unariesalt2, msinds = self.__msgc_step45678_hi2lo_construct_graph(hard_constraints, seg)
         self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
 
     def __ordered_values_by_indexes(self, data, inds):
@@ -1002,13 +1025,16 @@ class ImageGraphCut:
 
                         # voxels1, voxels2,
                         seeds,
-                        area_weight, hard_constraints):
+                        area_weight, hard_constraints,
+                        mul_mask=None, mul_val=None
+                        ):
         tdata1, tdata2 = self.__similarity_for_tlinks_obj_bgr(
             data,
             voxelsize,
             # voxels1, voxels2,
             # seeds
         )
+
 
         # logger.debug('tdata1 min %f , max %f' % (tdata1.min(), tdata1.max()))
         # logger.debug('tdata2 min %f , max %f' % (tdata2.min(), tdata2.max()))
@@ -1021,10 +1047,22 @@ class ImageGraphCut:
                                                               tdata2,
                                                               seeds)
 
+        limit = 20000
+        # carefull multiplication with limit to
+        if mul_mask is not None:
+            divided_limit = (limit / mul_val)
+            mm = tdata1 > divided_limit
+            tdata1[mul_mask & mm] = limit
+            tdata1[mul_mask & ~mm] *= mul_val
+            mm = tdata2 > divided_limit
+            tdata2[mul_mask & mm] = limit
+            tdata2[mul_mask & ~mm] *= mul_val
+        # if not np.isscalar(area_weight):
+        #     area_weight = area_weight.reshape(tdata1.shape)
         tdata1 = self.__limit(tdata1)
         tdata2 = self.__limit(tdata2)
-        unariesalt = (0 + (np.dstack([(area_weight * tdata1).reshape(-1, 1),
-                                      (area_weight * tdata2).reshape(-1, 1)]).copy("C"))
+        unariesalt = (0 + (np.dstack(area_weight * [tdata1.reshape(-1, 1),
+                                      tdata2.reshape(-1, 1)]).copy("C"))
                       ).astype(np.int32)
         unariesalt = self.__limit(unariesalt)
         # if self.debug_images:

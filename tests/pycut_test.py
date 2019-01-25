@@ -636,7 +636,7 @@ class PycutTest(unittest.TestCase):
         orig_shape = [2, 6, 6]
         # zoom = 2
 
-        inds = gc._ImageGraphCut__multiscale_indexes(mask, orig_shape)
+        inds, mask_resized = gc._ImageGraphCut__hi2lo_multiscale_indexes(mask, orig_shape)
 
         expected_result = [[[0, 0,  1,  1, 2, 2],
                             [0, 0,  1,  1, 2, 2],
