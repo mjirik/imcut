@@ -430,8 +430,8 @@ class ImageGraphCut:
         return nlinks, unariesalt2, msinds
 
     def __msgc_tlinks_area_weight_from_low_segmentation(self, loseg):
-        w = (self.segparams["block_size"])**3
-        mul_val = 1
+        mul_val = (self.segparams["block_size"])**3
+        # mul_val = 1
         logger.debug("w: %s, loseg: %s, loseg.shape: %s", w, scipy.stats.describe(loseg, axis=None), loseg.shape)
         if loseg.shape == self.img.shape:
             loseg_resized = loseg
