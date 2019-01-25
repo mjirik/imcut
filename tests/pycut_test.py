@@ -529,7 +529,7 @@ class PycutTest(unittest.TestCase):
 
     def test_fast_multiscale_gc_seg(self):
         """
-        Test multiscale segmentation
+        Test fast multiscale segmentation
         """
 
         img, seg, seeds = self.make_data(64, 20)
@@ -559,7 +559,7 @@ class PycutTest(unittest.TestCase):
     # @unittest.skip("Cekame, az to Mire opravi")
     def test_ms_seg_compared_with_different_resolution(self):
         """
-        Test multiscale segmentation
+        Test multiscale segmentation compared with different resolution
         """
 
         img, seg, seeds = self.make_data(64, 20)
@@ -705,7 +705,7 @@ class PycutTest(unittest.TestCase):
     # @unittest.skip("This test is almost done")
     def test_msgc_lo2hi(self):
         """
-        Test multiscale segmentation
+        Test multiscale segmentation lo2hi
         """
 
         img, seg, seeds = self.make_data(64, 20)
@@ -737,7 +737,7 @@ class PycutTest(unittest.TestCase):
 
     def test_node_inspection_on_msgc_lo2hi(self):
         """
-        Test multiscale segmentation
+        Test multiscale segmentation lo2hi with node inspection
         """
 
         img, seg, seeds = self.make_data(64, 20)
@@ -773,7 +773,7 @@ class PycutTest(unittest.TestCase):
 
     def test_msgc_lo2hi_crazy_non_block_sized_images_65(self):
         """
-        Test multiscale segmentation
+        Test multiscale segmentation lo2hi crazy non block sized images 65
         """
 
         img, seg, seeds = self.make_data(65, 20)
@@ -805,7 +805,7 @@ class PycutTest(unittest.TestCase):
 
     def test_msgc_lo2hi_crazy_non_block_sized_images_68(self):
         """
-        Test multiscale segmentation
+        Test multiscale segmentation lo2hi crazy block 68
         """
 
         img, seg, seeds = self.make_data(68, 20)
@@ -837,7 +837,7 @@ class PycutTest(unittest.TestCase):
 
     def test_msgc_lo2hi_round_data(self):
         """
-        Test multiscale segmentation
+        Test multiscale segmentation lo2hi round data
         """
         np.random.seed(3)
         img, seg, seeds = generate_round_data(45, 3, 10, 3)
@@ -853,8 +853,8 @@ class PycutTest(unittest.TestCase):
             'tile_zoom_constant': 1
         }
         gc = pycut.ImageGraphCut(img, segparams=segparams, keep_graph_properties=True,
-                                 debug_images=True,
-                                 # debug_images=False
+                                 # debug_images=True,
+                                 debug_images=False
                                  )
         gc.set_seeds(seeds)
         gc.run()
@@ -897,7 +897,7 @@ class PycutTest(unittest.TestCase):
 
     def test_ssgc_just_objects_with_seeds_round_data(self):
         """
-        Test multiscale segmentation
+        Test single scale graph cut just objects with seeds on round data
         """
         np.random.seed(3)
         img, seg, seeds = generate_round_data(45, 3, 10, 3, add_object_without_seeds=True)
@@ -969,7 +969,6 @@ class PycutTest(unittest.TestCase):
 
         # forget
         gc = None
-
 
         img, seg, seeds = self.make_data(56, 18)
         # there is only one change in mdl params
