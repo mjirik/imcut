@@ -353,11 +353,11 @@ class ImageGraphCut:
         self.stats["t3"] = (time.time() - start)
         return seg
 
-    def __msgc_step45678_construct_graph(self, area_weight, hard_constraints, seg):
+    def __msgc_step45678_hi2lo_construct_graph(self, area_weight, hard_constraints, seg):
         # step 4: indexes of new dual graph
 
         hiseeds = self.seeds
-        msinds = self.__multiscale_indexes(seg, self.img.shape)#, ms_zoom)
+        msinds, mask_orig = self.__hi2lo_multiscale_indexes(seg, self.img.shape)#, ms_zoom)
         logger.debug('multiscale inds ' + str(msinds.shape))
         # if deb:
         #     import sed3
@@ -380,10 +380,6 @@ class ImageGraphCut:
         self.stats["t4"] = (time.time() - self._start_time)
         def local_ms_npenalty(x):
             return self.__ms_npenalty_fcn(x, seg, self.img.shape)
-            # return self.__uniform_npenalty_fcn(orig_shape)
-
-        # ms_npenalty_fcn = lambda x: self.__ms_npenalty_fcn(x, seg, ms_zoom,
-        #                                                    orig_shape)
 
 
         # here are not unique couples of nodes
@@ -496,10 +492,15 @@ class ImageGraphCut:
         # ===== high resolution data processing
         seg = self.__msgc_step3_discontinuity_localization()
 
-        graph = Graph(seg, voxelsize=self.voxelsize, nsplit=self.segparams["block_size"], edge_weight_table=self._msgc_npenalty_table, compute_low_nodes_index=True)
+        graph = Graph(
+            seg,
+            voxelsize=self.voxelsize,
+            nsplit=self.segparams["block_size"],
+            edge_weight_table=self._msgc_npenalty_table,
+            compute_low_nodes_index=True
+        )
         graph.run()
         un, ind = np.unique(graph.msinds, return_index=True)
-
 
         unariesalt = self.__create_tlinks(self.img, self.voxelsize, self.seeds,
                              area_weight=area_weight, hard_constraints=hard_constraints)
@@ -547,7 +548,7 @@ class ImageGraphCut:
         area_weight, hard_constraints = self.__msgc_step12_low_resolution_segmentation()
         # ===== high resolution data processing
         seg = self.__msgc_step3_discontinuity_localization()
-        nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
+        nlinks, unariesalt2, msinds = self.__msgc_step45678_hi2lo_construct_graph(area_weight, hard_constraints, seg)
         self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
 
     def __ordered_values_by_indexes(self, data, inds):
@@ -603,7 +604,7 @@ class ImageGraphCut:
         return values
 
 
-    def __multiscale_indexes(self, mask, orig_shape): # , zoom):
+    def __hi2lo_multiscale_indexes(self, mask, orig_shape): # , zoom):
         """
         Function computes multiscale indexes of ndarray.
 
@@ -643,7 +644,7 @@ class ImageGraphCut:
         # inds_small_in_orig[mask_orig==False] = 0
         # inds = (inds_orig + np.max(inds_small_in_orig) + 1) + inds_small_in_orig
 
-        return inds
+        return inds, mask_orig
 
     def interactivity(self, min_val=None, max_val=None, qt_app=None):
         """
@@ -1022,9 +1023,8 @@ class ImageGraphCut:
 
         tdata1 = self.__limit(tdata1)
         tdata2 = self.__limit(tdata2)
-        unariesalt = (0 + (area_weight *
-                           np.dstack([tdata1.reshape(-1, 1),
-                                      tdata2.reshape(-1, 1)]).copy("C"))
+        unariesalt = (0 + (np.dstack([(area_weight * tdata1).reshape(-1, 1),
+                                      (area_weight * tdata2).reshape(-1, 1)]).copy("C"))
                       ).astype(np.int32)
         unariesalt = self.__limit(unariesalt)
         # if self.debug_images:
