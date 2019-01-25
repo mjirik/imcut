@@ -31,12 +31,6 @@ import copy
 
 class Graph(object):
 
-    # spliting reconnection table
-    # sr_tab = {
-    #     2: nm.array([(0,2), (0,1), (1,3), (2,3)]),
-    #     3: nm.array([(0,3,6), (0,1,2), (2,5,8), (6,7,8)]),
-    #     4: nm.array([(0,4,8,12), (0,1,2,3), (3,7,11,15), (12,13,14,15)]),
-    # }
 
     def add_nodes(self, coors, node_low_or_high=None):
         """
@@ -303,7 +297,6 @@ class Graph(object):
         self.split_voxels(final_grid_vtk_fn)
         # self.split_voxels()
 
-
     def __init__(self, data, voxelsize, grid_function=None, nsplit=3, compute_msindex=True, edge_weight_table=None, compute_low_nodes_index=True):
         """
 
@@ -376,11 +369,11 @@ class Graph(object):
         # indexes of nodes arranged in ndimage
         self.msinds = None
         if grid_function in (None, "nd", "ND"):
-            self.gen_grid_fcn=gen_grid_nd
+            self.gen_grid_fcn = gen_grid_nd
         elif grid_function in ("2d", "2D"):
-            self.gen_grid_fcn=gen_grid_2d
+            self.gen_grid_fcn = gen_grid_2d
         else:
-            self.gen_grid_fcn=grid_function
+            self.gen_grid_fcn = grid_function
 
         self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
         self.srt = SRTab()
@@ -406,6 +399,12 @@ class SRTab(object):
     Table of connection on transition between low resolution and high resolution
     """
     def __init__(self):
+        # spliting reconnection table
+        # sr_tab = {
+        #     2: nm.array([(0,2), (0,1), (1,3), (2,3)]),
+        #     3: nm.array([(0,3,6), (0,1,2), (2,5,8), (6,7,8)]),
+        #     4: nm.array([(0,4,8,12), (0,1,2,3), (3,7,11,15), (12,13,14,15)]),
+        # }
         self.sr_tab = {}
         # self.set_new_shape(shape)
 
