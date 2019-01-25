@@ -934,6 +934,7 @@ class PycutTest(unittest.TestCase):
             1000,
             msg="error is expected in the corner",
         )
+
     def test_save_load(self):
         """
         test external feature vector with save model in the middle of processing
