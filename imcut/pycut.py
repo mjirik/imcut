@@ -94,14 +94,11 @@ class ImageGraphCut:
         """
 
         logger.debug(
-            "modelparams: "
-            + str(modelparams)
-            + " segparams: "
-            + str(segparams)
-            + " voxelsize: "
-            + str(voxelsize)
-            + " debug_images: "
-            + str(debug_images)
+            "modelparams: %s, segparams: %s, voxelsize: %s, debug_images: %s",
+            str(modelparams),
+            str(segparams),
+            str(voxelsize),
+            str(debug_images),
         )
 
         self._update_segparams(segparams, modelparams)
