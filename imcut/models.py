@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
+
 logger = logging.getLogger(__name__)
 
 import numpy as np
@@ -8,36 +9,48 @@ import numpy as np
 import os.path as op
 import sklearn
 import sklearn.mixture
+
 # version comparison
 from pkg_resources import parse_version
 import scipy.ndimage
 import scipy.stats
 from . import features
 
-if parse_version(sklearn.__version__) > parse_version('0.10'):
+if parse_version(sklearn.__version__) > parse_version("0.10"):
     # new versions
-    gmm__cvtype = 'covariance_type'
-    gmm__cvtype_bad = 'cvtype'
-    defaultmodelparams = {'type': 'gmmsame',
-                          'params': {'covariance_type': 'full'},
-                          'fv_type': 'intensity'
-                          }
+    gmm__cvtype = "covariance_type"
+    gmm__cvtype_bad = "cvtype"
+    defaultmodelparams = {
+        "type": "gmmsame",
+        "params": {"covariance_type": "full"},
+        "fv_type": "intensity",
+    }
 else:
-    gmm__cvtype = 'cvtype'
-    gmm__cvtype_bad = 'covariance_type'
-    defaultmodelparams = {'type': 'gmmsame',
-                          'params': {'cvtype': 'full'},
-                          'fv_type': 'intensity'
-                          }
-methods = ['graphcut', 'multiscale_graphcut_lo2hi', "multiscale_graphcut_hi2lo"]
+    gmm__cvtype = "cvtype"
+    gmm__cvtype_bad = "covariance_type"
+    defaultmodelparams = {
+        "type": "gmmsame",
+        "params": {"cvtype": "full"},
+        "fv_type": "intensity",
+    }
+methods = ["graphcut", "multiscale_graphcut_lo2hi", "multiscale_graphcut_hi2lo"]
 accepted_methods = [
-    'graphcut', 'gc',
-    'multiscale_graphcut', "multiscale_gc", "msgc", "msgc_lo2hi", "lo2hi", "multiscale_graphcut_lo2hi",
-    "msgc_hi2lo", "hi2lo", "multiscale_graphcut_hi2lo"
+    "graphcut",
+    "gc",
+    "multiscale_graphcut",
+    "multiscale_gc",
+    "msgc",
+    "msgc_lo2hi",
+    "lo2hi",
+    "multiscale_graphcut_lo2hi",
+    "msgc_hi2lo",
+    "hi2lo",
+    "multiscale_graphcut_hi2lo",
 ]
 
+
 def sigmoid(x):
-    return (1 / (1 + np.exp(-x)))
+    return 1 / (1 + np.exp(-x))
 
 
 def softplus(x, max_error=1, keep_dtype=True):
@@ -84,26 +97,23 @@ class Model3D(object):
 
 
     """
+
     def __init__(self, modelparams):
         # modelparams = {}
         # modelparams.update(parameters['modelparams'])
-        if 'params' in modelparams.keys() and \
-                gmm__cvtype_bad in modelparams['params']:
-            value = modelparams['params'].pop(gmm__cvtype_bad)
-            modelparams['params'][gmm__cvtype] = value
+        if "params" in modelparams.keys() and gmm__cvtype_bad in modelparams["params"]:
+            value = modelparams["params"].pop(gmm__cvtype_bad)
+            modelparams["params"][gmm__cvtype] = value
 
         self.mdl = {}
         self.modelparams = defaultmodelparams.copy()
-        self.modelparams.update({
-            'adaptation': "retrain",
-        })
+        self.modelparams.update({"adaptation": "retrain"})
         # if modelparams are updated after load, there are problems with some setting comming from outside and rewriting
         # for example "fv_type" into "intensity"
         self.modelparams.update(modelparams)
-        if "mdl_stored_file" in modelparams.keys() and modelparams['mdl_stored_file']:
-            mdl_file = modelparams['mdl_stored_file']
+        if "mdl_stored_file" in modelparams.keys() and modelparams["mdl_stored_file"]:
+            mdl_file = modelparams["mdl_stored_file"]
             self.load(mdl_file)
-
 
     def fit_from_image(self, data, voxelsize, seeds, unique_cls):
         """
@@ -125,6 +135,7 @@ class Model3D(object):
         Save model to pickle file. External feature function is not stored
         """
         import dill
+
         tmpmodelparams = self.modelparams.copy()
         # fv_extern_src = None
         fv_extern_name = None
@@ -136,11 +147,11 @@ class Model3D(object):
 
         # fv_extern_name = dill.source.getname(tmpmodelparams['fv_extern'])
         if "fv_extern" in tmpmodelparams:
-            tmpmodelparams.pop('fv_extern')
+            tmpmodelparams.pop("fv_extern")
 
         sv = {
-            'modelparams': tmpmodelparams,
-            'mdl': self.mdl,
+            "modelparams": tmpmodelparams,
+            "mdl": self.mdl,
             # 'fv_extern_src': fv_extern_src,
             # 'fv_extern_src_name': fv_extern_src_name,
             # 'fv_extern_name': fv_extern_src_name,
@@ -156,10 +167,11 @@ class Model3D(object):
         load model from file. fv_type is not set with this function. It is expected to set it before.
         """
         import dill as pickle
+
         mdl_file_e = op.expanduser(mdl_file)
 
         sv = pickle.load(open(mdl_file_e, "rb"))
-        self.mdl = sv['mdl']
+        self.mdl = sv["mdl"]
         # self.mdl[2] = self.mdl[0]
         # try:
         #     eval(sv['fv_extern_src'])
@@ -169,11 +181,10 @@ class Model3D(object):
         #     print "pomoc,necoje blbe"
         #     pass
 
-        self.modelparams.update(sv['modelparams'])
+        self.modelparams.update(sv["modelparams"])
         logger.debug("loaded model from path: " + mdl_file_e)
         # from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
         # import ipdb; ipdb.set_trace()
-
 
     def likelihood_from_image(self, data, voxelsize, cl):
         sha = data.shape
@@ -183,13 +194,15 @@ class Model3D(object):
 
 
 class Model(Model3D):
-    #def __init__(self, nObjects=2, modelparams={}):
-    #super(Model3D, self).__init__()
+    # def __init__(self, nObjects=2, modelparams={}):
+    # super(Model3D, self).__init__()
 
     # fix change of cvtype and covariancetype
     # print modelparams
 
-    def features_from_image(self, data, voxelsize, seeds=None, unique_cls=None):# , voxels=None):
+    def features_from_image(
+        self, data, voxelsize, seeds=None, unique_cls=None
+    ):  # , voxels=None):
         """
         Input data is 3d image
 
@@ -216,10 +229,10 @@ class Model(Model3D):
         modelparams['fv_extern'] = fv_function
         """
 
-        fv_type = self.modelparams['fv_type']
+        fv_type = self.modelparams["fv_type"]
         logger.debug("fv_type " + fv_type)
         fv = []
-        if fv_type == 'intensity':
+        if fv_type == "intensity":
             fv = data.reshape(-1, 1)
 
             if seeds is not None:
@@ -238,10 +251,12 @@ class Model(Model3D):
         #     else:
         #         fv = data
         #         fv = fv.reshape(-1, 1)
-        elif fv_type in ('fv001', "FV001", "intensity_and_blur"):
+        elif fv_type in ("fv001", "FV001", "intensity_and_blur"):
 
             # intensity in pixel, gaussian blur intensity
-            return features.fv_function_intensity_and_smoothing(data, voxelsize, seeds, unique_cls)
+            return features.fv_function_intensity_and_smoothing(
+                data, voxelsize, seeds, unique_cls
+            )
 
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
@@ -250,14 +265,12 @@ class Model(Model3D):
             # print fv2.shape
             # print fv.shape
         elif fv_type == "fv_extern":
-            fv_function = self.modelparams['fv_extern']
+            fv_function = self.modelparams["fv_extern"]
             return fv_function(data, voxelsize, seeds, unique_cls)
 
         else:
-            logger.error("Unknown feature vector type: " +
-                         self.modelparams['fv_type'])
+            logger.error("Unknown feature vector type: " + self.modelparams["fv_type"])
         return fv
-
 
     # def trainFromSomething(self, data, seeds, cls, voxels):
     #     """
@@ -269,7 +282,6 @@ class Model(Model3D):
     #         logger.debug('cl: ' + str(cl))
     #         fv = self.createFV(data, seeds, cl, voxels_i)
     #         self.train(fv, cl)
-
 
     def fit(self, clx, cla):
         """
@@ -308,13 +320,13 @@ class Model(Model3D):
         label: gmmsame, gaussian_kde, dpgmm, stored
         """
 
-        logger.debug('clx ' + str(clx[:10, :]))
-        logger.debug('clx type' + str(clx.dtype))
+        logger.debug("clx " + str(clx[:10, :]))
+        logger.debug("clx type" + str(clx.dtype))
         # name = 'clx' + str(cl) + '.npy'
         # print name
         # np.save(name, clx)
         logger.debug("_fit()")
-        if self.modelparams['adaptation'] == "original_data":
+        if self.modelparams["adaptation"] == "original_data":
             if cl in self.mdl.keys():
                 return
         # if True:
@@ -322,39 +334,42 @@ class Model(Model3D):
 
         logger.debug("training continues")
 
-
-        if self.modelparams['type'] == 'gmmsame':
+        if self.modelparams["type"] == "gmmsame":
             if len(clx.shape) == 1:
-                logger.warning('reshaping in train will be removed. Use \
-                                \ntrainFromImageAndSeeds() function')
+                logger.warning(
+                    "reshaping in train will be removed. Use \
+                                \ntrainFromImageAndSeeds() function"
+                )
 
-                print('Warning deprecated feature in train() function')
+                print("Warning deprecated feature in train() function")
                 #  je to jen jednorozměrný vektor, tak je potřeba to
                 # převést na 2d matici
                 clx = clx.reshape(-1, 1)
-            gmmparams = self.modelparams['params']
+            gmmparams = self.modelparams["params"]
             self.mdl[cl] = sklearn.mixture.GaussianMixture(**gmmparams)
             self.mdl[cl].fit(clx)
 
-        elif self.modelparams['type'] == 'kernel':
+        elif self.modelparams["type"] == "kernel":
             # Not working (probably) in old versions of scikits
             # from sklearn.neighbors.kde import KernelDensity
             from sklearn.neighbors import KernelDensity
+
             # kernelmodelparams = {'kernel': 'gaussian', 'bandwidth': 0.2}
-            kernelmodelparams = self.modelparams['params']
+            kernelmodelparams = self.modelparams["params"]
             self.mdl[cl] = KernelDensity(**kernelmodelparams).fit(clx)
-        elif self.modelparams['type'] == 'gaussian_kde':
+        elif self.modelparams["type"] == "gaussian_kde":
             # print clx
             import scipy.stats
+
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
 
             # gaussian_kde works only with floating point types
             self.mdl[cl] = scipy.stats.gaussian_kde(clx.astype(np.float))
-        elif self.modelparams['type'] == 'dpgmm':
+        elif self.modelparams["type"] == "dpgmm":
             # print 'clx.shape ', clx.shape
             # print 'cl ', cl
-            gmmparams = self.modelparams['params']
+            gmmparams = self.modelparams["params"]
             self.mdl[cl] = sklearn.mixture.DPGMM(**gmmparams)
             # todo here is a hack
             # dpgmm z nějakého důvodu nefunguje pro naše data
@@ -362,13 +377,14 @@ class Model(Model3D):
             # patrně to bude mít něco společného s parametrem alpha
             # přenásobí-li se to malým číslem, zázračně to chodí
             self.mdl[cl].fit(clx * 0.001)
-        elif self.modelparams['type'] == 'stored':
+        elif self.modelparams["type"] == "stored":
             # Classifer is trained before segmentation and stored to pickle
             import pickle
+
             print("stored")
             logger.warning("deprecated use of stored parameters")
 
-            mdl_file = self.modelparams['params']['mdl_file']
+            mdl_file = self.modelparams["params"]["mdl_file"]
             self.mdl = pickle.load(open(mdl_file, "rb"))
 
         else:
@@ -393,15 +409,15 @@ class Model(Model3D):
         # from PyQt4.QtCore import pyqtRemoveInputHook
         # pyqtRemoveInputHook()
         logger.debug("likel " + str(x.shape))
-        if self.modelparams['type'] == 'gmmsame':
+        if self.modelparams["type"] == "gmmsame":
 
             px = self.mdl[cl].score_samples(x)
 
         # todo ošetřit více dimenzionální fv
         # px = px.reshape(outsha)
-        elif self.modelparams['type'] == 'kernel':
+        elif self.modelparams["type"] == "kernel":
             px = self.mdl[cl].score_samples(x)
-        elif self.modelparams['type'] == 'gaussian_kde':
+        elif self.modelparams["type"] == "gaussian_kde":
             # print x
             # np.log because it is likelihood
             # @TODO Zde je patrně problém s reshape
@@ -412,7 +428,7 @@ class Model(Model3D):
             # px = px.reshape(outsha)
             # from PyQt4.QtCore import pyqtRemoveInputHook
             # pyqtRemoveInputHook()
-        elif self.modelparams['type'] == 'dpgmm':
+        elif self.modelparams["type"] == "dpgmm":
             # todo here is a hack
             # dpgmm z nějakého důvodu nefunguje pro naše data
             # vždy natrénuje jednu složku v blízkosti nuly
@@ -421,8 +437,6 @@ class Model(Model3D):
             logger.warning(".score() replaced with .score_samples() . Check it.")
             # px = self.mdl[cl].score(x * 0.01)
             px = self.mdl[cl].score_samples(x * 0.01)
-        elif self.modelparams['type'] == 'stored':
+        elif self.modelparams["type"] == "stored":
             px = self.mdl[cl].score(x)
         return px
-
-

@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 # import os.path as op
 
 logger = logging.getLogger(__name__)
 import numpy as nm
 import numpy as np
 import copy
+
 # from io import open
 
 # TODO zpětná indexace původních pixelů (v add_nodes())
@@ -29,9 +31,8 @@ import copy
 #                  [0,1,1],
 #                  [1,0,1]])
 
+
 class Graph(object):
-
-
     def add_nodes(self, coors, node_low_or_high=None):
         """
         Add new nodes at the end of the list.
@@ -79,14 +80,15 @@ class Graph(object):
         self.edge_group[idx] = edge_group
         # TODO change this just to array of low_or_high_resolution
         if edge_low_or_high is not None and self._edge_weight_table is not None:
-            self.edges_weights[idx] = self._edge_weight_table[edge_low_or_high, edge_direction]
+            self.edges_weights[idx] = self._edge_weight_table[
+                edge_low_or_high, edge_direction
+            ]
         self.lastedge += nadd
         self.nedges += nadd
 
-
     def finish(self):
         ndidxs = nm.where(self.node_flag)[0]
-        aux = - nm.ones((self.nodes.shape[0],), dtype=int)
+        aux = -nm.ones((self.nodes.shape[0],), dtype=int)
         aux[ndidxs] = nm.arange(ndidxs.shape[0])
         edges = aux[self.edges[self.edge_flag]]
         nodes = self.nodes[ndidxs]
@@ -108,7 +110,6 @@ class Graph(object):
             self.edges_weights = self.edges_weights[self.edge_flag]
             # del self.edges_weights
             # self.edges_weights = edges_weights
-
 
         del self.nodes
         del self.node_flag
@@ -140,7 +141,9 @@ class Graph(object):
 
         return out
 
-    def _edge_group_substitution(self, ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from):
+    def _edge_group_substitution(
+        self, ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from
+    ):
         """
         Reconnect edges.
         :param ndid: id of low resolution edges
@@ -159,8 +162,7 @@ class Graph(object):
                 # high resolution block to high resolution block
                 # all directions are the same
                 directions = self.edge_dir[igrp[0]]
-                edge_indexes = sr_tab[directions, :].T.flatten() \
-                                     + ndoffset
+                edge_indexes = sr_tab[directions, :].T.flatten() + ndoffset
                 # debug code
                 # if len(igrp) != len(edge_indexes):
                 #     print("Problem ")
@@ -177,14 +179,19 @@ class Graph(object):
                 # copy the low-res edge multipletime
                 newed = self.edges[muleidxs, :]
                 neweddir = self.edge_dir[muleidxs]
-                local_node_ids = sr_tab[self.edge_dir[igrp] + self.data.ndim * into_or_from,:].T.flatten()
+                local_node_ids = sr_tab[
+                    self.edge_dir[igrp] + self.data.ndim * into_or_from, :
+                ].T.flatten()
                 # first or second (the actual) node id is substitued by new node indexes
-                newed[:, 1 - into_or_from] = local_node_ids \
-                             + ndoffset
+                newed[:, 1 - into_or_from] = local_node_ids + ndoffset
                 if self._edge_weight_table is not None:
-                    self.add_edges(newed, neweddir, self.edge_group[igrp], edge_low_or_high=1)
+                    self.add_edges(
+                        newed, neweddir, self.edge_group[igrp], edge_low_or_high=1
+                    )
                 else:
-                    self.add_edges(newed, neweddir, self.edge_group[igrp], edge_low_or_high=None)
+                    self.add_edges(
+                        newed, neweddir, self.edge_group[igrp], edge_low_or_high=None
+                    )
         return ed_remove
 
     def split_voxel(self, ndid):
@@ -217,7 +224,7 @@ class Graph(object):
         if self.compute_msindex:
             self.msi.set_block_higres(ndid, self.srt.inds + ndoffset)
         nd = make_nodes_3d(nd)
-        self.add_nodes(nd + self.nodes[ndid,:] - (self.voxelsize3 / 2))
+        self.add_nodes(nd + self.nodes[ndid, :] - (self.voxelsize3 / 2))
         if self._edge_weight_table is not None:
             # high resolution
             self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=1)
@@ -231,11 +238,14 @@ class Graph(object):
         idxs = nm.where(self.edge_flag > 0)[0]
 
         # edges "into" node?
-        ed_remove = self._edge_group_substitution( ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=0)
+        ed_remove = self._edge_group_substitution(
+            ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=0
+        )
 
         # edges "from" node?
-        ed_remove = self._edge_group_substitution( ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=1)
-
+        ed_remove = self._edge_group_substitution(
+            ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=1
+        )
 
         # remove node
         self.node_flag[ndid] = False
@@ -297,7 +307,16 @@ class Graph(object):
         self.split_voxels(final_grid_vtk_fn)
         # self.split_voxels()
 
-    def __init__(self, data, voxelsize, grid_function=None, nsplit=3, compute_msindex=True, edge_weight_table=None, compute_low_nodes_index=True):
+    def __init__(
+        self,
+        data,
+        voxelsize,
+        grid_function=None,
+        nsplit=3,
+        compute_msindex=True,
+        edge_weight_table=None,
+        compute_low_nodes_index=True,
+    ):
         """
 
         :param data:
@@ -312,7 +331,7 @@ class Graph(object):
         self.voxelsize = nm.asarray(voxelsize)
         # always 3D
         self.voxelsize3 = np.zeros([3])
-        self.voxelsize3[:len(voxelsize)] = voxelsize
+        self.voxelsize3[: len(voxelsize)] = voxelsize
 
         self.data = np.asarray(data)
         if self.voxelsize.size != len(data.shape):
@@ -325,7 +344,9 @@ class Graph(object):
         # 3D
         number_of_resized_nodes = np.count_nonzero(self.data)
         # self.ndmax_debug = data.size + number_of_resized_nodes* np.power(nsplit, self.data.ndim)
-        self.ndmax = data.size + number_of_resized_nodes * np.power(nsplit, self.data.ndim)
+        self.ndmax = data.size + number_of_resized_nodes * np.power(
+            nsplit, self.data.ndim
+        )
         # init nodes
         self.nnodes = 0
         self.lastnode = 0
@@ -347,14 +368,16 @@ class Graph(object):
         # number of edges from every node
         edmax_from_node = self.data.ndim * self.ndmax
         # edges from lowres node to higres node from all directions
-        edmax_into_node = number_of_resized_nodes * self.data.ndim * nsplit**(self.data.ndim - 1)
+        edmax_into_node = (
+            number_of_resized_nodes * self.data.ndim * nsplit ** (self.data.ndim - 1)
+        )
         self.edmax = edmax_from_node + edmax_into_node
         edmax = self.edmax
         # self.edmax_debug = edmax_from_node + edmax_into_node
         self.nedges = 0
         self.lastedge = 0
         eddtype = get_efficient_signed_int_type(self.ndmax)
-        self.edges = - nm.ones((edmax, 2), dtype=eddtype)
+        self.edges = -nm.ones((edmax, 2), dtype=eddtype)
         # edge_flag: if true, this edge is used in final output
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
@@ -363,7 +386,7 @@ class Graph(object):
             self.edges_weights = nm.zeros((edmax,), dtype=nm.int16)
         # list of edges on low resolution
         edgrdtype = get_efficient_signed_int_type(edmax)
-        self.edge_group = - nm.ones((edmax,), dtype=edgrdtype)
+        self.edge_group = -nm.ones((edmax,), dtype=edgrdtype)
         self.nsplit = nsplit
         self.compute_msindex = compute_msindex
         # indexes of nodes arranged in ndimage
@@ -398,6 +421,7 @@ class SRTab(object):
     """
     Table of connection on transition between low resolution and high resolution
     """
+
     def __init__(self):
         # spliting reconnection table
         # sr_tab = {
@@ -426,7 +450,6 @@ class SRTab(object):
             tab.append(reshaped.take(-1, direction).flatten())
         self.sr_tab[tuple(shape)] = np.array(tab)
 
-
     def get_sr_subtab(self, shape):
         shape = tuple(shape)
         if shape not in self.sr_tab:
@@ -450,20 +473,19 @@ def grid_edges(shape, inds=None, return_directions=True):
         edgx = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
         edgy = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
 
-        edges = [ edgx, edgy]
+        edges = [edgx, edgy]
 
         directions = [
             np.ones([edgx.shape[0]], dtype=np.int8) * 0,
             np.ones([edgy.shape[0]], dtype=np.int8) * 1,
-            ]
-
+        ]
 
     elif len(shape) == 3:
         # This is faster for some specific format
         edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
         edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
         edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
-        edges = [ edgx, edgy, edgz]
+        edges = [edgx, edgy, edgz]
     else:
         logger.error("Expected 2D or 3D data")
 
@@ -481,18 +503,21 @@ def grid_edges(shape, inds=None, return_directions=True):
     else:
         return edges
 
+
 def grid_nodes(shape, voxelsize=None):
-    voxelsize = np.asarray(voxelsize) # [:len(shape)]
+    voxelsize = np.asarray(voxelsize)  # [:len(shape)]
     nodes = np.moveaxis(np.indices(shape), 0, -1).reshape(-1, len(shape))
     if voxelsize is not None:
         nodes = (nodes * voxelsize) + (0.5 * voxelsize)
     return nodes
+
 
 def gen_grid_nd(shape, voxelsize=None, inds=None):
     edges, edge_dir = grid_edges(shape, inds, return_directions=True)
     # nodes coordinates
     nodes = grid_nodes(shape, voxelsize)
     return nodes, edges, edge_dir
+
 
 def gen_grid_2d(shape, voxelsize):
     """
@@ -508,50 +533,51 @@ def gen_grid_2d(shape, voxelsize):
         sh[direction] += -1
         nedges += nm.prod(sh)
 
-
     nedges_old = ncm1 * nr + nrm1 * nc
     edges = nm.zeros((nedges, 2), dtype=nm.int16)
-    edge_dir = nm.zeros((ncm1 * nr + nrm1 * nc, ), dtype=nm.bool)
+    edge_dir = nm.zeros((ncm1 * nr + nrm1 * nc,), dtype=nm.bool)
     nodes = nm.zeros((nm.prod(shape), 3), dtype=nm.float32)
 
     # edges
     idx = 0
     row = nm.zeros((ncm1, 2), dtype=nm.int16)
-    row[:,0] = nm.arange(ncm1)
-    row[:,1] = nm.arange(ncm1) + 1
+    row[:, 0] = nm.arange(ncm1)
+    row[:, 1] = nm.arange(ncm1) + 1
     for ii in range(nr):
-        edges[slice(idx, idx + ncm1),:] = row + nc * ii
+        edges[slice(idx, idx + ncm1), :] = row + nc * ii
         idx += ncm1
 
-    edge_dir[slice(0, idx)] = 0 # horizontal dir
+    edge_dir[slice(0, idx)] = 0  # horizontal dir
 
     idx0 = idx
     col = nm.zeros((nrm1, 2), dtype=nm.int16)
-    col[:,0] = nm.arange(nrm1) * nc
-    col[:,1] = nm.arange(nrm1) * nc + nc
+    col[:, 0] = nm.arange(nrm1) * nc
+    col[:, 1] = nm.arange(nrm1) * nc + nc
     for ii in range(nc):
-        edges[slice(idx, idx + nrm1),:] = col + ii
+        edges[slice(idx, idx + nrm1), :] = col + ii
         idx += nrm1
 
-    edge_dir[slice(idx0, idx)] = 1 # vertical dir
+    edge_dir[slice(idx0, idx)] = 1  # vertical dir
 
     # nodes
     idx = 0
     row = nm.zeros((nc, 3), dtype=nm.float32)
-    row[:,0] = voxelsize[0] * (nm.arange(nc) + 0.5)
-    row[:,1] = voxelsize[1] * 0.5
+    row[:, 0] = voxelsize[0] * (nm.arange(nc) + 0.5)
+    row[:, 1] = voxelsize[1] * 0.5
     for ii in range(nr):
-        nodes[slice(idx, idx + nc),:] = row
-        row[:,1] += voxelsize[1]
+        nodes[slice(idx, idx + nc), :] = row
+        row[:, 1] += voxelsize[1]
         idx += nc
 
     return nodes, edges, edge_dir
+
 
 def make_nodes_3d(nodes):
     if nodes.shape[1] == 2:
         zeros = np.zeros([nodes.shape[0], 1], dtype=nodes.dtype)
         nodes = np.concatenate([nodes, zeros], axis=1)
     return nodes
+
 
 def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     """
@@ -569,28 +595,28 @@ def write_grid_to_vtk(fname, nodes, edges, node_flag=None, edge_flag=None):
     if edge_flag is None:
         edge_flag = np.ones([edges.shape[0]], dtype=np.bool)
     nodes = make_nodes_3d(nodes)
-    f = open(fname, 'w')
+    f = open(fname, "w")
 
-    f.write('# vtk DataFile Version 2.6\n')
-    f.write('output file\nASCII\nDATASET UNSTRUCTURED_GRID\n')
+    f.write("# vtk DataFile Version 2.6\n")
+    f.write("output file\nASCII\nDATASET UNSTRUCTURED_GRID\n")
 
     idxs = nm.where(node_flag > 0)[0]
     nnd = len(idxs)
     aux = -nm.ones(node_flag.shape, dtype=nm.int32)
     aux[idxs] = nm.arange(nnd, dtype=nm.int32)
-    f.write('\nPOINTS %d float\n' % nnd)
+    f.write("\nPOINTS %d float\n" % nnd)
     for ndi in idxs:
-        f.write('%.6f %.6f %.6f\n' % tuple(nodes[ndi,:]))
+        f.write("%.6f %.6f %.6f\n" % tuple(nodes[ndi, :]))
 
     idxs = nm.where(edge_flag > 0)[0]
     ned = len(idxs)
-    f.write('\nCELLS %d %d\n' % (ned, ned * 3))
+    f.write("\nCELLS %d %d\n" % (ned, ned * 3))
     for edi in idxs:
-        f.write('2 %d %d\n' % tuple(aux[edges[edi,:]]))
+        f.write("2 %d %d\n" % tuple(aux[edges[edi, :]]))
 
-    f.write('\nCELL_TYPES %d\n' % ned)
+    f.write("\nCELL_TYPES %d\n" % ned)
     for edi in idxs:
-        f.write('3\n')
+        f.write("3\n")
 
 
 class MultiscaleArray(object):
@@ -609,7 +635,9 @@ class MultiscaleArray(object):
 
         for ax, single_ax_coord in enumerate(coords):
             coord_higres_start = single_ax_coord * self.block_size
-            self.cache_slice[ax] = slice(coord_higres_start, coord_higres_start + self.block_size)
+            self.cache_slice[ax] = slice(
+                coord_higres_start, coord_higres_start + self.block_size
+            )
 
     def set_block_lowres(self, index, val):
         self._prepare_cache_slice(index)
