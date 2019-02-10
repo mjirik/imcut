@@ -1448,7 +1448,7 @@ class ImageGraphCut:
             del self.temp_msgc_resized_img
             del self.temp_msgc_resized_seeds
             del self._lo2hi_resize_original_shape
-        self.stats["t11"] = time.time() - self._start_time
+        # self.stats["t11"] = time.time() - self._start_time
 
     def save(self, filename):
         """
