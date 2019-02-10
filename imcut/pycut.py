@@ -389,7 +389,7 @@ class ImageGraphCut:
             # boundary_penalties_fcn=ms_npenalty_fcn
             boundary_penalties_fcn=local_ms_npenalty
         )
-
+        # nlinks created
         self.stats["t5"] = (time.time() - self._start_time)
 
         # get unique set
@@ -519,10 +519,14 @@ class ImageGraphCut:
             edge_weight_table=self._msgc_npenalty_table,
             compute_low_nodes_index=True
         )
+
+        self.stats["t4"] = (time.time() - self._start_time)
         graph.run()
+        self.stats["t5"] = (time.time() - self._start_time)
         un, ind = np.unique(graph.msinds, return_index=True)
 
         mul_mask, mul_val = self.__msgc_tlinks_area_weight_from_low_segmentation(seg)
+        self.stats["t6"] = (time.time() - self._start_time)
         area_weight = 1
         unariesalt = self.__create_tlinks(
             self.img, self.voxelsize, self.seeds,
@@ -530,6 +534,8 @@ class ImageGraphCut:
             mul_mask=None, mul_val=None
         )
 
+        # N-links prepared
+        self.stats["t7"] = (time.time() - self._start_time)
         unariesalt2_lo2hi = np.hstack([
             unariesalt[ind, 0, 0].reshape(-1, 1),
             unariesalt[ind, 0, 1].reshape(-1, 1),
@@ -556,7 +562,7 @@ class ImageGraphCut:
         # nlinks, unariesalt2, msinds = self.__msgc_step45678_construct_graph(area_weight, hard_constraints, seg)
         # self.__msgc_step9_finish_perform_gc_and_reshape(nlinks, unariesalt2, msinds)
         self.__msgc_step9_finish_perform_gc_and_reshape(nlinks_lo2hi, unariesalt2_lo2hi, graph.msinds)
-        self._msgc_lo2hi_resize_finish()
+        self._msgc_lo2hi_resize_clean_finish()
 
     def __multiscale_gc_hi2lo_run(self):  # , pyed):
         """
@@ -1319,7 +1325,7 @@ class ImageGraphCut:
         self.img = uncrop(self.img, crinfo, new_shape, outside_mode="nearest")
         self.seeds = uncrop(self.seeds, crinfo, new_shape)
 
-    def _msgc_lo2hi_resize_finish(self):
+    def _msgc_lo2hi_resize_clean_finish(self):
         orig_shape = self._lo2hi_resize_original_shape
         self.temp_msgc_resized_img = self.img
         self.temp_msgc_resized_segmentation = self.segmentation
