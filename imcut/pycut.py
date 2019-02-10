@@ -488,7 +488,7 @@ class ImageGraphCut:
         self.stats["t9"] = time.time() - start
         self.stats["tlinks shape"].append(unariesalt2.shape)
         self.stats["nlinks shape"].append(nlinks.shape)
-        start = time.time()
+        start_gc = time.time()
         # Same functionality is in self.seg_data()
         result_graph = pygco.cut_from_graph(
             nlinks.astype(np.int32),
@@ -496,8 +496,9 @@ class ImageGraphCut:
             pairwise.astype(np.int32),
         )
 
-        elapsed = time.time() - start
+        elapsed = time.time() - start_gc
         self.stats["gc time"] = elapsed
+        self.stats["t10"] = time.time() - start
 
         # probably not necessary
         #        del nlinks
@@ -545,13 +546,10 @@ class ImageGraphCut:
             compute_low_nodes_index=True,
         )
 
-        self.stats["t4"] = (time.time() - self._start_time)
         graph.run()
-        self.stats["t5"] = (time.time() - self._start_time)
-        un, ind = np.unique(graph.msinds, return_index=True)
 
+        self.stats["t4"] = (time.time() - self._start_time)
         mul_mask, mul_val = self.__msgc_tlinks_area_weight_from_low_segmentation(seg)
-        self.stats["t6"] = (time.time() - self._start_time)
         area_weight = 1
         unariesalt = self.__create_tlinks(
             self.img,
@@ -562,8 +560,11 @@ class ImageGraphCut:
             mul_mask=None,
             mul_val=None,
         )
-
         # N-links prepared
+        self.stats["t5"] = (time.time() - self._start_time)
+        un, ind = np.unique(graph.msinds, return_index=True)
+        self.stats["t6"] = (time.time() - self._start_time)
+
         self.stats["t7"] = (time.time() - self._start_time)
         unariesalt2_lo2hi = np.hstack(
             [unariesalt[ind, 0, 0].reshape(-1, 1), unariesalt[ind, 0, 1].reshape(-1, 1)]
@@ -1447,6 +1448,7 @@ class ImageGraphCut:
             del self.temp_msgc_resized_img
             del self.temp_msgc_resized_seeds
             del self._lo2hi_resize_original_shape
+        self.stats["t11"] = time.time() - self._start_time
 
     def save(self, filename):
         """
