@@ -95,10 +95,10 @@ class ImageGraphCut:
 
         logger.debug(
             "modelparams: %s, segparams: %s, voxelsize: %s, debug_images: %s",
-            str(modelparams),
-            str(segparams),
-            str(voxelsize),
-            str(debug_images),
+            modelparams,
+            segparams,
+            voxelsize,
+            debug_images,
         )
 
         self._update_segparams(segparams, modelparams)
@@ -195,7 +195,7 @@ class ImageGraphCut:
             self.interactivity_loop_finish_funcion()
 
         self.interactivity_counter += 1
-        logger.debug("interactivity counter: " + str(self.interactivity_counter))
+        logger.debug("interactivity counter: %", str(self.interactivity_counter))
 
     def __uniform_npenalty_fcn(self, orig_shape):
         return np.ones(orig_shape, dtype=np.int8)
@@ -295,8 +295,8 @@ class ImageGraphCut:
         zoom = np.asarray(loseeds.shape).astype(np.float) / img_orig.shape
         self.img = scipy.ndimage.interpolation.zoom(img_orig, zoom, order=0)
         voxelsize_orig = self.voxelsize
-        logger.debug("zoom " + str(zoom))
-        logger.debug("vs" + str(self.voxelsize))
+        logger.debug("zoom %s", zoom)
+        logger.debug("vs %s", self.voxelsize)
         self.voxelsize = self.voxelsize * zoom
 
         # self.img = resize_to_shape_with_zoom(img_orig, loseeds.shape, 1.0 / ms_zoom, order=0)
@@ -1694,7 +1694,7 @@ def main():
     )
     igc.interactivity()
 
-    logger.debug("igc interactivity countr: " + str(igc.interactivity_counter))
+    logger.debug("igc interactivity countr: %s", igc.interactivity_counter)
 
     logger.debug(igc.segmentation.shape)
 
