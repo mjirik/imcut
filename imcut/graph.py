@@ -34,6 +34,121 @@ import time
 
 
 class Graph(object):
+
+    def __init__(
+            self,
+            data,
+            voxelsize,
+            grid_function=None,
+            nsplit=3,
+            compute_msindex=True,
+            edge_weight_table=None,
+            compute_low_nodes_index=True,
+    ):
+        """
+
+        :param data:
+        :param voxelsize:
+        :param grid_function: '2d' or 'nd'. Use '2d' for former implementation
+        :param nsplit: size of low resolution block
+        :param compute_msindex: compute indexes of nodes arranged in a ndarray with the same shape as higres image
+        :param edge_weight_table: ndarray with size 2 * self.img.ndims. First axis describe whether is the edge
+        between lowres(0) or highres(1) or hight-low (1) voxels. Second axis describe edge direction (edge axis).
+        """
+        # same dimension as data
+        self.start_time = time.time()
+        self.voxelsize = nm.asarray(voxelsize)
+        # always 3D
+        self.voxelsize3 = np.zeros([3])
+        self.voxelsize3[: len(voxelsize)] = voxelsize
+
+        self.data = np.asarray(data)
+        if self.voxelsize.size != len(data.shape):
+            logger.error("Datashape should be the same as voxelsize")
+            raise ValueError("Datashape should be the same as voxelsize")
+        self._edge_weight_table = edge_weight_table
+        self.compute_low_node_inverse = compute_low_nodes_index
+        # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
+        # 2d (nsplit, req) 2:3, 3:8, 4:12
+        # 3D
+        number_of_resized_nodes = np.count_nonzero(self.data)
+        # self.ndmax_debug = data.size + number_of_resized_nodes* np.power(nsplit, self.data.ndim)
+        self.ndmax = data.size + number_of_resized_nodes * np.power(
+            nsplit, self.data.ndim
+        )
+        # init nodes
+        self.nnodes = 0
+        self.lastnode = 0
+        self.nodes = nm.zeros((self.ndmax, 3), dtype=nm.float32)
+        # node_flag: if true, this node is used in final output
+        self.node_flag = nm.zeros((self.ndmax,), dtype=nm.bool)
+
+        # init edges
+        # estimate maximum number of dges as number of nodes multiplied by number of directions
+        # the rest part is
+        # if self.data.ndim == 2:
+        #     edmax_rest = (9 * nsplit - 12)
+        # elif self.data.ndim == 3:
+        #     # edmax_rest = (9 * nsplit - 12) + 8 * nsplit**2 - 9 * nsplit - 35
+        #     edmax_rest = 8 * nsplit**2 - 47
+        # else:
+        #     # this is not so efficient but should work
+        #     edmax_rest = 9 * nsplit**(self.data.ndim - 1)
+        # number of edges from every node
+        edmax_from_node = self.data.ndim * self.ndmax
+        # edges from lowres node to higres node from all directions
+        edmax_into_node = (
+                number_of_resized_nodes * self.data.ndim * nsplit ** (self.data.ndim - 1)
+        )
+        self.edmax = edmax_from_node + edmax_into_node
+        edmax = self.edmax
+        # self.edmax_debug = edmax_from_node + edmax_into_node
+        self.nedges = 0
+        self.lastedge = 0
+        eddtype = get_efficient_signed_int_type(self.ndmax)
+        self.edges = -nm.ones((edmax, 2), dtype=eddtype)
+        # edge_flag: if true, this edge is used in final output
+        self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
+        # TODO Just trying new time reduction without where()
+        self.edge_flag_idx = []
+        self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
+        if self._edge_weight_table is not None:
+            # dtype is given by graph-cut
+            self.edges_weights = nm.zeros((edmax,), dtype=nm.int16)
+        # list of edges on low resolution
+        edgrdtype = get_efficient_signed_int_type(edmax)
+        self.edge_group = -nm.ones((edmax,), dtype=edgrdtype)
+        self.nsplit = nsplit
+        self.compute_msindex = compute_msindex
+        # indexes of nodes arranged in ndimage
+        self.msinds = None
+        if grid_function in (None, "nd", "ND"):
+            self.gen_grid_fcn = gen_grid_nd
+        elif grid_function in ("2d", "2D"):
+            self.gen_grid_fcn = gen_grid_2d
+        else:
+            self.gen_grid_fcn = grid_function
+
+        self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
+        self.srt = SRTab()
+        self.cache = {}
+        self.stats = {}
+        self.stats["t graph low"] = 0
+        self.stats["t graph high"] = 0
+        self.stats["t split 01"] = 0
+        self.stats["t split 02"] = 0
+        self.stats["t split 03"] = 0
+        self.stats["t split 04"] = 0
+        self.stats["t split 05"] = 0
+        self.stats["t split 06"] = 0
+        self.stats["t split 07"] = 0
+        self.stats["t split 08"] = 0
+        self.stats["t split 081"] = 0
+        self.stats["t split 082"] = 0
+        self.stats["t split 09"] = 0
+        self.stats["t split 10"] = 0
+        self.stats["t graph 01"] = time.time() - self.start_time
+
     def add_nodes(self, coors, node_low_or_high=None):
         """
         Add new nodes at the end of the list.
@@ -77,6 +192,9 @@ class Graph(object):
 
         self.edges[idx, :] = conn
         self.edge_flag[idx] = True
+        t_start0 = time.time()
+        self.edge_flag_idx.extend(list(range(idx.start, idx.stop)))
+        self.stats["t split 082"] += time.time() - t_start0
         self.edge_dir[idx] = edge_direction
         self.edge_group[idx] = edge_group
         # TODO change this just to array of low_or_high_resolution
@@ -244,8 +362,15 @@ class Graph(object):
         ed_remove = []
         # sr_tab_old = self.sr_tab[nsplit]
 
-        idxs = nm.where(self.edge_flag > 0)[0]
+        # TODO use just one variant
+        t_start0 = time.time()
+        idxs0 = nm.where(self.edge_flag > 0)[0]
+        self.stats["t split 081"] += time.time() - t_start0
+        t_start0 = time.time()
+        idxs = self.edge_flag_idx
+        self.stats["t split 082"] += time.time() - t_start0
         self.stats["t split 08"] += time.time() - t_start
+
 
         # edges "into" node?
         ed_remove = self._edge_group_substitution(
@@ -299,18 +424,6 @@ class Graph(object):
 
         # even newer implementation
         self.stats["t graph 11"] = time.time() - self.start_time
-        self.stats["t graph low"] = 0
-        self.stats["t graph high"] = 0
-        self.stats["t split 01"] = 0
-        self.stats["t split 02"] = 0
-        self.stats["t split 03"] = 0
-        self.stats["t split 04"] = 0
-        self.stats["t split 05"] = 0
-        self.stats["t split 06"] = 0
-        self.stats["t split 07"] = 0
-        self.stats["t split 08"] = 0
-        self.stats["t split 09"] = 0
-        self.stats["t split 10"] = 0
         for ndid, val in enumerate(self.data.ravel()):
             t_split_start = time.time()
             if val == 0:
@@ -339,104 +452,6 @@ class Graph(object):
         # split voxels
         self.split_voxels(final_grid_vtk_fn)
         # self.split_voxels()
-
-    def __init__(
-        self,
-        data,
-        voxelsize,
-        grid_function=None,
-        nsplit=3,
-        compute_msindex=True,
-        edge_weight_table=None,
-        compute_low_nodes_index=True,
-    ):
-        """
-
-        :param data:
-        :param voxelsize:
-        :param grid_function: '2d' or 'nd'. Use '2d' for former implementation
-        :param nsplit: size of low resolution block
-        :param compute_msindex: compute indexes of nodes arranged in a ndarray with the same shape as higres image
-        :param edge_weight_table: ndarray with size 2 * self.img.ndims. First axis describe whether is the edge
-        between lowres(0) or highres(1) or hight-low (1) voxels. Second axis describe edge direction (edge axis).
-        """
-        # same dimension as data
-        self.start_time = time.time()
-        self.voxelsize = nm.asarray(voxelsize)
-        # always 3D
-        self.voxelsize3 = np.zeros([3])
-        self.voxelsize3[: len(voxelsize)] = voxelsize
-
-        self.data = np.asarray(data)
-        if self.voxelsize.size != len(data.shape):
-            logger.error("Datashape should be the same as voxelsize")
-            raise ValueError("Datashape should be the same as voxelsize")
-        self._edge_weight_table = edge_weight_table
-        self.compute_low_node_inverse = compute_low_nodes_index
-        # estimate maximum node number as number of lowres nodes + number of higres nodes + (nsplit - 1)^dim
-        # 2d (nsplit, req) 2:3, 3:8, 4:12
-        # 3D
-        number_of_resized_nodes = np.count_nonzero(self.data)
-        # self.ndmax_debug = data.size + number_of_resized_nodes* np.power(nsplit, self.data.ndim)
-        self.ndmax = data.size + number_of_resized_nodes * np.power(
-            nsplit, self.data.ndim
-        )
-        # init nodes
-        self.nnodes = 0
-        self.lastnode = 0
-        self.nodes = nm.zeros((self.ndmax, 3), dtype=nm.float32)
-        # node_flag: if true, this node is used in final output
-        self.node_flag = nm.zeros((self.ndmax,), dtype=nm.bool)
-
-        # init edges
-        # estimate maximum number of dges as number of nodes multiplied by number of directions
-        # the rest part is
-        # if self.data.ndim == 2:
-        #     edmax_rest = (9 * nsplit - 12)
-        # elif self.data.ndim == 3:
-        #     # edmax_rest = (9 * nsplit - 12) + 8 * nsplit**2 - 9 * nsplit - 35
-        #     edmax_rest = 8 * nsplit**2 - 47
-        # else:
-        #     # this is not so efficient but should work
-        #     edmax_rest = 9 * nsplit**(self.data.ndim - 1)
-        # number of edges from every node
-        edmax_from_node = self.data.ndim * self.ndmax
-        # edges from lowres node to higres node from all directions
-        edmax_into_node = (
-            number_of_resized_nodes * self.data.ndim * nsplit ** (self.data.ndim - 1)
-        )
-        self.edmax = edmax_from_node + edmax_into_node
-        edmax = self.edmax
-        # self.edmax_debug = edmax_from_node + edmax_into_node
-        self.nedges = 0
-        self.lastedge = 0
-        eddtype = get_efficient_signed_int_type(self.ndmax)
-        self.edges = -nm.ones((edmax, 2), dtype=eddtype)
-        # edge_flag: if true, this edge is used in final output
-        self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
-        self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
-        if self._edge_weight_table is not None:
-            # dtype is given by graph-cut
-            self.edges_weights = nm.zeros((edmax,), dtype=nm.int16)
-        # list of edges on low resolution
-        edgrdtype = get_efficient_signed_int_type(edmax)
-        self.edge_group = -nm.ones((edmax,), dtype=edgrdtype)
-        self.nsplit = nsplit
-        self.compute_msindex = compute_msindex
-        # indexes of nodes arranged in ndimage
-        self.msinds = None
-        if grid_function in (None, "nd", "ND"):
-            self.gen_grid_fcn = gen_grid_nd
-        elif grid_function in ("2d", "2D"):
-            self.gen_grid_fcn = gen_grid_2d
-        else:
-            self.gen_grid_fcn = grid_function
-
-        self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
-        self.srt = SRTab()
-        self.cache = {}
-        self.stats = {}
-        self.stats["t graph 01"] = time.time() - self.start_time
 
 
 def get_efficient_signed_int_type(number):
