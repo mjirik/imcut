@@ -110,7 +110,7 @@ class Graph(object):
         # edge_flag: if true, this edge is used in final output
         self.edge_flag = nm.zeros((edmax,), dtype=nm.bool)
         # TODO Just trying new time reduction without where()
-        self.edge_flag_idx = []
+        # self.edge_flag_idx = []
         self.edge_dir = nm.zeros((edmax,), dtype=nm.int8)
         if self._edge_weight_table is not None:
             # dtype is given by graph-cut
@@ -145,6 +145,7 @@ class Graph(object):
         self.stats["t split 08"] = 0
         self.stats["t split 081"] = 0
         self.stats["t split 082"] = 0
+        self.stats["t split 0821"] = 0
         self.stats["t split 09"] = 0
         self.stats["t split 10"] = 0
         self.stats["t graph 01"] = time.time() - self.start_time
@@ -192,9 +193,9 @@ class Graph(object):
 
         self.edges[idx, :] = conn
         self.edge_flag[idx] = True
-        t_start0 = time.time()
-        self.edge_flag_idx.extend(list(range(idx.start, idx.stop)))
-        self.stats["t split 082"] += time.time() - t_start0
+        # t_start0 = time.time()
+        # self.edge_flag_idx.extend(list(range(idx.start, idx.stop)))
+        # self.stats["t split 082"] += time.time() - t_start0
         self.edge_dir[idx] = edge_direction
         self.edge_group[idx] = edge_group
         # TODO change this just to array of low_or_high_resolution
@@ -275,7 +276,13 @@ class Graph(object):
         is performed.
         :return:
         """
+        # this is useful for type(idxs) == np.ndarray
         eidxs = idxs[nm.where(self.edges[idxs, 1 - into_or_from] == ndid)[0]]
+        # selected_edges = self.edges[idxs, 1 - into_or_from]
+        # selected_edges == ndid
+        # whre = nm.where(self.edges[idxs, 1 - into_or_from] == ndid)
+        # whre0 = (nm.where(self.edges[idxs, 1 - into_or_from] == ndid) == ndid)[0]
+        # eidxs = [idxs[i] for i in idxs]
         for igrp in self.edges_by_group(eidxs):
             if igrp.shape[0] > 1:
                 # high resolution block to high resolution block
@@ -363,12 +370,13 @@ class Graph(object):
         # sr_tab_old = self.sr_tab[nsplit]
 
         # TODO use just one variant
-        t_start0 = time.time()
-        idxs0 = nm.where(self.edge_flag > 0)[0]
-        self.stats["t split 081"] += time.time() - t_start0
-        t_start0 = time.time()
-        idxs = self.edge_flag_idx
-        self.stats["t split 082"] += time.time() - t_start0
+        # t_start0 = time.time()
+        idxs = nm.where(self.edge_flag > 0)[0]
+        # self.stats["t split 081"] += time.time() - t_start0
+        # no np.where() variant
+        # t_start0 = time.time()
+        # idxs = np.array(self.edge_flag_idx)
+        # self.stats["t split 082"] += time.time() - t_start0
         self.stats["t split 08"] += time.time() - t_start
 
 
@@ -388,6 +396,10 @@ class Graph(object):
         self.node_flag[ndid] = False
         # remove edges
         self.edge_flag[ed_remove] = False
+        # TODO maybe remove
+        # t_start0 = time.time()
+        # self.edge_flag_idx = [one_flag_id for one_flag_id in self.edge_flag_idx if one_flag_id not in ed_remove]
+        # self.stats["t split 0821"] += time.time() - t_start0
 
     def generate_base_grid(self, vtk_filename=None):
         """
