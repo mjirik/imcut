@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 import numpy as nm
 import numpy as np
 import copy
+import time
 
 # from io import open
 
@@ -208,6 +209,8 @@ class Graph(object):
         # tile_shape = tuple(tile_shape)
         # nsplit = tile_shape[0]
         # tile_shape = (nsplit, nsplit)
+        t_start = time.time()
+        self.stats["t split 01"] += time.time() - t_start
         nsplit = self.nsplit
         tile_shape = self._tile_shape
         if tile_shape in self.cache:
@@ -216,37 +219,46 @@ class Graph(object):
             nd, ed, ed_dir = self.gen_grid_fcn(tile_shape, self.voxelsize / nsplit)
             # nd, ed, ed_dir = gen_base_graph(tile_shape, self.voxelsize / tile_shape)
             self.cache[tile_shape] = nd, ed, ed_dir
+        self.stats["t split 02"] += time.time() - t_start
 
         ndoffset = self.lastnode
         # in new implementation nodes are 2D on 2D shape and 3D in 3D shape
         # in old implementation nodes are always 3D
         sr_tab = self.srt.get_sr_subtab(tile_shape)
+        self.stats["t split 03"] += time.time() - t_start
         if self.compute_msindex:
             self.msi.set_block_higres(ndid, self.srt.inds + ndoffset)
+        self.stats["t split 04"] += time.time() - t_start
         nd = make_nodes_3d(nd)
+        self.stats["t split 05"] += time.time() - t_start
         self.add_nodes(nd + self.nodes[ndid, :] - (self.voxelsize3 / 2))
+        self.stats["t split 06"] += time.time() - t_start
         if self._edge_weight_table is not None:
             # high resolution
             self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=1)
         else:
             self.add_edges(ed + ndoffset, ed_dir, edge_low_or_high=None)
+        self.stats["t split 07"] += time.time() - t_start
 
         # connect subgrid
         ed_remove = []
         # sr_tab_old = self.sr_tab[nsplit]
 
         idxs = nm.where(self.edge_flag > 0)[0]
+        self.stats["t split 08"] += time.time() - t_start
 
         # edges "into" node?
         ed_remove = self._edge_group_substitution(
             ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=0
         )
+        self.stats["t split 09"] += time.time() - t_start
 
         # edges "from" node?
         ed_remove = self._edge_group_substitution(
             ndid, nsplit, idxs, sr_tab, ndoffset, ed_remove, into_or_from=1
         )
 
+        self.stats["t split 10"] += time.time() - t_start
         # remove node
         self.node_flag[ndid] = False
         # remove edges
@@ -268,9 +280,10 @@ class Graph(object):
     def split_voxels(self, vtk_filename=None):
         """
         Second step of algorithm
-        :return:
+        :return:()
         """
         self.cache = {}
+        self.stats["t graph 10"] = time.time() - self.start_time
         self.msi = MultiscaleArray(self.data.shape, block_size=self.nsplit)
 
         # old implementation
@@ -285,23 +298,43 @@ class Graph(object):
         #     self.split_voxel(ndid, self.nsplit)
 
         # even newer implementation
+        self.stats["t graph 11"] = time.time() - self.start_time
+        self.stats["t graph low"] = 0
+        self.stats["t graph high"] = 0
+        self.stats["t split 01"] = 0
+        self.stats["t split 02"] = 0
+        self.stats["t split 03"] = 0
+        self.stats["t split 04"] = 0
+        self.stats["t split 05"] = 0
+        self.stats["t split 06"] = 0
+        self.stats["t split 07"] = 0
+        self.stats["t split 08"] = 0
+        self.stats["t split 09"] = 0
+        self.stats["t split 10"] = 0
         for ndid, val in enumerate(self.data.ravel()):
+            t_split_start = time.time()
             if val == 0:
                 if self.compute_msindex:
                     self.msi.set_block_lowres(ndid, ndid)
+                self.stats["t graph low"] += time.time() - t_split_start
             else:
                 self.split_voxel(ndid)
+                self.stats["t graph high"] += time.time() - t_split_start
 
+        self.stats["t graph 13"] = time.time() - self.start_time
         self.finish()
         if vtk_filename is not None:
             self.write_vtk(vtk_filename)
+        self.stats["t graph 14"] = time.time() - self.start_time
 
     def run(self, base_grid_vtk_fn=None, final_grid_vtk_fn=None):
         # cache dict.
         self.cache = {}
 
         # generate base grid
+        self.stats["t graph 02"] = time.time() - self.start_time
         self.generate_base_grid(base_grid_vtk_fn)
+        self.stats["t graph 09"] = time.time() - self.start_time
         # self.generate_base_grid()
         # split voxels
         self.split_voxels(final_grid_vtk_fn)
@@ -328,6 +361,7 @@ class Graph(object):
         between lowres(0) or highres(1) or hight-low (1) voxels. Second axis describe edge direction (edge axis).
         """
         # same dimension as data
+        self.start_time = time.time()
         self.voxelsize = nm.asarray(voxelsize)
         # always 3D
         self.voxelsize3 = np.zeros([3])
@@ -400,6 +434,9 @@ class Graph(object):
 
         self._tile_shape = tuple(np.tile(nsplit, self.data.ndim))
         self.srt = SRTab()
+        self.cache = {}
+        self.stats = {}
+        self.stats["t graph 01"] = time.time() - self.start_time
 
 
 def get_efficient_signed_int_type(number):

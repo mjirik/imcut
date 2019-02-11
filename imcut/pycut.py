@@ -329,6 +329,8 @@ class ImageGraphCut:
 
         start = self._start_time
         seg = 1 - self.segmentation.astype(np.int8)
+        self.stats["low level object voxels"] = np.sum(seg)
+        self.stats["low level image voxels"] = np.prod(seg.shape)
         # in seg is now stored low resolution segmentation
         # back to normal parameters
         # step 2: discontinuity localization
@@ -538,6 +540,7 @@ class ImageGraphCut:
         # ===== high resolution data processing
         seg = self.__msgc_step3_discontinuity_localization()
 
+        self.stats["t3.1"] = (time.time() - self._start_time)
         graph = Graph(
             seg,
             voxelsize=self.voxelsize,
@@ -546,8 +549,15 @@ class ImageGraphCut:
             compute_low_nodes_index=True,
         )
 
-        graph.run()
+        # graph.run() = graph.generate_base_grid() + graph.split_voxels()
+        # graph.run()
+        graph.generate_base_grid()
+        self.stats["t3.2"] = (time.time() - self._start_time)
+        graph.split_voxels()
 
+        self.stats["t3.3"] = (time.time() - self._start_time)
+
+        self.stats.update(graph.stats)
         self.stats["t4"] = (time.time() - self._start_time)
         mul_mask, mul_val = self.__msgc_tlinks_area_weight_from_low_segmentation(seg)
         area_weight = 1
