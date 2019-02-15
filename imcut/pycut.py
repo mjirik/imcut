@@ -195,7 +195,7 @@ class ImageGraphCut:
             self.interactivity_loop_finish_funcion()
 
         self.interactivity_counter += 1
-        logger.debug("interactivity counter: %", str(self.interactivity_counter))
+        logger.debug("interactivity counter: %s", str(self.interactivity_counter))
 
     def __uniform_npenalty_fcn(self, orig_shape):
         return np.ones(orig_shape, dtype=np.int8)
