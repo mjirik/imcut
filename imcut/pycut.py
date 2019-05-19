@@ -84,6 +84,7 @@ class ImageGraphCut:
                 boundary_penalties_sigma
                 pairwise_alpha_per_square_unit: the pairwise_alpha is rewriten if this parameter is used.
                     pairwise_alpha = pairwise_alpha_per_square_unit / mean(voxelsize)
+                return_only_object_with_seeds: Ignore unconnected parts of segmentation, default False
             :param voxelsize: size of voxel
             :param debug_images: use to show debug images with matplotlib
             :param volume_unit: define string of volume unit. Default is "mm3"
@@ -521,6 +522,7 @@ class ImageGraphCut:
         # import py3DSeedEditor
         # ped = py3DSeedEditor.py3DSeedEditor(result_labeling)
         # ped.show()
+        result_labeling = self.__just_objects_with_seeds_if_required(result_labeling)
         self.segmentation = result_labeling
         if self.keep_temp_properties:
             self.msinds = msinds
@@ -567,6 +569,7 @@ class ImageGraphCut:
 
         self.stats.update(graph.stats)
         self.stats["t4"] = (time.time() - self._start_time)
+        # TODO use mul_mask and mul_val
         mul_mask, mul_val = self.__msgc_tlinks_area_weight_from_low_segmentation(seg)
         area_weight = 1
         unariesalt = self.__create_tlinks(
@@ -816,7 +819,10 @@ class ImageGraphCut:
             # self.voxels1, self.voxels2,
             # seeds=self.seeds
         )
+        res_segm = self.__just_objects_with_seeds_if_required(res_segm)
+        self.segmentation = res_segm.astype(np.int8)
 
+    def __just_objects_with_seeds_if_required(self, res_segm):
         if self.segparams["return_only_object_with_seeds"]:
             try:
                 # because of negative problem is as 1 segmented background and
@@ -836,8 +842,7 @@ class ImageGraphCut:
 
                 logger.warning("Cannot import thresholding_funcions")
                 traceback.print_exc()
-
-        self.segmentation = res_segm.astype(np.int8)
+        return res_segm
 
     def __set_hard_hard_constraints(self, tdata1, tdata2, seeds):
         """

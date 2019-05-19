@@ -71,7 +71,7 @@ class PycutTest(unittest.TestCase):
             "modelparams": {
                 "type": "gmmsame",
                 "params": {"n_components": 2},
-                # "return_only_objects_with_seeds": True,
+                # "return_only_object_with_seeds": True,
                 # 'fv_type': "fv_extern",
                 # 'fv_extern': fv_function,
                 # 'adaptation': 'original_data',
@@ -86,7 +86,7 @@ class PycutTest(unittest.TestCase):
             "modelparams": {
                 "type": "gmmsame",
                 "params": {"n_components": 2},
-                # "return_only_objects_with_seeds": True,
+                # "return_only_object_with_seeds": True,
                 # 'fv_type': "fv_extern",
                 # 'fv_extern': fv_function,
                 # 'adaptation': 'original_data',
