@@ -81,6 +81,9 @@ class ImageGraphCut:
                 use_apriori_if_available - set self.apriori to ndimage with same shape as img
                 apriori_gamma: influence of apriory information. 0 means no influence, 1.0 is 100% use of
                 apriori information
+                boundary_penalties_sigma
+                pairwise_alpha_per_square_unit: the pairwise_alpha is rewriten if this parameter is used.
+                    pairwise_alpha = pairwise_alpha_per_square_unit / mean(voxelsize)
             :param voxelsize: size of voxel
             :param debug_images: use to show debug images with matplotlib
             :param volume_unit: define string of volume unit. Default is "mm3"
@@ -101,6 +104,12 @@ class ImageGraphCut:
             debug_images,
         )
 
+        self.voxelsize = np.asarray(voxelsize)
+        if voxelsize is not None:
+            self.voxel_volume = np.prod(voxelsize)
+        else:
+            self.voxel_volume = None
+
         self._update_segparams(segparams, modelparams)
 
         self.img = img
@@ -111,12 +120,7 @@ class ImageGraphCut:
         self.debug_images = debug_images
         self.volume_unit = volume_unit
 
-        self.voxelsize = np.asarray(voxelsize)
-        if voxelsize is not None:
-            self.voxel_volume = np.prod(voxelsize)
 
-        else:
-            self.voxel_volume = None
 
         self.interactivity_counter = 0
         self.stats = {"tlinks shape": [], "nlinks shape": []}
@@ -146,6 +150,10 @@ class ImageGraphCut:
         if "modelparams" in segparams.keys():
             modelparams = segparams["modelparams"]
         self.segparams.update(segparams)
+        if "pairwise_alpha_per_square_unit" in segparams:
+            self.segparams['pairwise_alpha'] = \
+                self.segparams['pairwise_alpha_per_square_unit'] / \
+                np.mean(self.voxel_volume)
         self.modelparams = defaultmodelparams.copy()
         self.modelparams.update(modelparams)
         self.mdl = Model(modelparams=self.modelparams)
