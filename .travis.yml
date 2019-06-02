@@ -58,6 +58,7 @@ install:
     # get sample data for lisa
 #    - python -m io3d.datasets -l lisa
     - nosetests --help
+    - python setup.py build_ext --inplace
 
 before_script:
     # GUI
