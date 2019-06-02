@@ -8,6 +8,8 @@ python: 2.7 # I am using conda-python anyway, this travis virtual machine suppor
 env:
     - CONDA_PYTHON_VERSION=2.7
     - CONDA_PYTHON_VERSION=3.6
+services:
+    - xvfb
 virtualenv:
     system_site_packages: true
 before_install:
