@@ -1,5 +1,5 @@
 language: python
-python: 3.6 # I am using conda-python anyway
+python: 2.7 # I am using conda-python anyway, this travis virtual machine support xvfb display server
   #  - "2.6"
 #  - "2.7"
   # - "3.2"
@@ -30,9 +30,6 @@ before_install:
     # Useful for debugging any issues with conda
     - conda info -a
 
-    # GUI
-    - "export DISPLAY=:99.0"
-    - sh -e /etc/init.d/xvfb start
 # sudo: false
 # command to install dependencies
 install:
@@ -59,6 +56,12 @@ install:
 #    - python -m io3d.datasets -l lisa
     - nosetests --help
 
+before_script:
+    # GUI
+    - "export DISPLAY=:99.0"
+    - "sh -e /etc/init.d/xvfb start"
+    # give xvfb sume time to start
+    - sleep 3
 # command to run tests
 script: nosetests --with-coverage --verbose -d --cover-package=imcut
 # script: nosetests --with-coverage --verbose --nocapture --nologcapture --cover-package=lisa
