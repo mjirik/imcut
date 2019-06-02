@@ -10,6 +10,7 @@ env:
     - CONDA_PYTHON_VERSION=3.6
 services:
     - xvfb
+
 virtualenv:
     system_site_packages: true
 before_install:
