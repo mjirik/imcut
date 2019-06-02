@@ -8,6 +8,10 @@ python: 2.7 # I am using conda-python anyway, this travis virtual machine suppor
 env:
     - CONDA_PYTHON_VERSION=2.7
     - CONDA_PYTHON_VERSION=3.6
+matrix:
+  allow_failures:
+    - env: CONDA_PYTHON_VERSION=2.7
+  fast_finish: true
 services:
     - xvfb
 
