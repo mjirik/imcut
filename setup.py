@@ -4,6 +4,9 @@
 #     pip install -U --no-deps --user imcut
 from setuptools import setup, find_packages  # Always prefer setuptools over distutils
 from os import path
+from distutils.core import setup
+from Cython.Build import cythonize
+setup()
 
 here = path.abspath(path.dirname(__file__))
 setup(
@@ -17,6 +20,7 @@ setup(
     author='Miroslav Jirik and Vladimir Lukes',
     author_email='miroslav.jirik@gmail.com',
     license='MIT',
+
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -44,7 +48,7 @@ setup(
 
     # What does your project relate to?
     keywords='Graph-Cut segmentation 3D editor',
-
+    ext_modules = cythonize("imcut/*.pyx", annotate=True),
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=['dist',  'docs', 'tests*']),
