@@ -62,7 +62,7 @@ install:
 before_script:
     # GUI
     - "export DISPLAY=:99.0"
-    - "sh -e /etc/init.d/xvfb start"
+#    - "sh -e /etc/init.d/xvfb start"
     # give xvfb sume time to start
     - sleep 3
 # command to run tests
