@@ -28,7 +28,8 @@ logger = logging.getLogger(__name__)
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 
-from nose.plugins.attrib import attr
+# from nose.plugins.attrib import attr
+import pytest
 
 
 from imcut import pycut
@@ -158,7 +159,7 @@ class PycutTest(unittest.TestCase):
         )
         self.assertLess(err, 600)
 
-    @attr("interactive")
+    @pytest.mark.interactive
     def test_simple_graph_cut_interactive(self):
         img, seg, seeds = self.make_data(64, 20)
         gc = pycut.ImageGraphCut(img, segparams=self.segparams_ssgc)
@@ -279,7 +280,7 @@ class PycutTest(unittest.TestCase):
         )
         self.assertLess(err, 600)
 
-    @attr("interactive")
+    @pytest.mark.interactive
     def test_show_editor(self):
         """
         just run editor to see what is new

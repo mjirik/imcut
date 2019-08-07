@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 path_to_script = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(path_to_script, "../src/"))
 
-from nose.plugins.attrib import attr
-from nose.tools import raises
+# from nose.plugins.attrib import attr
+# from nose.tools import raises
+import pytest
 from imcut import graph
 
 orig_sr_tab = {
@@ -258,11 +259,12 @@ class GraphTest(unittest.TestCase):
         msi.set_block_higres(np.prod(shape) - 1, [11, 12, 13, 14])
         self.assertEqual(msi.msinds[-1, -1], 14)
 
-    @raises(ValueError)
+    # @raises(ValueError)
     def test_raise_exception_on_different_input_shapes(self):
 
         data = np.array([[[1, 1], [1, 0]], [[1, 0], [0, 0]]])
-        g = graph.Graph(data, (0.1, 0.2), grid_function="nd", nsplit=2)
+        with pytest.raises(ValueError) as excinfo:
+            g = graph.Graph(data, (0.1, 0.2), grid_function="nd", nsplit=2)
         # g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         # self.assertEqual(g.edges.shape[0], 33)
         # self.assertEqual(g.edges.shape[1], 2)

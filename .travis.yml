@@ -50,7 +50,7 @@ install:
       # - "easy_install SimpleITK mahotas"
 #    - pip install -r requirements_pip.txt
     # - if [ ${pack} == "old_mpl" ]; then conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose dateutil pandas statsmodels pil six; fi
-    - conda install -y nose
+    - conda install -y -c conda-forge pytest coveralls pytest-cov
 #    - pip install python-coveralls
     - pip install coveralls
     - conda list
@@ -61,7 +61,6 @@ install:
 #    - sudo ldconfig -v
     # get sample data for lisa
 #    - python -m io3d.datasets -l lisa
-    - nosetests --help
     - python setup.py build_ext --inplace
 
 before_script:
@@ -71,8 +70,10 @@ before_script:
     # give xvfb sume time to start
     - sleep 3
 # command to run tests
-script: nosetests --with-coverage --verbose -d --cover-package=imcut
+#script: nosetests --with-coverage --verbose -d --cover-package=imcut
 # script: nosetests --with-coverage --verbose --nocapture --nologcapture --cover-package=lisa
 # script: nosetests --with-coverage --cover-package=lisa
+script:
+  - python -m pytest --cov={imcut}/
 after_success:
     - coveralls
