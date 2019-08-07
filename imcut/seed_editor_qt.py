@@ -17,8 +17,6 @@ import sys
 from scipy.spatial import Delaunay
 
 
-
-
 import PyQt5
 
 
@@ -36,19 +34,19 @@ from PyQt5.QtCore import Qt, QSize
 # QString = str
 
 QString = type("")
-from PyQt5.QtGui import (
-    QImage,
-    QPixmap, QPainter, qRgba,
-    QIcon,
-)
+from PyQt5.QtGui import QImage, QPixmap, QPainter, qRgba, QIcon
 from PyQt5.QtWidgets import (
     QDialog,
     QApplication,
-    QSlider, QPushButton,
+    QSlider,
+    QPushButton,
     QLabel,
     QComboBox,
     QStatusBar,
-    QHBoxLayout, QVBoxLayout, QFrame, QSizePolicy
+    QHBoxLayout,
+    QVBoxLayout,
+    QFrame,
+    QSizePolicy,
 )
 
 import logging

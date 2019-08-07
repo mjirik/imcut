@@ -4,7 +4,9 @@ import numpy as np
 import scipy
 from imcut import pycut
 import cProfile
+
 # import io3d
+
 
 def make_data(sz=32, offset=0, sigma=80):
     seeds = np.zeros([sz, sz, sz], dtype=np.int8)
@@ -14,12 +16,13 @@ def make_data(sz=32, offset=0, sigma=80):
     img = img - seeds
 
     seeds[
-    offset + 3 : offset + 15, offset + 2 : offset + 6, offset + 27 : offset + 29
+        offset + 3 : offset + 15, offset + 2 : offset + 6, offset + 27 : offset + 29
     ] = 2
     img = scipy.ndimage.morphology.distance_transform_edt(img)
     segm = img < 7
     img = (100 * segm + sigma * np.random.random(img.shape)).astype(np.uint8)
     return img, segm, seeds
+
 
 img, seg, seeds = make_data(64, 20)
 segparams = {

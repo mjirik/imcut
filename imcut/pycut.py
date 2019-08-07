@@ -123,8 +123,6 @@ class ImageGraphCut:
         self.debug_images = debug_images
         self.volume_unit = volume_unit
 
-
-
         self.interactivity_counter = 0
         self.stats = {"tlinks shape": [], "nlinks shape": []}
         self.apriori = None
@@ -154,9 +152,9 @@ class ImageGraphCut:
             modelparams = segparams["modelparams"]
         self.segparams.update(segparams)
         if "pairwise_alpha_per_square_unit" in segparams:
-            self.segparams['pairwise_alpha'] = \
-                self.segparams['pairwise_alpha_per_square_unit'] / \
-                np.mean(self.voxel_volume)
+            self.segparams["pairwise_alpha"] = self.segparams[
+                "pairwise_alpha_per_square_unit"
+            ] / np.mean(self.voxel_volume)
         self.modelparams = defaultmodelparams.copy()
         self.modelparams.update(modelparams)
         self.mdl = Model(modelparams=self.modelparams)
@@ -253,8 +251,6 @@ class ImageGraphCut:
         """
         import scipy
 
-
-
         start = self._start_time
         # ===== low resolution data processing
         # default parameters
@@ -340,8 +336,6 @@ class ImageGraphCut:
         """
         import scipy
 
-
-
         start = self._start_time
         seg = 1 - self.segmentation.astype(np.int8)
         self.stats["low level object voxels"] = np.sum(seg)
@@ -376,8 +370,6 @@ class ImageGraphCut:
 
         if self.debug_images:
             import sed3
-
-
 
             pd = sed3.sed3(seg_border)  # ), contour=seg)
             pd.show()
@@ -558,7 +550,7 @@ class ImageGraphCut:
         # ===== high resolution data processing
         seg = self.__msgc_step3_discontinuity_localization()
 
-        self.stats["t3.1"] = (time.time() - self._start_time)
+        self.stats["t3.1"] = time.time() - self._start_time
         graph = Graph(
             seg,
             voxelsize=self.voxelsize,
@@ -570,13 +562,13 @@ class ImageGraphCut:
         # graph.run() = graph.generate_base_grid() + graph.split_voxels()
         # graph.run()
         graph.generate_base_grid()
-        self.stats["t3.2"] = (time.time() - self._start_time)
+        self.stats["t3.2"] = time.time() - self._start_time
         graph.split_voxels()
 
-        self.stats["t3.3"] = (time.time() - self._start_time)
+        self.stats["t3.3"] = time.time() - self._start_time
 
         self.stats.update(graph.stats)
-        self.stats["t4"] = (time.time() - self._start_time)
+        self.stats["t4"] = time.time() - self._start_time
         # TODO use mul_mask and mul_val
         mul_mask, mul_val = self.__msgc_tlinks_area_weight_from_low_segmentation(seg)
         area_weight = 1
@@ -590,11 +582,11 @@ class ImageGraphCut:
             mul_val=None,
         )
         # N-links prepared
-        self.stats["t5"] = (time.time() - self._start_time)
+        self.stats["t5"] = time.time() - self._start_time
         un, ind = np.unique(graph.msinds, return_index=True)
-        self.stats["t6"] = (time.time() - self._start_time)
+        self.stats["t6"] = time.time() - self._start_time
 
-        self.stats["t7"] = (time.time() - self._start_time)
+        self.stats["t7"] = time.time() - self._start_time
         unariesalt2_lo2hi = np.hstack(
             [unariesalt[ind, 0, 0].reshape(-1, 1), unariesalt[ind, 0, 1].reshape(-1, 1)]
         )
@@ -602,13 +594,9 @@ class ImageGraphCut:
         if self.debug_images:
             import sed3
 
-
-
             ed = sed3.sed3(unariesalt[:, :, 0].reshape(self.img.shape))
             ed.show()
             import sed3
-
-
 
             ed = sed3.sed3(unariesalt[:, :, 1].reshape(self.img.shape))
             ed.show()
@@ -749,7 +737,6 @@ class ImageGraphCut:
         """
         from .seed_editor_qt import QTSeedEditor
 
-
         from PyQt5.QtWidgets import QApplication
 
         if min_val is None:
@@ -854,8 +841,6 @@ class ImageGraphCut:
             except:
                 import traceback
 
-
-
                 logger.warning("Cannot import thresholding_funcions")
                 traceback.print_exc()
         return res_segm
@@ -882,8 +867,6 @@ class ImageGraphCut:
     def _boundary_penalties_array(self, axis, sigma=None):
 
         import scipy.ndimage.filters as scf
-
-
 
         # for axis in range(0,dim):
         filtered = scf.prewitt(self.img, axis=axis)
@@ -960,8 +943,6 @@ class ImageGraphCut:
         try:
             import matplotlib.pyplot as plt
 
-
-
             fig = plt.figure()
             if suptitle is not None:
                 fig.suptitle(suptitle)
@@ -992,8 +973,6 @@ class ImageGraphCut:
         except:
             import traceback
 
-
-
             print(traceback.format_exc())
             logger.debug("problem with showing debug images")
 
@@ -1008,8 +987,6 @@ class ImageGraphCut:
         except:
             import traceback
 
-
-
             print(traceback.format_exc())
 
         if show:
@@ -1020,8 +997,6 @@ class ImageGraphCut:
         self, start=-1000, stop=1000, nsteps=400, suptitle=None, show=True
     ):
         import matplotlib.pyplot as plt
-
-
 
         fig = plt.figure()
         if suptitle is not None:
@@ -1375,8 +1350,6 @@ class ImageGraphCut:
         logger.info("Click to select one voxel of interest")
         import sed3
 
-
-
         ed = sed3.sed3(self.msinds, contour=segmentation == 0)
         ed.show()
         edseeds = ed.seeds
@@ -1386,8 +1359,6 @@ class ImageGraphCut:
             node_msindex
         )
         import sed3
-
-
 
         ed = sed3.sed3(
             self.msinds, contour=segmentation == 0, seeds=node_neighboor_seeds

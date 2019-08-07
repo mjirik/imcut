@@ -4,7 +4,11 @@
 
 # import funkcí z jiného adresáře
 import sys
+
+
 import os.path
+
+
 import copy
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
@@ -14,7 +18,7 @@ sys.path.append(os.path.join(path_to_script, "../extern/pyseg_base/src/"))
 import unittest
 
 
-from PyQt4.QtGui import QApplication
+from PyQt5.QtWidgets import QApplication
 
 import numpy as np
 
@@ -121,7 +125,8 @@ class PycutTest(unittest.TestCase):
         # np.exp(-np.random.normal(0
 
         from seededitorqt import seed_editor_qt
-        from PyQt4.QtGui import QApplication
+
+        from PyQt5.QtWidgets import QApplication
 
         app = QApplication(sys.argv)
         pyed = seed_editor_qt.QTSeedEditor(filtered2)

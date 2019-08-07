@@ -7,7 +7,6 @@ import numpy as np
 import scipy.ndimage
 
 
-
 def fv_function_intensity_and_smoothing(data, voxelsize, seeds=None, unique_cls=None):
     data2 = scipy.ndimage.filters.gaussian_filter(data, sigma=5)
     # data2 = data2 - data
@@ -36,6 +35,7 @@ def fv_function_intensity_and_smoothing(data, voxelsize, seeds=None, unique_cls=
     #     fv = fv.reshape(-1, 2)
     #     logger.debug(str(fv[:10, :]))
 
+
 def select_from_fv_by_seeds(fv, seeds, unique_cls):
     """
     Tool to make simple feature functions take features from feature array by seeds.
@@ -47,7 +47,7 @@ def select_from_fv_by_seeds(fv, seeds, unique_cls):
     """
     logger.debug("seeds" + str(seeds))
     # fvlin = fv.reshape(-1, int(fv.size/seeds.size))
-    expected_shape = [seeds.size, int(fv.size/seeds.size)]
+    expected_shape = [seeds.size, int(fv.size / seeds.size)]
     if fv.shape[0] != expected_shape[0] or fv.shape[1] != expected_shape[1]:
         raise AssertionError("Wrong shape of input feature vector array fv")
     # sd = seeds.reshape(-1, 1)
@@ -56,6 +56,7 @@ def select_from_fv_by_seeds(fv, seeds, unique_cls):
     seeds_selection = seeds.flatten()[selection]
     # sd = sd[]
     return fv_selection, seeds_selection
+
 
 def return_fv_by_seeds(fv, seeds=None, unique_cls=None):
     """
@@ -71,9 +72,8 @@ def return_fv_by_seeds(fv, seeds=None, unique_cls=None):
         if unique_cls is not None:
             return select_from_fv_by_seeds(fv, seeds, unique_cls)
         else:
-            raise AssertionError("Input unique_cls has to be not None if seeds is not None.")
+            raise AssertionError(
+                "Input unique_cls has to be not None if seeds is not None."
+            )
     else:
         return fv
-
-
-

@@ -11,6 +11,7 @@ $ dcmreaddata -d sample_data -o head.mat
 
 from __future__ import print_function
 import logging
+
 logger = logging.getLogger(__name__)
 
 import os
@@ -19,8 +20,8 @@ from optparse import OptionParser
 from scipy.io import savemat
 
 
-
 from io3d.dcmreaddata import DicomReader, get_dcmdir_qt
+
 # from io3d.misc import obj_from_file
 
 # __version__ = [1, 3]
@@ -612,33 +613,43 @@ from io3d.dcmreaddata import DicomReader, get_dcmdir_qt
 #     return dcmdir
 
 
-usage = '%prog [options]\n' + __doc__.rstrip()
+usage = "%prog [options]\n" + __doc__.rstrip()
 help = {
-    'dcm_dir': 'DICOM data direcotory',
-    'out_file': 'store the output matrix to the file',
+    "dcm_dir": "DICOM data direcotory",
+    "out_file": "store the output matrix to the file",
     "degrad": "degradation of input data. For no degradation use 1",
-    'debug': 'Print debug info',
-    'zoom': 'Resize input data wit defined zoom. Use zoom 0.5 to obtain half\
-voxels. Various zoom can be used for each axis: -z [1,0.5,2.5]'
+    "debug": "Print debug info",
+    "zoom": "Resize input data wit defined zoom. Use zoom 0.5 to obtain half\
+voxels. Various zoom can be used for each axis: -z [1,0.5,2.5]",
 }
 
 if __name__ == "__main__":
-    parser = OptionParser(description='Read DIOCOM data.')
-    parser.add_option('-i', '--dcmdir', action='store',
-                      dest='dcmdir', default=None,
-                      help=help['dcm_dir'])
-    parser.add_option('-o', '--outputfile', action='store',
-                      dest='out_filename', default='output.mat',
-                      help=help['out_file'])
-    parser.add_option('--degrad', action='store',
-                      dest='degrad', default=1,
-                      help=help['degrad'])
-    parser.add_option('-z', '--zoom', action='store',
-                      dest='zoom', default='1',
-                      help=help['zoom'])
-    parser.add_option('-d', '--debug', action='store_true',
-                      dest='debug',
-                      help=help['debug'])
+    parser = OptionParser(description="Read DIOCOM data.")
+    parser.add_option(
+        "-i",
+        "--dcmdir",
+        action="store",
+        dest="dcmdir",
+        default=None,
+        help=help["dcm_dir"],
+    )
+    parser.add_option(
+        "-o",
+        "--outputfile",
+        action="store",
+        dest="out_filename",
+        default="output.mat",
+        help=help["out_file"],
+    )
+    parser.add_option(
+        "--degrad", action="store", dest="degrad", default=1, help=help["degrad"]
+    )
+    parser.add_option(
+        "-z", "--zoom", action="store", dest="zoom", default="1", help=help["zoom"]
+    )
+    parser.add_option(
+        "-d", "--debug", action="store_true", dest="debug", help=help["debug"]
+    )
     (options, args) = parser.parse_args()
 
     logger.setLevel(logging.WARNING)
@@ -651,7 +662,7 @@ if __name__ == "__main__":
     if options.dcmdir is None:
         dcmdir = get_dcmdir_qt()
         if dcmdir is None:
-            raise IOError('No DICOM directory!')
+            raise IOError("No DICOM directory!")
     else:
         dcmdir = options.dcmdir
 
@@ -663,19 +674,17 @@ if __name__ == "__main__":
     if options.zoom != 1:
         import scipy
         import scipy.ndimage
+
         # oom = float(options.zoom)
         # mport pdb; pdb.set_trace()
         data3d = scipy.ndimage.zoom(data3d, zoom=zoom)
-        metadata['voxelsize_mm'] = list(np.array(metadata['voxelsize_mm']) /
-                                        zoom)
+        metadata["voxelsize_mm"] = list(np.array(metadata["voxelsize_mm"]) / zoom)
 
     degrad = int(options.degrad)
 
     data3d_out = data3d[::degrad, ::degrad, ::degrad]
-    vs_out = list(np.array(metadata['voxelsize_mm']) * degrad)
+    vs_out = list(np.array(metadata["voxelsize_mm"]) * degrad)
 
-    logger.debug('voxelsize_mm ' + vs_out.__str__())
-    savemat(options.out_filename,
-            {'data': data3d_out, 'voxelsize_mm': vs_out}
-            )
+    logger.debug("voxelsize_mm " + vs_out.__str__())
+    savemat(options.out_filename, {"data": data3d_out, "voxelsize_mm": vs_out})
     print("Data size: %d, shape: %s" % (data3d_out.nbytes, data3d_out.shape))

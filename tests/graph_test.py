@@ -11,6 +11,7 @@ import scipy
 import numpy as np
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))
@@ -21,10 +22,11 @@ from nose.tools import raises
 from imcut import graph
 
 orig_sr_tab = {
-    2: np.array([(0,2), (0,1), (1,3), (2,3)]),
-    3: np.array([(0,3,6), (0,1,2), (2,5,8), (6,7,8)]),
-    4: np.array([(0,4,8,12), (0,1,2,3), (3,7,11,15), (12,13,14,15)]),
+    2: np.array([(0, 2), (0, 1), (1, 3), (2, 3)]),
+    3: np.array([(0, 3, 6), (0, 1, 2), (2, 5, 8), (6, 7, 8)]),
+    4: np.array([(0, 4, 8, 12), (0, 1, 2, 3), (3, 7, 11, 15), (12, 13, 14, 15)]),
 }
+
 
 class GraphTest(unittest.TestCase):
     # @classmethod
@@ -33,11 +35,15 @@ class GraphTest(unittest.TestCase):
     #         cls.assertCountEqual = cls.assertItemsEqual
     def test_graph_2d_implementation(self):
 
-        data = np.array([[0,0,0,0,1,1,0],
-                         [0,1,1,0,1,0,1],
-                         [0,1,1,0,1,0,0],
-                         [1,1,1,0,0,0,0],
-                         [0,0,0,0,0,0,1]])
+        data = np.array(
+            [
+                [0, 0, 0, 0, 1, 1, 0],
+                [0, 1, 1, 0, 1, 0, 1],
+                [0, 1, 1, 0, 1, 0, 0],
+                [1, 1, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1],
+            ]
+        )
         g = graph.Graph(data, (0.1, 0.12), grid_function="2d", nsplit=7)
         # g = graph.Graph(data, (0.1, 0.12), grid_function="nd", nsplit=5)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
@@ -48,11 +54,15 @@ class GraphTest(unittest.TestCase):
 
     def test_graph_3d_implementation(self):
 
-        data = np.array([[0,0,0,0,1,1,0],
-                         [0,1,1,0,1,0,1],
-                         [0,1,1,0,1,0,0],
-                         [1,1,1,0,0,0,0],
-                         [0,0,0,0,0,0,1]])
+        data = np.array(
+            [
+                [0, 0, 0, 0, 1, 1, 0],
+                [0, 1, 1, 0, 1, 0, 1],
+                [0, 1, 1, 0, 1, 0, 0],
+                [1, 1, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1],
+            ]
+        )
         # g = graph.Graph(data, (0.1, 0.12), grid_function="2d", nsplit=3)
         # 3d 2:0,
         # diff 3d 2:6, 3:15, 4:24, 5:33 6:42 7:51
@@ -66,16 +76,20 @@ class GraphTest(unittest.TestCase):
 
         data = np.array(
             [
-                [[0,0,0,0,1,1,0],
-                 [0,1,1,0,1,0,1],
-                 [0,1,1,0,1,0,0],
-                 [1,1,1,0,0,0,0],
-                 [0,0,0,0,0,0,1]],
-                [[0,0,0,0,0,0,0],
-                 [0,0,0,0,0,0,0],
-                 [0,1,1,0,0,0,0],
-                 [0,1,1,0,0,0,0],
-                 [0,0,0,0,0,0,1]],
+                [
+                    [0, 0, 0, 0, 1, 1, 0],
+                    [0, 1, 1, 0, 1, 0, 1],
+                    [0, 1, 1, 0, 1, 0, 0],
+                    [1, 1, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1],
+                ],
+                [
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 0, 0, 0, 0],
+                    [0, 1, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1],
+                ],
             ]
         )
         g = graph.Graph(data, (0.1, 0.12, 0.05))
@@ -86,18 +100,9 @@ class GraphTest(unittest.TestCase):
 
         data = np.array(
             [
-                [[0,0,0,0,0],
-                 [0,1,1,0,1],
-                 [1,1,1,0,0],
-                 [0,0,0,0,1]],
-                [[0,0,0,0,0],
-                 [0,0,0,0,0],
-                 [0,1,1,0,0],
-                 [0,0,0,0,1]],
-                [[0,0,0,0,0],
-                 [0,0,0,0,0],
-                 [0,1,1,0,0],
-                 [0,0,0,0,1]],
+                [[0, 0, 0, 0, 0], [0, 1, 1, 0, 1], [1, 1, 1, 0, 0], [0, 0, 0, 0, 1]],
+                [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 1, 1, 0, 0], [0, 0, 0, 0, 1]],
+                [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 1, 1, 0, 0], [0, 0, 0, 0, 1]],
             ]
         )
         g = graph.Graph(data, (0.1, 0.12, 0.05), grid_function="nd", nsplit=6)
@@ -110,11 +115,7 @@ class GraphTest(unittest.TestCase):
 
     def test_just_two_blocks(self):
 
-        data = np.array(
-            [
-                [[0, 1]]
-            ]
-        )
+        data = np.array([[[0, 1]]])
         g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         g
@@ -124,14 +125,7 @@ class GraphTest(unittest.TestCase):
 
     def test_into_edges_reconnetcion_on_small_graph_3d(self):
 
-        data = np.array(
-            [
-                [[0,0,],
-                 [0,0,]],
-                [[0,0,],
-                 [0,1,]],
-            ]
-        )
+        data = np.array([[[0, 0], [0, 0]], [[0, 0], [0, 1]]])
         g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         g.edges
@@ -141,14 +135,7 @@ class GraphTest(unittest.TestCase):
 
     def test_from_edges_reconnetcion_on_small_graph_3d(self):
 
-        data = np.array(
-            [
-                [[1,0,],
-                 [0,0,]],
-                [[0,0,],
-                 [0,0,]],
-            ]
-        )
+        data = np.array([[[1, 0], [0, 0]], [[0, 0], [0, 0]]])
         g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         self.assertEqual(g.edges.shape[0], 33)
@@ -157,15 +144,10 @@ class GraphTest(unittest.TestCase):
 
     def test_msindex_on_small_graph_3d(self):
 
-        data = np.array(
-            [
-                [[1,0,],
-                 [0,0,]],
-                [[0,0,],
-                 [0,0,]],
-            ]
+        data = np.array([[[1, 0], [0, 0]], [[0, 0], [0, 0]]])
+        g = graph.Graph(
+            data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2, compute_msindex=True
         )
-        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2, compute_msindex=True)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         self.assertEqual(g.edges.shape[0], 33)
         self.assertEqual(g.edges.shape[1], 2)
@@ -174,8 +156,10 @@ class GraphTest(unittest.TestCase):
         # msindex with low resolution should be in the beginning of data
         un, counts = np.unique(g.msinds, return_counts=True)
         # on this example first 7 node labeles should be used multiple timse
-        self.assertTrue((counts[:7] > 1).all(),
-                        msg="on this example first 7 node labeles should be used multiple times")
+        self.assertTrue(
+            (counts[:7] > 1).all(),
+            msg="on this example first 7 node labeles should be used multiple times",
+        )
 
     def test_into_maximum_edge_number(self):
 
@@ -194,18 +178,12 @@ class GraphTest(unittest.TestCase):
 
         g
 
-
     def test_from_edges_reconnetcion_onsmall_graph_3d_higres_neighborhood(self):
 
-        data = np.array(
-            [
-                [[1,1,],
-                 [1,0,]],
-                [[1,0,],
-                 [0,0,]],
-            ]
+        data = np.array([[[1, 1], [1, 0]], [[1, 0], [0, 0]]])
+        g = graph.Graph(
+            data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2, compute_msindex=True
         )
-        g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2, compute_msindex=True)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         # self.assertEqual(g.edges.shape[0], 33)
         # self.assertEqual(g.edges.shape[1], 2)
@@ -213,14 +191,7 @@ class GraphTest(unittest.TestCase):
 
     def test_into_edges_reconnetcion_onsmall_graph_3d_higres_neighborhood(self):
 
-        data = np.array(
-            [
-                [[0,0,],
-                 [0,1,]],
-                [[0,1,],
-                 [1,1,]],
-            ]
-        )
+        data = np.array([[[0, 0], [0, 1]], [[0, 1], [1, 1]]])
         g = graph.Graph(data, (0.1, 0.2, 0.05), grid_function="nd", nsplit=2)
         g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         # self.assertEqual(g.edges.shape[0], 33)
@@ -247,7 +218,6 @@ class GraphTest(unittest.TestCase):
         size = 4
         self._test_automatic_ms_indexes_2d_same_as_orig(size)
 
-
     def test_automatic_ms_indexes_3d(self):
         shape = [3, 3, 3]
         srt = graph.SRTab()
@@ -259,7 +229,7 @@ class GraphTest(unittest.TestCase):
 
     def test_gen_base_graph_2d(self):
         shape = [2, 3]
-        voxelsize = [1., .6]
+        voxelsize = [1.0, 0.6]
         # srt = graph.Graph(shape)
 
         nodes1, edges1, edg_dir1 = graph.gen_grid_2d(shape, voxelsize)
@@ -268,7 +238,6 @@ class GraphTest(unittest.TestCase):
         graph.write_grid_to_vtk("grid1.vtk", nodes1, edges1)
         graph.write_grid_to_vtk("grid2.vtk", nodes2, edges2)
         nodes1
-
 
     def test_multiscale_index_set_lowres(self):
         shape = [2, 3]
@@ -281,7 +250,6 @@ class GraphTest(unittest.TestCase):
         msi.set_block_lowres(np.prod(shape) - 1, 3)
         self.assertEqual(msi.msinds[-1, -1], 3)
 
-
     def test_multiscale_index_set_higres(self):
         shape = [2, 3]
         block_size = 2
@@ -290,23 +258,16 @@ class GraphTest(unittest.TestCase):
         msi.set_block_higres(np.prod(shape) - 1, [11, 12, 13, 14])
         self.assertEqual(msi.msinds[-1, -1], 14)
 
-
     @raises(ValueError)
     def test_raise_exception_on_different_input_shapes(self):
 
-        data = np.array(
-            [
-                [[1,1,],
-                 [1,0,]],
-                [[1,0,],
-                 [0,0,]],
-            ]
-        )
+        data = np.array([[[1, 1], [1, 0]], [[1, 0], [0, 0]]])
         g = graph.Graph(data, (0.1, 0.2), grid_function="nd", nsplit=2)
         # g.run(base_grid_vtk_fn="base_grid.vtk", final_grid_vtk_fn="final_grid.vtk")
         # self.assertEqual(g.edges.shape[0], 33)
         # self.assertEqual(g.edges.shape[1], 2)
         # self.assertEqual(g.nodes.shape[0], 15)
+
 
 if __name__ == "__main__":
     unittest.main()
