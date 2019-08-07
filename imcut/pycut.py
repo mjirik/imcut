@@ -9,6 +9,8 @@ $ pycat -f head.mat -o brain.mat
 """
 
 from __future__ import absolute_import, division, print_function
+
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -251,6 +253,8 @@ class ImageGraphCut:
         """
         import scipy
 
+
+
         start = self._start_time
         # ===== low resolution data processing
         # default parameters
@@ -336,6 +340,8 @@ class ImageGraphCut:
         """
         import scipy
 
+
+
         start = self._start_time
         seg = 1 - self.segmentation.astype(np.int8)
         self.stats["low level object voxels"] = np.sum(seg)
@@ -370,6 +376,8 @@ class ImageGraphCut:
 
         if self.debug_images:
             import sed3
+
+
 
             pd = sed3.sed3(seg_border)  # ), contour=seg)
             pd.show()
@@ -594,9 +602,13 @@ class ImageGraphCut:
         if self.debug_images:
             import sed3
 
+
+
             ed = sed3.sed3(unariesalt[:, :, 0].reshape(self.img.shape))
             ed.show()
             import sed3
+
+
 
             ed = sed3.sed3(unariesalt[:, :, 1].reshape(self.img.shape))
             ed.show()
@@ -736,7 +748,9 @@ class ImageGraphCut:
         Interactive seed setting with 3d seed editor
         """
         from .seed_editor_qt import QTSeedEditor
-        from PyQt4.QtGui import QApplication
+
+
+        from PyQt5.QtWidgets import QApplication
 
         if min_val is None:
             min_val = np.min(self.img)
@@ -840,6 +854,8 @@ class ImageGraphCut:
             except:
                 import traceback
 
+
+
                 logger.warning("Cannot import thresholding_funcions")
                 traceback.print_exc()
         return res_segm
@@ -866,6 +882,8 @@ class ImageGraphCut:
     def _boundary_penalties_array(self, axis, sigma=None):
 
         import scipy.ndimage.filters as scf
+
+
 
         # for axis in range(0,dim):
         filtered = scf.prewitt(self.img, axis=axis)
@@ -942,6 +960,8 @@ class ImageGraphCut:
         try:
             import matplotlib.pyplot as plt
 
+
+
             fig = plt.figure()
             if suptitle is not None:
                 fig.suptitle(suptitle)
@@ -972,6 +992,8 @@ class ImageGraphCut:
         except:
             import traceback
 
+
+
             print(traceback.format_exc())
             logger.debug("problem with showing debug images")
 
@@ -986,6 +1008,8 @@ class ImageGraphCut:
         except:
             import traceback
 
+
+
             print(traceback.format_exc())
 
         if show:
@@ -996,6 +1020,8 @@ class ImageGraphCut:
         self, start=-1000, stop=1000, nsteps=400, suptitle=None, show=True
     ):
         import matplotlib.pyplot as plt
+
+
 
         fig = plt.figure()
         if suptitle is not None:
@@ -1349,6 +1375,8 @@ class ImageGraphCut:
         logger.info("Click to select one voxel of interest")
         import sed3
 
+
+
         ed = sed3.sed3(self.msinds, contour=segmentation == 0)
         ed.show()
         edseeds = ed.seeds
@@ -1358,6 +1386,8 @@ class ImageGraphCut:
             node_msindex
         )
         import sed3
+
+
 
         ed = sed3.sed3(
             self.msinds, contour=segmentation == 0, seeds=node_neighboor_seeds

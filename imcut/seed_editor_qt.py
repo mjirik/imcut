@@ -10,31 +10,56 @@ $ seed_editor_qp.py -f head.mat
 
 # import unittest
 from optparse import OptionParser
+from PyQt5.QtWidgets import *
 from scipy.io import loadmat
 import numpy as np
 import sys
 from scipy.spatial import Delaunay
 
 
-import PyQt4
-from PyQt4.QtCore import Qt, QSize, SIGNAL
+
+
+import PyQt5
+
+
+from PyQt5.QtCore import Qt, QSize
+
+
 # try:
 #     from PyQt4.QtCore import QString
 # except ImportError:
 #     # we are using Python3 so QString is not defined
+# try:
+#     QString = unicode
+# except NameError:
+#     # Python 3
+# QString = str
+
 QString = type("")
-from PyQt4.QtGui import QImage, QDialog,\
-    QApplication, QSlider, QPushButton,\
-    QLabel, QPixmap, QPainter, qRgba,\
-    QComboBox, QIcon, QStatusBar,\
+from PyQt5.QtGui import (
+    QImage,
+    QPixmap, QPainter, qRgba,
+    QIcon,
+)
+from PyQt5.QtWidgets import (
+    QDialog,
+    QApplication,
+    QSlider, QPushButton,
+    QLabel,
+    QComboBox,
+    QStatusBar,
     QHBoxLayout, QVBoxLayout, QFrame, QSizePolicy
+)
 
 import logging
+
+
 logger = logging.getLogger(__name__)
 
 from seededitorqt.seed_editor_qt import QTSeedEditor, main
 
-import math
+# import math
+
 # BGRA order
 # GRAY_COLORTABLE = np.array([[ii, ii, ii, 255] for ii in range(256)],
 #                            dtype=np.uint8)
