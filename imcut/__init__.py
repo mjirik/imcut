@@ -5,7 +5,7 @@ __all__ = [
     # 'seed_editor_qt',
     "dcmreaddata",
 ]
-__version__ = "1.9.4"
+__version__ = "1.9.5"
 # DeprecationWarning("imcut package is renamed to imcut")
 # from .pycut import Model, ImageGraphCut
 # from .seed_editor_qt import QTSeedEditor
