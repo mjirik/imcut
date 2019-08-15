@@ -33,7 +33,7 @@ requirements:
     - numpy
     - scipy
 #    - pyqt 4.11.*
-    - pyqt 5
+    - pyqt >=5.0
 #    - pydicom
     - dill
 #    - pywget
@@ -45,7 +45,7 @@ requirements:
     - numpy
     - scipy
 #    - pyqt 4.11.*
-    - pyqt 5
+    - pyqt >=5.0
 #    - pydicom
     - dill
 #    - pywget
