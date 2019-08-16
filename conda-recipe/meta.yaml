@@ -38,6 +38,7 @@ requirements:
     - dill
 #    - pywget
     - scikit-learn
+    - cython
     - seededitorqt
 
   run:
@@ -52,7 +53,7 @@ requirements:
 #    - pyyaml
     - cython
     - scikit-learn
-    - seededitorqt
+#    - seededitorqt  # not really required
 
 test:
   # Python imports
