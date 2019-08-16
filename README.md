@@ -52,7 +52,7 @@ New BSD License, see the LICENSE file.
 Install conda
 ----
 
-    conda install -c mjirik -c conda-forge imcut
+    conda install -c mjirik -c conda-forge imcut pip
     pip install pygco
 
 Install pip
