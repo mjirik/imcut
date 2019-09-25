@@ -1194,23 +1194,44 @@ class ImageGraphCut:
         # if not self.segparams['use_boundary_penalties'] and \
         #         boundary_penalties_fcn is None :
         if boundary_penalties_fcn is None:
-            if self.img.ndim == 3:
-                # This is faster for some specific format
-                edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
-                edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
-                edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
-                edgs_arr = [edgx, edgy, edgz]
-            elif self.img.ndim == 2:
-                edgx = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
-                edgy = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
-                edgs_arr = [edgx, edgy]
-            else:
-                logger.error(f"Input data dimension {self.img.ndim} is no supported")
-
+            edgs_arr = self._prepare_edgs_arr_with_no_fcn(inds)
         else:
             logger.info("use_boundary_penalties")
+            edgs_arr = self._prepare_edgs_arr_from_boundary_fcn(inds, boundary_penalties_fcn)
 
-            bpw = self.segparams["boundary_penalties_weight"]
+        # import pdb; pdb.set_trace()
+        edges = np.vstack(edgs_arr).astype(np.int32)
+        # edges - seznam indexu hran, kteres spolu sousedi\
+        elapsed = time.time() - start
+        self.stats["_create_nlinks time"] = elapsed
+        logger.info("__create nlinks time " + str(elapsed))
+        return edges
+
+    def _prepare_edgs_arr_with_no_fcn(self, inds):
+        if self.img.ndim == 3:
+            # This is faster for some specific format
+            edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
+            edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
+            edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
+            edgs_arr = [edgx, edgy, edgz]
+        elif self.img.ndim == 2:
+            edgx = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
+            edgy = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
+            edgs_arr = [edgx, edgy]
+        else:
+            logger.error(f"Input data dimension {self.img.ndim} is no supported")
+            edgs_arr = None
+        return edgs_arr
+
+    def _prepare_edgs_arr_from_boundary_fcn(self, inds, boundary_penalties_fcn):
+        """
+        prepare list of edgs for each axis
+        :param boundary_penalties_fcn: function working with intensities
+        :param inds:
+        :return:
+        """
+        bpw = self.segparams["boundary_penalties_weight"]
+        if self.img.ndim == 3:
 
             bpa = boundary_penalties_fcn(2)
             # id1=inds[:, :, :-1].ravel()
@@ -1238,23 +1259,40 @@ class ImageGraphCut:
                 # cc * np.ones(id1.shape)]
                 bpw * bpa[1:, :, :].ravel(),
             ]
+            edgs_arr = [edgx, edgy, edgz]
+        elif self.img.ndim == 2:
+            bpa = boundary_penalties_fcn(1)
+            # id1=inds[:, :, :-1].ravel()
+            edgx = np.c_[
+                inds[:, :-1].ravel(),
+                inds[:, 1:].ravel(),
+                # cc * np.ones(id1.shape)
+                bpw * bpa[:, 1:].ravel(),
+            ]
 
-        # import pdb; pdb.set_trace()
-        edges = np.vstack(edgs_arr).astype(np.int32)
-        # edges - seznam indexu hran, kteres spolu sousedi\
-        elapsed = time.time() - start
-        self.stats["_create_nlinks time"] = elapsed
-        logger.info("__create nlinks time " + str(elapsed))
-        return edges
+            bpa = boundary_penalties_fcn(0)
+            # id1 =inds[:, 1:, :].ravel()
+            edgy = np.c_[
+                inds[:-1, :].ravel(),
+                inds[1:, :].ravel(),
+                # cc * np.ones(id1.shape)]
+                bpw * bpa[1:, :].ravel(),
+            ]
+
+            edgs_arr = [edgx, edgy]
+        else:
+            logger.error(f"Input data dimension {self.img.ndim} is no supported")
+            edgs_arr = None
+        return edgs_arr
 
     def debug_get_reconstructed_similarity(
-        self,
-        data3d=None,
-        voxelsize=None,
-        seeds=None,
-        area_weight=1,
-        hard_constraints=True,
-        return_unariesalt=False,
+            self,
+            data3d=None,
+            voxelsize=None,
+            seeds=None,
+            area_weight=1,
+            hard_constraints=True,
+            return_unariesalt=False,
     ):
         """
         Use actual model to calculate similarity. If no input is given the last image is used.
