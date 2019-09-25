@@ -2,27 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-
-
 # import funkcí z jiného adresáře
 import sys
-
-
 import os.path
-
-
 import unittest
-
-
 import scipy
-
-
 import numpy as np
-
-
 import logging
-
-
 logger = logging.getLogger(__name__)
 
 path_to_script = os.path.dirname(os.path.abspath(__file__))

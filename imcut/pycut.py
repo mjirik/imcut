@@ -66,9 +66,9 @@ class ImageGraphCut:
     def __init__(
         self,
         img,
-        modelparams={},
-        segparams={},
-        voxelsize=[1, 1, 1],
+        modelparams=None,
+        segparams=None,
+        voxelsize=None,
         debug_images=False,
         volume_unit="mm3",
         interactivity_loop_finish_fcn=None,
@@ -106,6 +106,12 @@ class ImageGraphCut:
             voxelsize,
             debug_images,
         )
+        if modelparams is None:
+            modelparams = {}
+        if segparams is None:
+            segparams = {}
+        if voxelsize is None:
+            voxelsize = [1, 1, 1]
 
         self.voxelsize = np.asarray(voxelsize)
         if voxelsize is not None:
@@ -1188,10 +1194,18 @@ class ImageGraphCut:
         # if not self.segparams['use_boundary_penalties'] and \
         #         boundary_penalties_fcn is None :
         if boundary_penalties_fcn is None:
-            # This is faster for some specific format
-            edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
-            edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
-            edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
+            if self.img.ndim == 3:
+                # This is faster for some specific format
+                edgx = np.c_[inds[:, :, :-1].ravel(), inds[:, :, 1:].ravel()]
+                edgy = np.c_[inds[:, :-1, :].ravel(), inds[:, 1:, :].ravel()]
+                edgz = np.c_[inds[:-1, :, :].ravel(), inds[1:, :, :].ravel()]
+                edgs_arr = [edgx, edgy, edgz]
+            elif self.img.ndim == 2:
+                edgx = np.c_[inds[:, :-1].ravel(), inds[:, 1:].ravel()]
+                edgy = np.c_[inds[:-1, :].ravel(), inds[1:, :].ravel()]
+                edgs_arr = [edgx, edgy]
+            else:
+                logger.error(f"Input data dimension {self.img.ndim} is no supported")
 
         else:
             logger.info("use_boundary_penalties")
@@ -1226,7 +1240,7 @@ class ImageGraphCut:
             ]
 
         # import pdb; pdb.set_trace()
-        edges = np.vstack([edgx, edgy, edgz]).astype(np.int32)
+        edges = np.vstack(edgs_arr).astype(np.int32)
         # edges - seznam indexu hran, kteres spolu sousedi\
         elapsed = time.time() - start
         self.stats["_create_nlinks time"] = elapsed
