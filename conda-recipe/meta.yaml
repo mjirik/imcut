@@ -1,9 +1,9 @@
 package:
   name: imcut
-  version: "1.10.0"
+  version: "1.11.0"
 
 source:
-  git_rev: 1.10.0
+  git_rev: 1.11.0
 #  git_url: .
   git_url: https://github.com/mjirik/imcut.git
 #  patches:
