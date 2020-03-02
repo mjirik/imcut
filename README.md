@@ -60,7 +60,7 @@ Install pip
 
     pip install pygco imcut
 
-See INSTALL file for more information
+See [INSTALL.md](INSTALL.md) file for more information
 
 Run
 ---

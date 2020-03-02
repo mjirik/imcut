@@ -1,5 +1,31 @@
-Installation Instructions
--------------------------
+# Compiler notes
+
+For installation with `pip` on windows you will need compiler.
+
+* Download and install [miniconda](http://conda.pydata.org/miniconda.html)
+* Download and install [C++ Compiler for Windows](https://wiki.python.org/moin/WindowsCompilers) 
+    * Python 2.7: [MS Visual C++ compiler for Python 2.7](http://aka.ms/vcpython27)
+    * Python 3.6: [Microsoft Build Tools for Visual Studio 2017](
+    https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017)
+    
+        Check "Python development" and "Desktop Application C++ development" during install. 
+        You may remove all submodules. Keep just VC++ 2017 tools.
+    
+* Install depenencies
+    ```bash
+    conda install -c simpleitk -c mjirik -c conda-forge --file requirements_conda.txt
+    ```
+    
+* Install `pygco`
+    ```bash
+    pip install pygco
+    ```
+* [Compilers for Windows](https://wiki.python.org/moin/WindowsCompilers)
+
+* 
+
+
+# Installation Instructions
 
 Installing requires you to have installed:
 
@@ -18,6 +44,9 @@ On Linux, ask the package manager of your distribution.
 
 On Windows, packages numpy, scipy, scikit-learn, Cython, pydicom are part of
 Python(x,y) distribution (http://code.google.com/p/pythonxy).
+
+
+# Pygco install
 
 Pygco has to be installed manually, in gitbash write:
 
