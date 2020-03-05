@@ -90,7 +90,7 @@ Use is as a library:
     igc = pspc.ImageGraphCut(data, voxelsize=[1, 1, 1])
     seeds = igc.interactivity()
     
-![pysegbase_screenshot](http://147.228.240.61/queetech/www/pysegbase_screenshot0.png)
+![pysegbase_screenshot](docs/2020-03-05_imcut.png)
 
     
 More complex example without interactivity
