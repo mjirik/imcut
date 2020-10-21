@@ -67,6 +67,12 @@ Install with pip
 
 See [INSTALL.md](INSTALL.md) file for more information
 
+# Additional packages
+
+```
+conda install -c mjirik -c conda-forge seededitorqt
+```
+
 
 # Examples
 
