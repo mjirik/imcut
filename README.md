@@ -49,21 +49,29 @@ License
 
 New BSD License, see the LICENSE file.
 
-Install conda
+Install with conda
 ----
 
-    conda install -c mjirik -c conda-forge imcut pip
+    conda install -c mjirik -c conda-forge imcut
+
+
+Sometimes (on Linux) you will need to install `pygco` manually with pip
+
+    conda install pip
     pip install pygco
 
-Install pip
+Install with pip
 -------
 
     pip install pygco imcut
 
 See [INSTALL.md](INSTALL.md) file for more information
 
-Run
----
+
+# Examples
+
+## Run with CLI
+
 
 Create output.mat file:
     
@@ -78,7 +86,7 @@ Make graph_cut:
     python imcut/pycut.py -i output.mat
 
 
-Use is as a library:
+## Use is as a library:
 
     import numpy as np
     import imcut.pycut as pspc
@@ -93,8 +101,8 @@ Use is as a library:
 ![pysegbase_screenshot](docs/2020-03-05_imcut.png)
 
     
-More complex example without interactivity
----
+## More complex example without interactivity
+
 
     import numpy as np
     import imcut.pycut as pspc
