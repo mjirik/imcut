@@ -52,10 +52,10 @@ New BSD License, see the LICENSE file.
 Install with conda
 ----
 
-    conda install -c mjirik -c conda-forge imcut
+    conda install -c mjirik -c conda-forge imcut pygco
 
 
-Sometimes (on Linux) you will need to install `pygco` manually with pip
+Sometimes (on Linux) you will need to install `pygco` with pip
 
     conda install pip
     pip install pygco
