@@ -76,6 +76,34 @@ conda install -c mjirik -c conda-forge seededitorqt
 
 # Examples
 
+## Small example
+
+```python
+import imcut.pycut
+import numpy as np
+
+im = np.random.random([5, 5, 1])
+im[:3, :3] += 1.
+
+seeds = np.zeros([5, 5, 1], dtype=np.uint8)
+seeds[:3,0] = 1
+seeds[:3,4] = 2
+
+gc = imcut.pycut.ImageGraphCut(im)
+gc.set_seeds(seeds)
+gc.run()
+
+print(gc.segmentation.squeeze())
+```
+
+```
+[[0 0 0 1 1]
+ [0 0 0 1 1]
+ [0 0 0 1 1]
+ [1 1 1 1 1]
+ [1 1 1 1 1]]
+```
+
 ## Run with CLI
 
 
@@ -94,52 +122,54 @@ Make graph_cut:
 
 ## Use is as a library:
 
-    import numpy as np
-    import imcut.pycut as pspc
+```python
+import numpy as np
+import imcut.pycut as pspc
 
-    data = np.random.rand(30, 30, 30)
-    data[10:20, 5:15, 3:13] += 1
-    data = data * 30
-    data = data.astype(np.int16)
-    igc = pspc.ImageGraphCut(data, voxelsize=[1, 1, 1])
-    seeds = igc.interactivity()
+data = np.random.rand(30, 30, 30)
+data[10:20, 5:15, 3:13] += 1
+data = data * 30
+data = data.astype(np.int16)
+igc = pspc.ImageGraphCut(data, voxelsize=[1, 1, 1])
+seeds = igc.interactivity()
+```
     
 ![pysegbase_screenshot](docs/2020-03-05_imcut.png)
 
     
 ## More complex example without interactivity
 
+```
+import numpy as np
+import imcut.pycut as pspc
+import matplotlib.pyplot as plt
 
-    import numpy as np
-    import imcut.pycut as pspc
-    import matplotlib.pyplot as plt
-
-    # create data
-    data = np.random.rand(30, 30, 30)
-    data[10:20, 5:15, 3:13] += 1
-    data = data * 30
-    data = data.astype(np.int16)
+# create data
+data = np.random.rand(30, 30, 30)
+data[10:20, 5:15, 3:13] += 1
+data = data * 30
+data = data.astype(np.int16)
     
-    # Make seeds
-    seeds = np.zeros([30,30,30])
-    seeds[13:17, 7:10, 5:11] = 1
-    seeds[0:5:, 0:10, 0:11] = 2
+# Make seeds
+seeds = np.zeros([30,30,30])
+seeds[13:17, 7:10, 5:11] = 1
+seeds[0:5:, 0:10, 0:11] = 2
     
-    # Run 
-    igc = pspc.ImageGraphCut(data, voxelsize=[1, 1, 1])
-    igc.set_seeds(seeds)
-    igc.run()
+# Run 
+igc = pspc.ImageGraphCut(data, voxelsize=[1, 1, 1])
+igc.set_seeds(seeds)
+igc.run()
     
-    # Show results
-    colormap = plt.cm.get_cmap('brg')
-    colormap._init()
-    colormap._lut[:1:,3]=0
+# Show results
+colormap = plt.cm.get_cmap('brg')
+colormap._init()
+colormap._lut[:1:,3]=0
     
-    plt.imshow(data[:, :, 10], cmap='gray') 
-    plt.contour(igc.segmentation[:, :,10], levels=[0.5])
-    plt.imshow(igc.seeds[:, :, 10], cmap=colormap, interpolation='none')
-    plt.show()
-
+plt.imshow(data[:, :, 10], cmap='gray') 
+plt.contour(igc.segmentation[:, :,10], levels=[0.5])
+plt.imshow(igc.seeds[:, :, 10], cmap=colormap, interpolation='none')
+plt.show()
+```
 
 ![example_img](https://raw.githubusercontent.com/mjirik/pyseg_base/master/imgs/example_result.png)
 
