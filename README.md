@@ -78,6 +78,12 @@ conda install -c mjirik -c conda-forge seededitorqt
 
 ## Small example
 
+How to understand the `seeds`:
+
+* 0 - we have no information about this voxel
+* 1 - for sure the voxel on the same location in the data is the background
+* 2 - for sure the voxel on the same location in the data is the segmented object
+
 ```python
 import imcut.pycut
 import numpy as np
