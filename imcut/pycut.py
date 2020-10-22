@@ -45,6 +45,7 @@ from .image_manipulation import (
 
 from .models import Model, Model3D, defaultmodelparams, methods, accepted_methods
 from .graph import Graph
+# from imcut.graph import Graph
 
 
 class ImageGraphCut:
