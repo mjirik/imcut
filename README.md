@@ -79,13 +79,13 @@ The intensity of the seed is used to train the intensity model based on the Gaus
 set a hard constraint in the graph.
 
 * 0 - we have no information about this voxel
-* 1 - for sure the voxel on the same location in the image data is the background
-* 2 - for sure the voxel on the same location in the image data is the segmented object
+* 1 - for sure the voxel on the same location in the image data is the segmented object
+* 2 - for sure the voxel on the same location in the image data is the background
 
 There are two more types used when the voxel is object or background but you dont want to use it for intensity model training because its intensity is not good representation.
 
-* 3 the voxel is the background but we do not want to use it for intensity training 
-* 4 the voxel is the object but we do not want to use it for intensity training 
+* 3 the voxel is the object but we do not want to use it for intensity training 
+* 4 the voxel is the background but we do not want to use it for intensity training 
 
 # Examples
 

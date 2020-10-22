@@ -831,7 +831,9 @@ class ImageGraphCut:
         self.segmentation = res_segm.astype(np.int8)
 
     def __just_objects_with_seeds_if_required(self, res_segm):
+        print("return_only_object_with_seeds")
         if self.segparams["return_only_object_with_seeds"]:
+            logger.debug("return_only_object_with_seeds")
             try:
                 # because of negative problem is as 1 segmented background and
                 # as 0 is segmented foreground
