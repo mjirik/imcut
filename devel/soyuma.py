@@ -1,30 +1,12 @@
-import numpy as np
 import matplotlib.pyplot as plt
 import imcut
 print(imcut.__version__)
-# import imcut.pycut
 import imcut.pycut as pspc
-# import imcut.graph
-
-
-import os
 import torch
-import numpy as np
 
 
 import imcut.pycut
 import numpy as np
-
-im = np.random.random([5, 5, 1])
-im[:3, :3] += 1.
-
-seeds = np.zeros([5, 5, 1], dtype=np.uint8)
-seeds[:3,0] = 1
-seeds[:3,4] = 2
-
-gc = imcut.pycut.ImageGraphCut(im)
-gc.set_seeds(seeds)
-gc.run()
 
 print(gc.segmentation.squeeze())
 pth = r"C:\Users\Jirik\Downloads\mSeq/mSeq.pt"
@@ -32,7 +14,6 @@ nslices=10
 
 
 segparams = {
-        # 'method':'graphcut',
         'method': 'graphcut',
         "pairwise_alpha": 20,
         # 'use_boundary_penalties': False,
@@ -41,12 +22,7 @@ segparams = {
         'modelparams': {
                 'cvtype': 'full',
                 "params": {"covariance_type": "full", "n_components": 1},
-            # 'type': 'gmmsame',
-            # 'fv_type': "fv_extern",
-            # 'fv_extern': fv_function,
-            # 'adaptation': 'original_data',
         },
-        # 'mdl_stored_file': False,
         "return_only_object_with_seeds": True,
     }
 
