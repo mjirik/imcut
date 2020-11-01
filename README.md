@@ -228,6 +228,6 @@ segparams = {
 }
  ```
         
-*mdl_stored_file*: if this is set, load model from file 
+`mdl_stored_file`: if this is set, load model from file, you can see more in function `test_external_fv_with_save` in [`pycut_test.py`](https://github.com/mjirik/imcut/blob/master/tests/pycut_test.py)
 
 [read more about configuration](https://github.com/mjirik/imcut/blob/master/imcut/pycut.py)
