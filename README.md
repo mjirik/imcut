@@ -209,7 +209,7 @@ segparams = {
 }
 ```
 
-## Multivariate normal distribution model with extern feature vector function
+## Gaussian mixture distribution model with extern feature vector function
 
 ```python
 segparams = {
