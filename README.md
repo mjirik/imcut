@@ -190,25 +190,44 @@ plt.show()
 
 
 
-Configuration
-===
+# Configuration
 
+## One component Gaussian model and one object
 
-        segparams = {
-            # 'method':'graphcut',
-            'method': 'graphcut',
-            'use_boundary_penalties': False,
-            'boundary_dilatation_distance': 2,
-            'boundary_penalties_weight': 1,
-            'modelparams': {
-                'type': 'gmmsame',
-                'fv_type': "fv_extern",
-                'fv_extern': fv_function,
-                'adaptation': 'original_data',
-            }
-            'mdl_stored_file': False,
-        }
+`pairwise_alpha` control the complexity of the object shape. Higher `pairwise_alpha` => more compact shape.
+
+```python
+segparams = {
+        'method': 'graphcut',
+        "pairwise_alpha": 20,
+
+        'modelparams': {
+                'cvtype': 'full',
+                "params": {"covariance_type": "full", "n_components": 1},
+        },
+        "return_only_object_with_seeds": True,
+}
+```
+
+## Gaussian mixture distribution model with extern feature vector function
+
+```python
+segparams = {
+    # 'method':'graphcut',
+    'method': 'graphcut',
+    'use_boundary_penalties': False,
+    'boundary_dilatation_distance': 2,
+    'boundary_penalties_weight': 1,
+    'modelparams': {
+        'type': 'gmmsame',
+        'fv_type': "fv_extern",
+        'fv_extern': fv_function,
+        'adaptation': 'original_data',
+    }
+    'mdl_stored_file': False,
+}
+ ```
         
-*mdl_stored_file*: if this is set, load model from file 
+`mdl_stored_file`: if this is set, load model from file, you can see more in function `test_external_fv_with_save` in [`pycut_test.py`](https://github.com/mjirik/imcut/blob/master/tests/pycut_test.py)
 
 [read more about configuration](https://github.com/mjirik/imcut/blob/master/imcut/pycut.py)
