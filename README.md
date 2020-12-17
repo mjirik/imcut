@@ -49,7 +49,7 @@ License
 
 New BSD License, see the LICENSE file.
 
-Install with conda
+Install with conda (recommended)
 ----
 
     conda install -c mjirik -c conda-forge imcut pygco
@@ -60,7 +60,7 @@ Sometimes (on Linux) you will need to install `pygco` with pip
     conda install pip
     pip install pygco
 
-Install with pip
+Install with pip 
 -------
 
     pip install pygco imcut
