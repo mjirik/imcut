@@ -79,13 +79,21 @@ The intensity of the seed is used to train the intensity model based on the Gaus
 set a hard constraint in the graph.
 
 * 0 - we have no information about this voxel
-* 1 - for sure the voxel on the same location in the image data is the segmented object
-* 2 - for sure the voxel on the same location in the image data is the background
+* 1 - for sure, the voxel on the same location in the image data is the segmented object
+* 2 - for sure, the voxel on the same location in the image data is the background
 
 There are two more types used when the voxel is object or background but you dont want to use it for intensity model training because its intensity is not good representation.
 
 * 3 the voxel is the object but we do not want to use it for intensity training 
 * 4 the voxel is the background but we do not want to use it for intensity training 
+
+The output segmentation:
+
+* 0 - trained from `seeds==1` (object)
+* 1 - trained from `seeds==2` (background)
+
+The only difference between object and background is in the postprocessing with the connected object filter.
+It can be turned off by setting `"return_only_object_with_seeds":True` in `segparams`.
 
 # Examples
 
@@ -101,8 +109,8 @@ im = np.random.random([5, 5, 1])
 im[:3, :3] += 1.
 
 seeds = np.zeros([5, 5, 1], dtype=np.uint8)
-seeds[:3,0] = 1
-seeds[:3,4] = 2
+seeds[:3,0] = 1  # foreground
+seeds[:3,4] = 2  # background
 
 gc = imcut.pycut.ImageGraphCut(im)
 gc.set_seeds(seeds)
