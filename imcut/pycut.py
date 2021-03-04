@@ -74,6 +74,7 @@ class ImageGraphCut:
         volume_unit="mm3",
         interactivity_loop_finish_fcn=None,
         keep_graph_properties=False,
+        apriori=None
     ):
         """
 
@@ -94,6 +95,8 @@ class ImageGraphCut:
             :param keep_graph_properties: Do not delete some usefull varibales like
                 msinds, unariesalt, nlinks, temp_msgc_resized_segmentation, temp_msgc_resized_img and
                 temp_msgc_resized_seeds
+            :param apriori: Map with apriori information about image in range from zero to one. The weight between image
+            information and apriori map is controlled by `apriori_gamma` in `segparams`.
 
 
         Returns:
@@ -132,7 +135,7 @@ class ImageGraphCut:
 
         self.interactivity_counter = 0
         self.stats = {"tlinks shape": [], "nlinks shape": []}
-        self.apriori = None
+        self.apriori = apriori
         self.interactivity_loop_finish_funcion = interactivity_loop_finish_fcn
         self.keep_temp_properties = keep_graph_properties
 

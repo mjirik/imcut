@@ -1,5 +1,8 @@
 # Changelog
 
+# Unreleased
+
+[Added] Custom density functions
 
 ## 1.11
 

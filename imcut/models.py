@@ -387,6 +387,8 @@ class Model(Model3D):
             mdl_file = self.modelparams["params"]["mdl_file"]
             self.mdl = pickle.load(open(mdl_file, "rb"))
 
+        elif type(self.modelparams['type'] == 'custom'):
+            self.mdl[cl].fit(clx)
         else:
             raise NameError("Unknown model type")
 
@@ -439,4 +441,8 @@ class Model(Model3D):
             px = self.mdl[cl].score_samples(x * 0.01)
         elif self.modelparams["type"] == "stored":
             px = self.mdl[cl].score(x)
+        elif self.modelparams["type"] == "custom":
+            px = self.mdl[cl].score_samples(x)
+        else:
+            logger.error(f"Unknown type {self.modelparams['type']}")
         return px
