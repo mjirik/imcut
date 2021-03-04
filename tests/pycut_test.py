@@ -1055,6 +1055,37 @@ class PycutTest(unittest.TestCase):
 
         os.remove(mdl_stored_file)
 
+    def test_custom_density_function(self):
+        import sklearn.mixture
+        img, seg, seeds = self.make_data(64, 20)
+
+        segparams = {
+            # 'method':'graphcut',
+            'method': 'graphcut',
+            'modelparams': {
+                'type': 'custom',
+                #         'params': {},
+            }
+        }
+        gc = pycut.ImageGraphCut(img, segparams=segparams)
+
+        # rewrite the default setting by you own model
+        from sklearn.neighbors import KernelDensity
+
+        # object with .fit() and .score_samples() functions
+
+        # gc.mdl.mdl[1] = KernelDensity(kernel='tophat')
+        gc.mdl.mdl[1] = KernelDensity(kernel='gaussian')
+        gc.mdl.mdl[2] = sklearn.mixture.GaussianMixture(n_components=1)
+
+        gc.set_seeds(seeds)
+        gc.run()
+
+        err = np.sum(
+            np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
+        )
+        assert err < 1000, "There should be low error"
+
 
 def generate_round_data(
     sz=32, offset=0, radius=7, seedsz=3, add_object_without_seeds=False
