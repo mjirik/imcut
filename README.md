@@ -196,7 +196,13 @@ plt.show()
 
 ![example_img](https://raw.githubusercontent.com/mjirik/pyseg_base/master/imgs/example_result.png)
 
+# More example
 
+* [Pretrain the model to make things faster](examples/pretrain_model.ipynb)
+* [Use additional information about pixels](examples/apriori.ipynb)
+* [Use custom feature vector](examples/feature_vector_function.ipynb)
+* [See the likelihood in image and use different density functions](examples/Feature_vector_and_modelling.ipynb)
+* [Use custom density functions](examples/custom_density_function.ipynb)
 
 # Configuration
 
@@ -231,7 +237,7 @@ segparams = {
         'fv_type': "fv_extern",
         'fv_extern': fv_function,
         'adaptation': 'original_data',
-    }
+    },
     'mdl_stored_file': False,
 }
  ```
