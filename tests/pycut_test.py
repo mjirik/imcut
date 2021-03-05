@@ -1084,7 +1084,7 @@ class PycutTest(unittest.TestCase):
         err = np.sum(
             np.abs((gc.segmentation == 0).astype(np.int8) - seg.astype(np.int8))
         )
-        assert err < 1000, "There should be low error"
+        assert err < 2000, "There should be low error"
 
 
 def generate_round_data(
