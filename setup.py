@@ -7,8 +7,6 @@ from os import path
 from distutils.core import setup
 from Cython.Build import cythonize
 
-setup()
-
 here = path.abspath(path.dirname(__file__))
 setup(
     name="imcut",
@@ -17,7 +15,7 @@ setup(
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
     version="1.11.0",
-    url="https://github.com/mjirik/pyseg_base",
+    url="https://github.com/mjirik/imcut",
     author="Miroslav Jirik and Vladimir Lukes",
     author_email="miroslav.jirik@gmail.com",
     license="MIT",
